@@ -1,11 +1,16 @@
+import './browser_stub.mjs';
+import { registerAllSets2 } from '../../js/engine_v2/sets2/index.js';
 import { readFile, mkdir, writeFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import { resolve } from 'node:path';
 import { runInNewContext } from 'node:vm';
 import { registerV2Parts } from '../../js/engine_v2/partsExtra_v2.js';
+import { SKILLS as RUNTIME_SKILLS, PART_SKILL as RUNTIME_PART_SKILL, LEG_PASSIVES as RUNTIME_LEG_PASSIVES } from '../../js/engine_v2/skills_v2.js';
 import { PARTS_DB } from '../../js/data/parts.js';
 import { ROSTER, characterOfPart, partSetLabel } from '../../js/engine_v2/roster_v2.js';
 
+// 2차 세트·새 캐릭터 기본 파츠는 main_v2.js처럼 registerV2Parts() 전에 한 번 등록한다.
+registerAllSets2();
 registerV2Parts();
 
 // 문자열과 주석은 통째로 읽어, 스킬 함수 안의 중괄호와 메타데이터를 구분한다.
@@ -93,13 +98,17 @@ function metadata(valueTokens, label, withCooldown = false) {
 }
 
 const partSkills = new Map([...table('PART_SKILL')].map(([id, value]) => [id, literal(value, `PART_SKILL.${id}`)]));
+// 소스 표에 없는 키는 등록된 런타임 표(세트 묶음이 더한 스킬·패시브)에서 채운다.
+for (const [id, key] of Object.entries(RUNTIME_PART_SKILL)) if (!partSkills.has(id)) partSkills.set(id, key);
 const skillTable = table('SKILLS');
 const skills = new Map();
 for (const key of new Set(partSkills.values())) {
-    if (!skillTable.has(key)) throw new Error(`PART_SKILL의 스킬 ${key}를 SKILLS에서 찾을 수 없습니다.`);
-    skills.set(key, metadata(skillTable.get(key), `SKILLS.${key}`, true));
+    if (skillTable.has(key)) skills.set(key, metadata(skillTable.get(key), `SKILLS.${key}`, true));
+    else if (RUNTIME_SKILLS[key]) skills.set(key, { name: RUNTIME_SKILLS[key].name, desc: RUNTIME_SKILLS[key].desc, cd: RUNTIME_SKILLS[key].cd || '' });
+    else throw new Error(`PART_SKILL의 스킬 ${key}를 SKILLS에서 찾을 수 없습니다.`);
 }
 const passives = new Map([...table('LEG_PASSIVES')].map(([id, value]) => [id, metadata(value, `LEG_PASSIVES.${id}`)]));
+for (const [id, p] of Object.entries(RUNTIME_LEG_PASSIVES)) if (!passives.has(id)) passives.set(id, { name: p.name, desc: p.desc, cd: '' });
 
 const slots = [ ['head', '머리', '필살기'], ['body', '몸통', '스킬 2'], ['arm', '팔', '스킬 1'], ['leg', '다리', '패시브'] ];
 const columns = ['부위', '파츠 이름', 'id', '세트', '가격(DM)', '체력', '초당 피해', '사거리', '속도', '공격 방식', '스킬 종류', '스킬·패시브 이름', '쿨다운(초)', '설명'];
