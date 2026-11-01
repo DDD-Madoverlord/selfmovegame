@@ -17,6 +17,7 @@ import { isApp, checkForUpdate } from './ui_v2/appUpdate_v2.js';
 import { applyVfxChoices, readVfxChoices, readVfxStyle } from './engine_v2/vfx/vfxVariants.js';
 import { preloadVfxSheets } from './engine_v2/vfx/vfxPlayer.js';
 import { setFitScale } from './engine_v2/displayRes.js';
+import { getSupabaseClient, checkSupabaseHealth } from './engine_v2/supabase_v2.js';
 
 class GameRouterV2 {
     constructor() {
@@ -39,6 +40,17 @@ class GameRouterV2 {
     init() {
         // 사운드: 첫 입력에서 켜짐 (모드 선택 클릭으로 들어왔으면 바로)
         sound.listenForUnlock();
+        // Supabase 클라이언트 초기화 및 연결 확인
+        const supabase = getSupabaseClient();
+        if (supabase) {
+            checkSupabaseHealth().then(res => {
+                if (res.ok) {
+                    console.log(`[Supabase] 연결 성공: Mad Overlord (${res.latencyMs}ms, GoTrue ${res.version})`);
+                } else {
+                    console.warn('[Supabase] 헬스체크 응답 이상:', res.error);
+                }
+            });
+        }
         // 메뉴/연구소/선택창 버튼 클릭음 (연구소 장착 확정·캐릭터 카드는 소리를 따로 냄)
         document.addEventListener('click', e => {
             const t = e.target.closest('#screen-menu-v2 button, #screen-lab-v2 button, #screen-lab-v2 .part-card, #screen-select-v2 button');
