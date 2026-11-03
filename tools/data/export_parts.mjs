@@ -4,13 +4,18 @@ import { readFile, mkdir, writeFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import { resolve } from 'node:path';
 import { runInNewContext } from 'node:vm';
-import { registerV2Parts } from '../../js/engine_v2/partsExtra_v2.js';
+import { registerV2Parts, V2_PARTS } from '../../js/engine_v2/partsExtra_v2.js';
 import { SKILLS as RUNTIME_SKILLS, PART_SKILL as RUNTIME_PART_SKILL, LEG_PASSIVES as RUNTIME_LEG_PASSIVES } from '../../js/engine_v2/skills_v2.js';
 import { PARTS_DB } from '../../js/data/parts.js';
 import { ROSTER, characterOfPart, partSetLabel } from '../../js/engine_v2/roster_v2.js';
 
 // 2차 세트·새 캐릭터 기본 파츠는 main_v2.js처럼 registerV2Parts() 전에 한 번 등록한다.
+// 표에는 모두 싣지만, 테스트 화면(rig_test.html)은 이 파츠들의 미리보기가 없어 목록에서 뺀다.
+// (registerAllSets2는 V2_PARTS에 더하고, registerV2Parts가 그것을 PARTS_DB로 옮긴다)
+const partIds = () => Object.values(V2_PARTS).flat().map(part => part.id);
+const beforeSets2 = new Set(partIds());
 registerAllSets2();
+const sets2Ids = new Set(partIds().filter(id => !beforeSets2.has(id)));
 registerV2Parts();
 
 // 문자열과 주석은 통째로 읽어, 스킬 함수 안의 중괄호와 메타데이터를 구분한다.
@@ -130,7 +135,7 @@ for (const [slot, label, kind] of slots) {
             skill?.name ?? '', skill?.cd ?? '', skill?.desc ?? part.skillDesc ?? ''
         ]);
         const character = characterOfPart(part);
-        if (catalog[character]) catalog[character].push({
+        if (catalog[character] && !sets2Ids.has(part.id)) catalog[character].push({
             slot, id: part.id, name: part.name, set: partSetLabel(part), variant: part.rigVariant || null,
             upgrade: !!part.rigUpgrade, attackType: slot === 'arm' ? part.attackType || 'melee' : null,
             skill: slot === 'leg' ? part.id : partSkills.get(part.id) || null, kind,
@@ -180,7 +185,7 @@ const gen = fileURLToPath(new URL('../../js/rig_test/partSkills.gen.js', import.
 await writeFile(gen, [
     '// 자동 생성: node tools/data/export_parts.mjs (손으로 고치지 말 것) — rig_test.html 캐릭터별 파츠·스킬 목록',
     '// skill = skills_v2.js의 스킬 키 (다리는 파츠 id = 패시브 키), variant = 세트 그림(a·b·dragon), upgrade = 새 캐릭터 강화 그림',
-    `export const PART_CATALOG = ${JSON.stringify(catalog, null, 1)};`, ''
+    `export const PART_CATALOG = ${JSON.stringify(Object.fromEntries(Object.entries(catalog).filter(([, list]) => list.length)), null, 1)};`, ''
 ].join('\n'), 'utf8');
 console.log(gen);
 for (const group of groups) console.log(`${group.faction}: ${group.rows.length}개`);
