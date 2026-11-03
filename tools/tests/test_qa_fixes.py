@@ -1,4 +1,37 @@
-"""QA 회귀 검사: 긴 스테이지 설명의 화면 넘침, 요새 파괴 뒤 배속·표시, 거점 너머 아군 소환"""
+"""QA 회귀 검사: 긴 스테이지 설명의 화면 넘침, 요새 파괴 뒤 배속·표시, 거점 너머 아군 소환,
+기본 파츠 지속 피해로 쓰러진 적이 안 치워지던 버그(11-02 디스코드 '1-1 졸개 무적'),
+소환수: 거점을 지나친 아군이 거점을 안 치던 것 · 아군이 앞에서 싸우는데 주인공이 제자리걸음하던 것(11-03),
+적 그림: 공격 동작이 땅 아래로 내려가 걷는 동안 발이 뜨던 것(11-02 '처형인 성기사 공중부양')"""
+import glob
+import json
+import os
+
+from PIL import Image
+
+ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+
+def walk_float():
+    """구운 적 그림마다 걷기 프레임 발 아래 빈칸(게임 px)의 최솟값 — 가장 낮게 디딘 프레임도 땅에서 떠 있으면 공중부양"""
+    out = {}
+    for jp in glob.glob(os.path.join(ROOT, 'assets', 'sprites', 'rig', '*', '*.json')):
+        name = os.path.basename(os.path.dirname(jp))
+        if os.path.basename(jp) != f'{name}.json':
+            continue
+        meta = json.load(open(jp, encoding='utf-8'))
+        walk = meta.get('clips', {}).get('walk')
+        if not walk:
+            continue
+        im = Image.open(os.path.join(ROOT, walk['src'])).convert('RGBA')
+        w = im.size[0] // walk['frames']
+        gaps = []
+        for i in range(walk['frames']):
+            box = im.crop((i * w, 0, (i + 1) * w, im.size[1])).getchannel('A').point(lambda a: 255 if a > 60 else 0).getbbox()
+            if box:
+                gaps.append((im.size[1] - box[3]) / meta.get('res', 1))
+        out[name] = min(gaps)
+    return out
+
 
 CLEAR = ("(await import('/js/engine_v2/stages_v2.js')).STAGES.filter(s => [1, 2].includes(s.zone))"
          ".forEach(s => progress.stages[s.id] = { stars: [true,true,true], cleared: true, bestTime: 60 });")
@@ -42,3 +75,48 @@ def run(ctx):
         const a = b.allies[b.allies.length - 1];
         return { base: f.x, ally: a && a.x };""")
     ctx.check(st['ally'] is not None and st['ally'] <= st['base'] - 40, '봉합 아군 소환: 거점 x - 40 이하', str(st))
+
+    # 기본 파츠 지속 피해(타락 히어로 몸통 저주 · 거대괴수 다리 포자 · 합성괴인 다리 진동)로 쓰러진 적은 목록에서 빠짐
+    # — 체력 0 이하로 남아 공격을 안 받고 계속 서 있던 '1-1 졸개 무적' (11-02 디스코드 QA, 협력 모드 30a7ddf 이후)
+    for build, label in (('kaiju', '거대괴수 다리 포자'), ('hero', '타락 히어로 몸통 저주'), ('chimera', '합성괴인 다리 진동')):
+        g.js("b.stopBattle(); progress.selectStage('1-1'); window.madOverlordGameV2.switchScreen('menu');")
+        g.wait(300)
+        g.battle(build, wait_ms=1500)
+        g.js("b.setAutoSkills(false); b.spawnInterval = 999; b.playerSpeed = 0; b.playerDps = 0;"
+             "b.enemies.filter(e => !e.isBuilding).forEach(e => e.dom && e.dom.remove()); b.enemies = b.enemies.filter(e => e.isBuilding);")
+        g.place_enemies(n=1, first=150, hp=3, speed=0, dps=0)
+        g.wait(800)
+        st = g.js("return { left: b.enemies.filter(e => !e.isBuilding).length, ghost: b.enemies.filter(e => e.hp <= 0).length };")
+        ctx.check(st['left'] == 0 and st['ghost'] == 0, f'{label}로 쓰러진 적은 치워짐 (체력 0 이하로 남지 않음)', str(st))
+
+    # 소환수 ① 거점이 나중에 생겨 거점보다 앞에 있게 된 아군도 거점을 침 (전에는 '뒤로 35px'까지만 봐서 가만히 서 있음)
+    g.js("b.stopBattle(); progress.selectStage('1-1'); window.madOverlordGameV2.switchScreen('menu');")
+    g.wait(300)
+    g.battle('kaiju', wait_ms=1500)
+    g.js("b.setAutoSkills(false); b.spawnInterval = 999; b.playerSpeed = 0; b.playerDps = 0;"
+         "b.enemies.forEach(e => e.dom && e.dom.remove()); b.enemies = []; b.allies.forEach(a => a.dom && a.dom.remove()); b.allies = [];"
+         "b.spawnAllyMinion(850, 'stitch', { art: 'guard', hp: 99999, dps: 50 }); b.midBaseSpawned = true; b.spawnBase('mid');")
+    hp0 = g.js("return b.enemies.find(e => e.isBuilding).hp;")
+    g.wait(1200)
+    st = g.js("const f = b.enemies.find(e => e.isBuilding); const a = b.allies[0]; return { base: f.x, hp: f.hp, ally: a.x, atk: !!a.attacking };")
+    ctx.check(st['ally'] > st['base'] + 35 and st['atk'] and st['hp'] < hp0, '소환수: 거점을 지나친 아군도 거점을 공격', f'{st} 처음 체력 {hp0}')
+
+    # 소환수 ② 아군이 앞에서 적을 붙잡고 싸우면 주인공은 그 자리로 걸어감 (제자리걸음으로 거리만 쌓지 않음)
+    g.js("b.stopBattle(); progress.selectStage('1-1'); window.madOverlordGameV2.switchScreen('menu');")
+    g.wait(300)
+    g.battle('kaiju', wait_ms=1500)
+    g.js("b.setAutoSkills(false); b.spawnInterval = 999; b.playerDps = 0;"
+         "b.enemies.forEach(e => e.dom && e.dom.remove()); b.enemies = []; b.allies.forEach(a => a.dom && a.dom.remove()); b.allies = [];"
+         "b.spawnAllyMinion(b.monsterX + 460, 'stitch', { art: 'guard', hp: 99999, dps: 0 });")
+    g.place_enemies(n=1, first=500, hp=99999, speed=35, dps=5)
+    g.wait(400)
+    a = g.js("return { x: b.monsterX, d: b.distanceTraveled, fight: b.allies.some(a => a.attacking) };")
+    g.wait(1200)
+    z = g.js("return { x: b.monsterX, d: b.distanceTraveled, fight: b.allies.some(a => a.attacking) };")
+    ctx.check(a['fight'] and z['fight'] and z['x'] > a['x'] + 20 and z['d'] - a['d'] < 3,
+              '소환수: 아군이 앞에서 싸우면 주인공이 그 자리로 걸어감 (거리는 쌓지 않음)', f'{a} → {z}')
+
+    # 적 그림: 걷기 중 가장 낮게 디딘 프레임의 발 아래 빈칸이 6px 이하 (처형인 성기사 15px·블라디미르 43px였음 — bake_sprite.py가 땅 아래를 자름)
+    gaps = walk_float()
+    floating = {n: round(v, 1) for n, v in gaps.items() if v > 6}
+    ctx.check(len(gaps) >= 100 and not floating, f'적 그림 {len(gaps)}종: 걷는 동안 발이 땅에서 뜨지 않음', str(floating))

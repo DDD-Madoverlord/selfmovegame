@@ -312,9 +312,7 @@ export const PlayerMethods = {
                         this.fx.play(HERO_VFX.curseTick, aimOf(enemy).x, FOOT_B);
                         this.createDamagePopup(enemy.x, 140, `☠ -${Math.round(HERO.curseDps * HERO.curseTick)}`, false);
                     }
-                    if (enemy.hp <= 0) {
-                        this.dealDamageToEnemy(enemy, 0, false);
-                    }
+                    if (enemy.hp <= 0) this.defeatEnemy(enemy);
                 }
             });
         }
@@ -336,9 +334,7 @@ export const PlayerMethods = {
                         this.fx.play(KAIJU_VFX.sporeTick, aimOf(enemy).x, FOOT_B);
                         this.createDamagePopup(enemy.x, 130, `☣ -${Math.round(PASSIVE.sporeDps * 0.75)}`, false);
                     }
-                    if (enemy.hp <= 0) {
-                        this.dealDamageToEnemy(enemy, 0, false);
-                    }
+                    if (enemy.hp <= 0) this.defeatEnemy(enemy);
                 }
             });
         }
@@ -359,9 +355,7 @@ export const PlayerMethods = {
                         this.fx.play(CHIMERA_VFX.quakeTick, aimOf(enemy).x, FOOT_B);
                         this.createDamagePopup(enemy.x, 130, `💥 -${Math.round(PASSIVE.quakeDps * 0.75)}`, false);
                     }
-                    if (enemy.hp <= 0) {
-                        this.dealDamageToEnemy(enemy, 0, false);
-                    }
+                    if (enemy.hp <= 0) this.defeatEnemy(enemy);
                 }
             });
         }

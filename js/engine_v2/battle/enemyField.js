@@ -265,15 +265,19 @@ export const EnemyMethods = {
             this.updateHud();
         }
 
-        if (enemy.hp <= 0) {
-            if (!this.enemies.includes(enemy)) return;   // 같은 프레임에 두 번 처리되지 않게
-            if (!enemy.isBuilding && !enemy.isBarricade) this.fx.play(BATTLE_VFX.enemyDefeat, enemy.x + 38, FOOT_B, { scale: enemy.boss ? 1.8 : 1 });
-            // 거점 건물은 파괴 연출이 무너뜨린 뒤 치움, 적은 뒤로 넘어지며 사라짐 (Q4)
-            if (enemy.dom && !enemy.isBuilding) this.enemyFall(enemy);
-            this.enemies = this.enemies.filter(e => e.id !== enemy.id);
-            if (enemy.isBuilding) this.onBaseDestroyed(enemy);
-            else this.onEnemyKilled(enemy);
-        }
+        if (enemy.hp <= 0) this.defeatEnemy(enemy);
+    },
+
+    /** 체력 0 이하가 된 적·거점 치우기. 체력을 직접 깎는 기본 파츠 지속 피해(player.js 저주·포자·진동)도 이걸 부름 —
+     *  dealDamageToEnemy는 이미 0 이하인 적을 받지 않으므로(협력 모드, 30a7ddf) 거기에 0 피해를 넘기면 적이 안 치워져 무적처럼 남음 (11-02 QA) */
+    defeatEnemy(enemy) {
+        if (!this.enemies.includes(enemy)) return;   // 같은 프레임에 두 번 처리되지 않게
+        if (!enemy.isBuilding && !enemy.isBarricade) this.fx.play(BATTLE_VFX.enemyDefeat, enemy.x + 38, FOOT_B, { scale: enemy.boss ? 1.8 : 1 });
+        // 거점 건물은 파괴 연출이 무너뜨린 뒤 치움, 적은 뒤로 넘어지며 사라짐 (Q4)
+        if (enemy.dom && !enemy.isBuilding) this.enemyFall(enemy);
+        this.enemies = this.enemies.filter(e => e.id !== enemy.id);
+        if (enemy.isBuilding) this.onBaseDestroyed(enemy);
+        else this.onEnemyKilled(enemy);
     },
 
     /** 거점 파괴: 요새 = 별 1·보상·잔해 / 최종 기지 = 별 2·보상 → 남은 적 패주 → 승리 연출 → 결과 */

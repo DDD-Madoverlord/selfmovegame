@@ -112,6 +112,13 @@ export const AllyMethods = {
                 }
             });
 
+            // 거점을 이미 지나친 아군(거점이 나중에 생겨 소환 자리보다 앞에 있게 됨 등)은 더 가지 않고 거점을 침 —
+            // 바로 앞에 붙은 적이 있으면 그 적이 먼저 (11-03 QA: 거점 공격을 못 하고 계속 전진)
+            if (!(closestEnemyToAlly && !closestEnemyToAlly.isBuilding && minAllyDist <= 65)) {
+                const passed = this.enemies.find(e => e.isBuilding && e.x - ally.x < -35);
+                if (passed) { closestEnemyToAlly = passed; minAllyDist = 0; }
+            }
+
             const hitRange = (closestEnemyToAlly && closestEnemyToAlly.isBuilding) ? 110 : 65;
             const fighting = !!closestEnemyToAlly && minAllyDist <= hitRange;
             if (fighting !== !!ally.attacking && ally.dom) {   // 싸우는 동안 공격 동작 (그림이 있는 아군)

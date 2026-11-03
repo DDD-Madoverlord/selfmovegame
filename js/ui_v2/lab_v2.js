@@ -19,7 +19,7 @@ import { gameState } from '../engine/state.js';
 import { PART_SKILL, SKILLS, skillsForParts, legPassiveOf } from '../engine_v2/skills_v2.js';
 import { progress, LEVEL_BONUS } from '../engine_v2/progress_v2.js';
 import { highestDifficulty, nextDifficultyOf, FINAL_STAGE_ID } from '../engine_v2/difficulty_v2.js';
-import { RigAvatar, rigConfigFor, variantThumb } from '../engine_v2/rig/rigAvatar.js';
+import { RigAvatar, rigConfigFor, variantThumb, mechArmOf } from '../engine_v2/rig/rigAvatar.js';
 import { RIG_CHARACTERS } from '../engine_v2/rig/characters.js';
 import { rosterOf, characterOfPart, partsOfCharacter, partSetLabel } from '../engine_v2/roster_v2.js';
 import { sound } from '../engine_v2/audio/sound_v2.js';
@@ -36,7 +36,7 @@ const ROLE = { arm: { tag: '1', label: '스킬 1' }, body: { tag: '2', label: '�
 const upThumb = file => p => (p.rigUpgrade ? file.replace('.png', '_up.png') : file);
 const NEW_THUMB = { head: upThumb('head.png'), body: upThumb('torso.png'), arm: upThumb('armF.png'), leg: upThumb('legF.png') };
 const THUMB = {
-    mech: { head: 'head.png', body: 'body.png', arm: p => (['laser', 'missile', 'rail'].includes(p.attackType) ? 'armR_cannon.png' : 'armR_fist.png'), leg: 'legR.png' },
+    mech: { head: 'head.png', body: 'body.png', arm: p => `armR_${mechArmOf(p)}.png`, leg: 'legR.png' },   // 팔은 전투 리그와 같은 규칙 (2차 세트 rigArm)
     kaiju: { head: 'head.png', body: 'body.png', arm: 'armF.png', leg: 'legF.png' },
     hero: { head: 'head.png', body: 'torso.png', arm: 'sword.png', leg: 'shinF.png' },
     chimera: { head: 'head.png', body: 'torso.png', arm: 'armF.png', leg: 'legF.png' },

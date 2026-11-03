@@ -530,7 +530,7 @@ export class BattleEngine {
     }
 
     /**
-     * 주인공 진격: 사거리 안에 적이 있으면 공격 / 거점이 나와 있으면 거점까지 직접 걸어감 /
+     * 주인공 진격: 사거리 안에 적이 있으면 공격 / 거점이 나와 있거나 아군이 앞에서 싸우면 거기까지 직접 걸어감 /
      * 요새가 무너지는 동안 승리 자세 / 아니면 배경을 흘리며 거리 누적(거점 출현)
      */
     tickAdvance(dt, frontX) {
@@ -560,7 +560,9 @@ export class BattleEngine {
             if (minDistance <= 70 && closestEnemy.isBuilding) {
                 this.damagePlayer(closestEnemy.dps * dt, dt, null, closestEnemy);
             }
-        } else if (activeBuilding) {
+        } else if (activeBuilding || this.allies.some(a => a.attacking)) {
+            // 거점이 있거나 아군(소환수)이 앞에서 싸우는 중이면 그 자리까지 직접 걸어감 — 아군이 붙잡은 적은 다가오지 않으므로
+            // 제자리걸음으로 거리만 쌓지 않음 (11-03 QA: 소환수가 떨어져 싸우는데 주인공은 계속 전진)
             monsterControllerV2.setState('walking-forward');
             this.syncWalk(true);
             this.monsterX += this.playerSpeed * dt * this.moveMul();

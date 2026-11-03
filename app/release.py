@@ -42,7 +42,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(HERE)
 JBR = r'C:\Program Files\Android\Android Studio\jbr'
 PROPS = os.path.join(os.path.expanduser('~'), '.android', 'madoverlord-release.properties')
-REPO = 'catseye4/selfmovegame'
+REPO = 'DDD-Madoverlord/selfmovegame'   # 2026-11-03 조직 저장소로 옮김
 DIST = os.path.join(HERE, 'dist')
 
 

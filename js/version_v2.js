@@ -9,4 +9,4 @@
 
 export const VERSION = '0.2.4';
 export const BUILD = 10;
-export const RELEASE_REPO = 'catseye4/selfmovegame';
+export const RELEASE_REPO = 'DDD-Madoverlord/selfmovegame';   // 2026-11-03 조직 저장소로 옮김 (예전 catseye4/selfmovegame은 GitHub가 넘겨 줌)

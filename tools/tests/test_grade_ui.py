@@ -34,6 +34,11 @@ def run(ctx):
     names = {'common': '커먼', 'rare': '레어', 'unique': '유니크', 'legendary': '레전더리'}
     ctx.check(len(cards) == 12 and all(c['ribbon'] == names[c['grade']] and c['shown'] for c in cards),
               '등급 띠: 카드 12장 모두 그림 아래 등급 이름 (커먼 포함)', str(cards))
+    # 카드 그림: 2차 세트 대포 팔(장거리 저격포·플라즈마 방사 팔·쌍열 가속포)도 그림이 나옴 — 전투 리그와 같은 규칙(rigArm, mechArmOf)
+    g.wait(800)
+    blank = g.js("""return [...document.querySelectorAll('#parts-grid-v2 .v2-partcard')].filter(c => {
+        const img = c.querySelector('.v2-partcard__thumb img'); return !img || !img.complete || img.naturalWidth === 0; }).map(c => c.dataset.id);""")
+    ctx.check(not blank, '카드 그림: 거대로봇 팔 12장 모두 그림이 나옴 (2차 세트 대포 팔 포함)', str(blank))
     rocket = next((c for c in cards if c['name'] == '로켓 펀치 건틀릿'), {})
     ctx.check(rocket.get('ribbon') == '레전더리' and rocket.get('shown'), '등급 띠: 긴 이름 카드도 등급이 잘리지 않음', str(rocket))
 

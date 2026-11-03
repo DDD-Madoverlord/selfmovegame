@@ -200,9 +200,12 @@ export function rigConfigFor(partsObj, fallback = null) {
         if (part && part.rigUpgrade && characterOfPart(part) === character) upgrades[slot] = true;
     }
     if (character !== 'mech') return { character, filters, variants, upgrades };
-    const type = partsObj.arm && partsObj.arm.attackType;
-    const arm = partsObj.arm?.rigArm || (CANNON_ATTACKS.has(type) ? 'cannon' : 'fist');   // 2차 세트 팔은 rigArm으로 정함 (D-071)
-    return { character, arm, filters, variants, upgrades };
+    return { character, arm: mechArmOf(partsObj.arm), filters, variants, upgrades };
+}
+
+/** 거대로봇 팔 파츠 → 'cannon'|'fist' (2차 세트 팔은 rigArm으로 정함, D-071) — 전투 리그와 연구소 카드 그림(lab_v2.js)이 같이 씀 */
+export function mechArmOf(arm) {
+    return arm?.rigArm || (CANNON_ATTACKS.has(arm?.attackType) ? 'cannon' : 'fist');
 }
 
 // 거대로봇: 원거리 공격 팔은 캐논 팔 그림 (레일건 = A 세트 포격 사령부)
