@@ -10,6 +10,8 @@
    세트 알아보기 (2026-10-24): 카드 그림 모서리에 세트 표시(R① · U② · L① — 등급 색), 지금 모으는 세트(마지막으로 고른 세트 파츠,
      없으면 장바구니에 가장 많이 낀 세트)의 짝 카드는 맨 앞 + 테두리, 부위 탭에 그 세트를 담은 부위 점(●),
      다섯째 "세트" 탭 = 세트마다 네 부위 그림·보유·세트 효과 한 줄 + [세트로 담기](네 부위를 한 번에 장바구니로)
+   파츠 등급 (2026-11-03, Q-017 C안 → D-096): 카드 그림 칸·테두리·이름 = 등급 색 + 그림 아래 등급 이름 띠(커먼 포함),
+     목록은 모으는 세트 짝 → 등급 높은 순으로 묶고 묶음마다 머리 줄, 부위 탭 아래 등급 거르기 칩(전체·레전더리·유니크·레어·커먼)
    파츠 소유·강화·저장은 js/engine_v2/progress_v2.js (D-015). 파츠 데이터는 js/data/parts.js (구버전과 공용, 읽기만), 캐릭터별 목록은 roster_v2.js
    ========================================================================== */
 
@@ -24,8 +26,8 @@ import { sound } from '../engine_v2/audio/sound_v2.js';
 import { icon, fillIcons } from './icons.js';
 import { openSettings } from './settingsPanel_v2.js';
 import { openProbInfo } from './probInfo_v2.js';
-import { gradeOf, SKILL_LEVEL } from '../engine_v2/growth_v2.js';
-import { gradeTag, optionText, resChipHtml } from './growthUi_v2.js';
+import { GRADES, gradeOf, gradeIndex, SKILL_LEVEL } from '../engine_v2/growth_v2.js';
+import { optionText, resChipHtml } from './growthUi_v2.js';
 import { setOf, setIdOf, setCounts, setLabelOf, setBonusList, isDropOnly, SETS, SET_TIERS } from '../engine_v2/sets_v2.js';
 
 const $ = id => document.getElementById(id);
@@ -77,8 +79,10 @@ export class LabController {
     constructor(switchScreenFn) {
         this.switchScreen = switchScreenFn;
         this.activeSlot = 'head';
+        this.gradeFilter = 'all';
         this.root = $('screen-lab-v2');
         this.domPartsGrid = $('parts-grid-v2');
+        this.domGradeBar = $('parts-gradebar-v2');
         this.domDmCount = $('lab-dm-count-v2');
         this.btnEquip = $('btn-equip-confirm-v2');
         const canvas = $('lab-rig-canvas-v2');
@@ -118,6 +122,14 @@ export class LabController {
             this.renderPartsGrid();
             this.renderUpgrade();
         }));
+
+        // 등급 거르기 칩 (소리는 main_v2.js가 연구소 버튼마다 냄)
+        this.domGradeBar?.addEventListener('click', e => {
+            const chip = e.target.closest('.v2-gradechip');
+            if (!chip || chip.disabled) return;
+            this.gradeFilter = chip.dataset.grade;
+            this.renderPartsGrid();
+        });
 
         $('btn-cart-reset-v2')?.addEventListener('click', () => {
             gameState.resetCartToEquipped();
@@ -222,18 +234,38 @@ export class LabController {
         if (!this.domPartsGrid) return;
         const slot = this.activeSlot;
         this.renderTabDots();
+        if (this.domGradeBar) this.domGradeBar.hidden = slot === 'set';
         if (slot === 'set') { this.renderSetGrid(); return; }
         this.domPartsGrid.classList.remove('is-sets');
         const focus = this.focusSet();
-        let list = partsOfCharacter(progress.character, slot);   // 고른 캐릭터의 파츠만 (D-051)
-        if (focus) list = [...list.filter(p => setIdOf(p) === focus), ...list.filter(p => setIdOf(p) !== focus)];   // 모으는 세트의 짝을 맨 앞에
+        // 고른 캐릭터의 파츠만 (D-051) — 모으는 세트의 짝을 맨 앞에, 나머지는 등급 높은 순 (같은 등급은 원래 순서)
+        const rows = partsOfCharacter(progress.character, slot).map(part => ({
+            part,
+            grade: gradeOf(progress.isOwned(part.id) || setOf(part) ? progress.gradeOf(part.id) : 'common'),   // 세트 파츠는 안 가져도 등급 바닥을 보임
+            mate: !!focus && setIdOf(part) === focus
+        })).sort((a, b) => (b.mate - a.mate) || (gradeIndex(b.grade.id) - gradeIndex(a.grade.id)));
+        const counts = Object.fromEntries(GRADES.map(g => [g.id, rows.filter(r => r.grade.id === g.id).length]));
+        if (this.gradeFilter !== 'all' && !counts[this.gradeFilter]) this.gradeFilter = 'all';   // 이 부위에 그 등급이 없으면 전체로
+        this.renderGradeBar(rows.length, counts);
+        const shown = this.gradeFilter === 'all' ? rows : rows.filter(r => r.grade.id === this.gradeFilter);
+        const groupOf = r => (r.mate ? 'mate' : r.grade.id);
         const focusCount = focus ? setCounts(gameState.getCartObjects())[focus] || 0 : 0;
         const cartId = gameState.cartParts[slot];
         const equippedId = gameState.equippedParts[slot];
 
         this.domPartsGrid.innerHTML = '';
         const color = (rosterOf(progress.character) || {}).color || '#5a6272';
-        list.forEach(part => {
+        let group = null;
+        shown.forEach(row => {
+            const { part, grade, mate } = row;
+            if (groupOf(row) !== group) {
+                group = groupOf(row);
+                const head = document.createElement('div');
+                head.className = `v2-partgroup${mate ? ' is-mate' : ''}`;
+                if (!mate) head.style.setProperty('--grade', grade.color);
+                head.innerHTML = `${mate ? '모으는 세트' : grade.name}<small>${shown.filter(r => groupOf(r) === group).length}개</small>`;
+                this.domPartsGrid.appendChild(head);
+            }
             const sk = skillOf(slot, part);
             const thumb = thumbOf(slot, part);
             const owned = progress.isOwned(part.id);
@@ -241,22 +273,21 @@ export class LabController {
                 : owned ? [part.cost ? 'OWNED' : 'FREE', part.cost ? 'is-owned' : 'is-free']
                     : isDropOnly(part) ? ['드랍·조각', 'is-drop']
                         : [`${part.cost.toLocaleString()} DM`, part.cost > gameState.darkMatter ? 'is-poor' : ''];
-            const isSet = !!setOf(part);
             const st = progress.partStats(part);
             const lv = progress.levelOf(part.id);
             const card = document.createElement('div');
-            const grade = owned || isSet ? gradeOf(progress.gradeOf(part.id)) : gradeOf('common');   // 세트 파츠는 안 가져도 등급 바닥을 보임
-            const mate = !!focus && setIdOf(part) === focus;
-            card.className = `part-card v2-partcard${part.id === cartId ? ' is-selected' : ''}${grade.id !== 'common' ? ' has-grade' : ''}${mate ? ' is-setmate' : ''}`;
+            card.className = `part-card v2-partcard${part.id === cartId ? ' is-selected' : ''}${mate ? ' is-setmate' : ''}`;
+            card.dataset.id = part.id;   // 이름이 같은 파츠가 있어(예: 서리 '얼음 결정 왕관' 강화·유니크 세트) 검사는 id로 찾음
+            card.dataset.grade = grade.id;
             card.style.setProperty('--fc', color);
             card.style.setProperty('--grade', grade.color);
             card.innerHTML = `
                 <div class="v2-partcard__side">
-                    <div class="v2-partcard__thumb">${thumb ? `<img src="${thumb.src}" alt=""${thumb.filter ? ` style="filter: ${thumb.filter}"` : ''}>` : icon('retreat', 30)}${setMark(setOf(part))}</div>
+                    <div class="v2-partcard__thumb">${thumb ? `<img src="${thumb.src}" alt=""${thumb.filter ? ` style="filter: ${thumb.filter}"` : ''}>` : icon('retreat', 30)}${setMark(setOf(part))}<span class="v2-partcard__grade">${grade.name}</span></div>
                     <span class="v2-partcard__badge ${badge[1]}">${badge[0]}</span>
                 </div>
                 <div class="v2-partcard__body">
-                    <div class="v2-partcard__name">${part.name}${part.id !== 'none' && lv > 1 ? `<span class="v2-partcard__lv">Lv${lv}</span>` : ''}${owned || isSet ? gradeTag(part.id) : ''}</div>
+                    <div class="v2-partcard__name">${part.name}${part.id !== 'none' && lv > 1 ? `<span class="v2-partcard__lv">Lv${lv}</span>` : ''}</div>
                     <div class="v2-partcard__faction">세트 · ${partSetLabel(part)}${mate ? `<b class="v2-partcard__mate">모으는 중 ${focusCount}/4</b>` : ''}</div>
                     <div class="v2-partcard__stats">HP +${st.hp} · DPS +${st.dps}${st.range ? ` · RNG +${st.range}` : ''}</div>
                     ${sk ? `<div class="v2-partcard__skill" style="--sk:${sk.color}"><em>${ROLE[slot].tag}</em>${icon(sk.icon, 13)}${sk.name}</div>` : '<div class="v2-partcard__skill">스킬 없음</div>'}
@@ -271,6 +302,14 @@ export class LabController {
             });
             this.domPartsGrid.appendChild(card);
         });
+    }
+
+    /** 부위 탭 아래 등급 거르기 칩: 전체 · 레전더리 · 유니크 · 레어 · 커먼 + 개수 (그 부위에 없는 등급은 못 누름) */
+    renderGradeBar(total, counts) {
+        if (!this.domGradeBar) return;
+        const chip = (id, name, n, color) => `<button class="v2-gradechip${this.gradeFilter === id ? ' is-on' : ''}" data-grade="${id}"`
+            + `${color ? ` style="--grade:${color}"` : ''}${n ? '' : ' disabled'}>${name}<b>${n}</b></button>`;
+        this.domGradeBar.innerHTML = chip('all', '전체', total) + [...GRADES].reverse().map(g => chip(g.id, g.name, counts[g.id], g.color)).join('');
     }
 
     /** 세트 탭: 세트마다 한 줄 — 등급·이름·보유/담음, 네 부위 그림(누르면 그 부위만 담기), 세트 효과, [세트로 담기] */

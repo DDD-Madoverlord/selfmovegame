@@ -117,7 +117,7 @@ def run(ctx):
     g.js("b.stopBattle(); progress.selectCharacter('kaiju'); window.madOverlordGameV2.switchScreen('lab');")
     g.wait(800)
     st = g.js("""const labels = [...document.querySelectorAll('.v2-partcard__faction')].map(c => c.textContent);
-        const tags = [...document.querySelectorAll('.v2-partcard .v2-gradetag')].map(t => t.textContent);
+        const tags = [...document.querySelectorAll('.v2-partcard .v2-partcard__grade')].map(t => t.textContent);
         return { n: labels.filter(t => /레어 ③|레어 ④|유니크|레전더리/.test(t)).length, leg: tags.filter(t => t === '레전더리').length, any: labels.length };""")
     ctx.check(st['n'] >= 7 and st['leg'] >= 2, '연구소: 2차 세트 파츠 카드 (레어 ③④·유니크·레전더리 등급 표시)', str(st))
     g.shot('kit_lab')

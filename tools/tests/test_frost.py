@@ -40,7 +40,7 @@ def run(ctx):
          "window.madOverlordGameV2.switchScreen('lab');")
     g.wait(1500)
     st = g.js("""const lab = window.madOverlordGameV2.labController;
-        const card = [...document.querySelectorAll('#parts-grid-v2 .v2-partcard')].find(c => c.textContent.includes('얼음 결정 왕관'));
+        const card = document.querySelector('#parts-grid-v2 .v2-partcard[data-id="head_frost_up"]');   // '얼음 결정 왕관'은 유니크 세트에도 같은 이름이 있음
         const sk = lab.rig && lab.rig.skeleton;
         return { name: document.getElementById('lab-unit-name-v2').textContent, img: card && card.querySelector('img').getAttribute('src'),
                  parts: sk && ['head', 'hair', 'torso', 'armF', 'legF'].map(k => sk.byName[k].part) };""")

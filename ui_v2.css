@@ -2241,33 +2241,35 @@ div.v2-settings__row > span { flex: 1; }
 .v2-partgrid::-webkit-scrollbar-thumb { background: rgba(255, 176, 32, 0.4); }
 .v2-partcard {
     --fc: #8b95a8;
+    --grade: 170, 176, 190;
     position: relative;
     display: grid;
     grid-template-columns: 64px 1fr;
     gap: 10px;
     padding: 9px 10px 9px 12px;
     cursor: pointer;
-    background: linear-gradient(180deg, rgba(30, 34, 44, 0.9), rgba(14, 16, 22, 0.95));
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    border-left: 3px solid var(--fc);
+    background: linear-gradient(135deg, rgba(var(--grade), 0.22), rgba(20, 23, 30, 0.95) 58%);
+    border: 1px solid rgba(var(--grade), 0.5);
+    border-left: 4px solid rgb(var(--grade));
     transition: transform 0.1s ease, border-color 0.15s ease, box-shadow 0.15s ease;
 }
-.v2-partcard:hover { transform: translateY(-2px); border-color: rgba(255, 176, 32, 0.4); border-left-color: var(--fc); }
-.v2-partcard.is-selected { border-color: var(--v2-amber); border-left-color: var(--fc); box-shadow: 0 0 0 1px var(--v2-amber), 0 0 18px rgba(255, 176, 32, 0.25); }
+.v2-partcard:hover { transform: translateY(-2px); border-color: rgba(255, 176, 32, 0.4); border-left-color: rgb(var(--grade)); }
+.v2-partcard.is-selected { border-color: var(--v2-amber); border-left-color: rgb(var(--grade)); box-shadow: 0 0 0 1px var(--v2-amber), 0 0 18px rgba(255, 176, 32, 0.25); }
 .v2-partcard__thumb {
     position: relative;
     width: 64px;
     height: 64px;
     display: grid;
     place-items: center;
-    background: radial-gradient(circle at 50% 40%, color-mix(in srgb, var(--fc) 35%, transparent), rgba(0, 0, 0, 0.5) 72%);
-    border: 1px solid color-mix(in srgb, var(--fc) 45%, transparent);
+    overflow: hidden;
+    background: radial-gradient(circle at 50% 38%, rgba(var(--grade), 0.6), rgba(var(--grade), 0.14) 68%, rgba(0, 0, 0, 0.55));
+    border: 2px solid rgb(var(--grade));
 }
-.v2-partcard__thumb img { max-width: 58px; max-height: 58px; object-fit: contain; filter: drop-shadow(0 2px 3px rgba(0, 0, 0, 0.7)); }
-.v2-partcard__thumb .v2-icon { opacity: 0.35; }
+.v2-partcard__thumb img { max-width: 54px; max-height: 48px; margin-bottom: 12px; object-fit: contain; filter: drop-shadow(0 2px 3px rgba(0, 0, 0, 0.7)); }
+.v2-partcard__thumb .v2-icon { opacity: 0.35; margin-bottom: 12px; }
 .v2-partcard__body { min-width: 0; display: flex; flex-direction: column; gap: 2px; }
 .v2-partcard__side { display: flex; flex-direction: column; align-items: stretch; gap: 4px; }
-.v2-partcard__name { font-size: 13px; font-weight: 800; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.v2-partcard__name { font-size: 13px; font-weight: 800; color: color-mix(in srgb, rgb(var(--grade)) 60%, #fff); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .v2-partcard__faction { font-size: 10px; color: var(--fc); }
 .v2-partcard__stats { font-family: var(--v2-font-num); font-size: 10px; color: var(--v2-dim); }
 .v2-partcard__skill { display: flex; align-items: center; gap: 4px; font-size: 11px; color: var(--sk, var(--v2-dim)); white-space: nowrap; overflow: hidden; }
@@ -2350,8 +2352,33 @@ div.v2-settings__row > span { flex: 1; }
 /* 파츠 등급 (Q-006): 색 = growth_v2.js GRADES */
 .v2-gradetag { --grade: 170, 176, 190; display: inline-block; font: 800 10px var(--v2-font); padding: 1px 6px; border-radius: 3px; color: #120d06; background: rgb(var(--grade)); }
 .v2-gradetag:empty { display: none; }
-.v2-partcard.has-grade { border-color: rgba(var(--grade), 0.75); box-shadow: inset 0 0 14px rgba(var(--grade), 0.18); }
-.v2-partcard__name .v2-gradetag { margin-left: 5px; vertical-align: 1px; }
+/* 파츠 카드 등급 (2026-11-03, Q-017 C안 → D-096): 그림 칸·테두리·이름 = 등급 색, 그림 아래 등급 이름 띠 — 휴대폰 크기에서도 색 면으로 보임.
+   캐릭터 색(--fc)은 '세트 · …' 글자에만. 목록은 묶음 머리 줄(모으는 세트 → 레전더리 → … → 커먼) + 부위 탭 아래 등급 거르기 칩 */
+.v2-partcard__grade {
+    position: absolute; left: 0; right: 0; bottom: 0;
+    font: 900 10px var(--v2-font); line-height: 14px; letter-spacing: 0.5px; text-align: center;
+    color: #fff; background: rgb(var(--grade)); text-shadow: 0 1px 0 rgba(0, 0, 0, 0.55);
+}
+.v2-partcard[data-grade="common"] .v2-partcard__grade { color: #1b1f27; text-shadow: none; }
+.v2-partcard[data-grade="common"] .v2-partcard__name { color: #fff; }
+.v2-partgroup {
+    grid-column: 1 / -1; display: flex; align-items: center; gap: 8px; margin-top: 2px;
+    font: 900 12px var(--v2-font); letter-spacing: 1px; color: rgb(var(--grade));
+}
+.v2-partgroup::after { content: ''; flex: 1; height: 1px; background: linear-gradient(90deg, rgba(var(--grade), 0.8), transparent); }
+.v2-partgroup small { font: 700 10px var(--v2-font-num); letter-spacing: 0; color: var(--v2-dim); }
+.v2-partgroup.is-mate { --grade: 255, 209, 102; }   /* 모으는 세트 = 금색 (--v2-gold) */
+.v2-gradebar { display: flex; flex-wrap: wrap; gap: 5px; }
+.v2-gradebar[hidden] { display: none; }
+.v2-gradechip {
+    --grade: 255, 176, 32;
+    display: inline-flex; align-items: center; gap: 5px; padding: 3px 9px; cursor: pointer;
+    font: 800 11px var(--v2-font); color: rgb(var(--grade));
+    background: rgba(var(--grade), 0.08); border: 1px solid rgba(var(--grade), 0.55);
+}
+.v2-gradechip b { font: 800 10px var(--v2-font-num); opacity: 0.85; }
+.v2-gradechip.is-on { color: #16120a; background: rgb(var(--grade)); }
+.v2-gradechip:disabled { opacity: 0.35; cursor: default; }
 .v2-skillup { margin-left: auto; flex: none; display: inline-flex; flex-direction: column; align-items: center; line-height: 1.05;
     font: 800 10px var(--v2-font); padding: 2px 6px; border-radius: 3px; cursor: pointer;
     color: #e9dcff; background: rgba(186, 104, 255, 0.18); border: 1px solid rgba(186, 104, 255, 0.55); }
@@ -2375,7 +2402,7 @@ div.v2-settings__row > span { flex: 1; }
 .v2-upgrade.is-flash { animation: v2-upg-flash 0.5s ease-out; }
 @keyframes v2-upg-flash { 30% { background: rgba(255, 176, 32, 0.35); box-shadow: 0 0 18px rgba(255, 176, 32, 0.6); } }
 .v2-partcard__lv { font-family: var(--v2-font-num); font-size: 9px; color: var(--v2-amber); margin-left: 4px; }
-.v2-partcard__badge.is-owned { background: #4a90c8; color: #fff; }
+.v2-partcard__badge.is-owned { background: #3a4252; color: #dfe6f2; }   /* 레어 파랑과 헷갈리지 않게 회색 (Q-017) */
 .v2-partcard__badge.is-drop { background: rgb(186, 104, 255); color: #fff; }   /* 드랍·조각 전용 (유니크 세트, Q-008) */
 
 /* 화면 크기 맞춤 (js/main_v2.js fitScreens): 창에 맞게 비율 유지 확대·축소, 가운데 정렬 */

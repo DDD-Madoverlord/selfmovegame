@@ -114,7 +114,8 @@ def run(ctx):
     g.wait(800)
     g.page.click('.v2-slottab[data-slot="body"]')
     names = g.js("return [...document.querySelectorAll('#parts-grid-v2 .v2-partcard__name')].map(e => e.firstChild.textContent);")  # 이름만 (뒤의 Lv·등급 표시 빼고)
-    ctx.check(names[:3] == ['흑마법 룬 갑옷', '찢어진 망토 갑옷', '저주 룬 로브'] and len(names) == 10 and '검은 날개 갑주' in names,
+    # 순서는 등급 묶음(Q-017 C안, test_grade_ui) — 여기서는 어떤 카드가 있는지만
+    ctx.check({'흑마법 룬 갑옷', '찢어진 망토 갑옷', '저주 룬 로브'} <= set(names) and len(names) == 10 and '검은 날개 갑주' in names,
               '연구소: 타락 히어로 몸통만 표시 (기본 + A·B 세트 + 2차 7세트)', str(names))
     g.page.locator('.v2-partcard', has_text='흑마법 룬 갑옷').click()
     g.page.click('#btn-equip-confirm-v2')
