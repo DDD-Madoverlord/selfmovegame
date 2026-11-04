@@ -12,14 +12,13 @@ def run(ctx):
 
     # 구역 6은 5-B 전까지 잠김 → 구역 1~5를 깨면 열리고 누르면 6-1, 난이도 해금 기준은 4-B 그대로
     g.js(CLEAR.replace('IDS', '[1, 2, 3, 4]') + "window.madOverlordGameV2.menuController.renderStages();")
-    st = g.js("""const z6 = document.querySelector('#menu-zones-v2 .v2-zonetab[data-zone="ch6"]'); z6.click();
-        return { label: z6.getAttribute('aria-label'), locked: z6.classList.contains('is-locked'), foot: document.getElementById('menu-map-foot-v2').textContent };""")
-    ctx.check(st['label'] == '구역 6' and st['locked'] and '5-B' in st['foot'], '구역 6은 5-B 전까지 잠김', str(st))
+    st = g.map_zone('ch6')
+    ctx.check(st['fog'].startswith('기적의 대병동') and st['locked'] and '아이언클래드' in st['foot'], '구역 6은 5-B 보스 전까지 잠김 (안개에 구역 이름)', str(st))
     g.js(CLEAR.replace('IDS', '[1, 2, 3, 4, 5]') + "window.madOverlordGameV2.menuController.renderStages();")
-    st = g.js("""document.querySelector('#menu-zones-v2 .v2-zonetab[data-zone="ch6"]').click();
-        const S = await import('/js/engine_v2/stages_v2.js'), D = await import('/js/engine_v2/difficulty_v2.js');
-        return { sel: progress.selectedStage, name: document.getElementById('menu-map-name-v2').textContent,
-                 n: S.CHAPTER6.stages.length, after5: S.nextStageOf('5-B').id, final: D.FINAL_STAGE_ID, hard: D.difficultyUnlocked('hard', progress) };""")
+    name = g.map_zone('ch6')['name']
+    st = g.js("""const S = await import('/js/engine_v2/stages_v2.js'), D = await import('/js/engine_v2/difficulty_v2.js');
+        return { sel: progress.selectedStage, n: S.CHAPTER6.stages.length, after5: S.nextStageOf('5-B').id, final: D.FINAL_STAGE_ID, hard: D.difficultyUnlocked('hard', progress) };""")
+    st['name'] = name
     ctx.check(st['sel'] == '6-1' and '피에 젖은 성역' in st['name'] and st['n'] == 11 and st['after5'] == '6-1'
               and st['final'] == '4-B' and st['hard'], '5-B 클리어 → 구역 6 열림(6-1), 11판, 난이도 해금은 4-B 그대로', str(st))
     g.shot('zone6_menu', '#screen-menu-v2')

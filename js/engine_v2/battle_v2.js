@@ -293,7 +293,7 @@ export class BattleEngine {
         this.director.clear();
         const run = this.runId;
         this.director.intro(this.stage).then(() => {   // 처음 한 번: 스킬 안내 (coach_v2.js)
-            if (this.isActive && this.runId === run) coach('battle_skills', '#battle-hud-v2 .v2-skills');
+            if (this.isActive && this.runId === run) coach('battle_skills', '.v2-mobile #battle-hud-v2 .v2-skill-wrap, #battle-hud-v2 .v2-skills');
         });
         sound.playBgm('battle');
 

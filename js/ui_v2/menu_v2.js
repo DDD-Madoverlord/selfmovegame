@@ -1,10 +1,13 @@
 /* ==========================================================================
    PROJECT: MAD OVERLORD // 메인 화면: 전술 그리드 (v2, 가로 1280x720)
    ① 오버로드 대기실: 장착 파츠로 조립된 캐릭터(리그 idle) + 부위별 파츠·스킬 설명 + 능력치 + CHARACTER(선택창) · MUTATION LAB
-   ② 전술 레이더: 챕터 스테이지 점(누르면 선택), 선택한 스테이지 정보 (STORY / SPECIAL 전환 — SPECIAL은 준비 중)
+   ② 월드맵 (STORY MAP, D-104): 구역마다 지도 위 정거장 11곳(NPC) — 누르면 내 캐릭터가 걸어가 그 판을 고름,
+      구역은 좌우로 밀어서 넘김 (stageMap_v2.js, 구역 번호 탭 없음). SPECIAL MAP은 준비 중 (예전 전술 레이더 radar_v2.js가 잠긴 화면)
       화면 오른쪽 위 난이도 노말·하드·헬·나이트메어 (D-063): 고른 난이도의 잠금·별·배율로 표시
    ③ ATTACK / SORTIE 출격 버튼 + 상태 줄(보유 DM, 장착 스킬)
    ④ 우상단: 재화, 설정(톱니바퀴)
+   휴대폰 배치 (Q-015 메인 시안 B, body.v2-mobile — ui_v2_mobile.css): 왼쪽 아이콘 메뉴 줄(캐릭터·연구소·상점·지원·펫),
+      오른쪽 스테이지 카드 + 협력 + 출격. 지도는 [스테이지 선택]을 누르면 전체 화면, 부위 설명은 [파츠·스킬] 창
    ========================================================================== */
 
 import { gameState } from '../engine/state.js';
@@ -20,19 +23,23 @@ import { sound } from '../engine_v2/audio/sound_v2.js';
 import { icon, fillIcons } from './icons.js';
 import { openSettings } from './settingsPanel_v2.js';
 import { TacticalRadar } from './radar_v2.js';
+import { StageMap, stageNpcs, plainName } from './stageMap_v2.js';
 import { resChipHtml, openGrowthPanel } from './growthUi_v2.js';
 import { MUTATORS } from '../engine_v2/growth_v2.js';
 import { openShop } from './shop_v2.js';
 import { createOfflineRewardButton, updateOfflineRewardButton } from './offlineRewardUi_v2.js';
 import { updateSupportMenu } from './supportUi_v2.js';
+import { shouldPlayIntro, playStoryIntro, introZoneOf, hasIntro } from './storyIntro_v2.js';
 
 const $ = id => document.getElementById(id);
 const SLOTS = [
-    { slot: 'head', label: 'HEAD', role: 'ULT' },
-    { slot: 'arm', label: 'ARM', role: '1' },
-    { slot: 'body', label: 'BODY', role: '2' },
-    { slot: 'leg', label: 'LEG', role: 'P' }
+    { slot: 'head', label: 'HEAD', ko: '머리', role: 'ULT' },
+    { slot: 'arm', label: 'ARM', ko: '팔', role: '1' },
+    { slot: 'body', label: 'BODY', ko: '몸통', role: '2' },
+    { slot: 'leg', label: 'LEG', ko: '다리', role: 'P' }
 ];
+const isMobile = () => document.body.classList.contains('v2-mobile');
+const clock = t => `${Math.floor(t / 60)}:${String(Math.floor(t % 60)).padStart(2, '0')}`;
 
 /** 구역 공개 여부 — 시험용 전체 해제 중이면 모두 열림 */
 const zoneOpen = zone => allStagesUnlocked() || isZoneReleased(zone);
@@ -44,7 +51,22 @@ export class MenuController {
         this.domDmCount = $('menu-dm-count-v2');
         this.domFactionName = $('menu-faction-name-v2');
         this.map = 'story';
-        this.radar = new TacticalRadar($('menu-radar-v2'));
+        this.radar = new TacticalRadar($('menu-radar-v2'));   // SPECIAL MAP(준비 중) 화면만
+        $('menu-radar-v2').hidden = true;
+        this.stageNpcs = new Map(CHAPTERS.map(ch => [ch.id, stageNpcs(ch)]));
+        this.stageMap = new StageMap(this.root.querySelector('.v2-radar__screen'), {
+            onSelect: id => this.selectStage(id),
+            // 열린 구역으로 넘기면 그 구역의 다음 판을 고름 (예전 구역 탭과 같음)
+            onZone: zone => {
+                const ch = CHAPTERS.find(c => c.zone === zone);
+                if (chapterOf(progress.selectedStage) !== ch) this.selectZone(ch.id);
+            },
+            onView: page => { $('menu-map-name-v2').textContent = plainName(page.name); },
+            onLocked: x => {
+                sound.play('ui_error');
+                this.say(x.nodes ? `<b>${plainName(x.name)}</b> — ${x.lockText}` : `<b>${x.name}</b> 잠김 — 앞 판을 먼저 클리어하세요`);
+            }
+        });
         fillIcons(this.root);
         const chip = this.root && this.root.querySelector('.v2-chip--dm');
         if (chip) chip.insertAdjacentHTML('afterbegin', icon('gem', 18));
@@ -57,6 +79,7 @@ export class MenuController {
         this.offlineButton = createOfflineRewardButton(shop, () => this.updateDisplay());
         const updateBadge = () => {
             $('menu-shop-badge-v2').textContent = progress.canClaimPass() ? '●' : '';
+            $('rail-shop-dot-v2').hidden = !progress.canClaimPass();
         };
         gameState.subscribe(updateBadge);
         setInterval(updateBadge, 15000);
@@ -64,7 +87,8 @@ export class MenuController {
         this.initUnlockTaps();
     }
 
-    /** 시험용: 왼쪽 위 아이콘을 5번 연속(각 1초 안) 누르면 모든 스테이지·구역 잠금을 이번 실행 동안만 해제 */
+    /** 시험용: 왼쪽 위 아이콘을 5번 연속(각 1초 안) 누르면 모든 스테이지·구역 잠금을 이번 실행 동안만 해제.
+     *  한 번 더 5번 누르면 캐릭터·파츠도 전부 해제 — 그때부터는 저장을 메모리에만 함 (progress_v2.js unlockEverythingTemp) */
     initUnlockTaps() {
         const emblem = this.root && this.root.querySelector('.v2-brand__emblem');
         if (!emblem) return;
@@ -74,39 +98,101 @@ export class MenuController {
             const now = performance.now();
             taps = now - last < 1000 ? taps + 1 : 1;
             last = now;
-            if (taps < 5 || allStagesUnlocked()) return;
-            unlockAllStagesTemp();
-            emblem.classList.add('is-dev-unlocked');
+            if (taps < 5) return;
+            taps = 0;
+            if (!allStagesUnlocked()) {
+                unlockAllStagesTemp();
+                emblem.classList.add('is-dev-unlocked');
+                sound.play('ui_equip');
+                this.renderStages();
+                this.say('<b>시험 모드</b> — 모든 스테이지 잠금 해제 (게임을 다시 켜면 원래대로 · 원래 잠긴 판은 기록 안 됨) · 5번 더 누르면 캐릭터·파츠도 해제');
+                return;
+            }
+            if (!progress.unlockEverythingTemp()) return;
+            emblem.classList.add('is-dev-all');
             sound.play('ui_equip');
-            this.renderStages();
-            $('menu-map-foot-v2').innerHTML = '<b>시험 모드</b> — 모든 스테이지 잠금 해제 (게임을 다시 켜면 원래대로 · 원래 잠긴 판은 기록 안 됨)';
+            this.updateDisplay();
+            this.say('<b>시험 모드</b> — 모든 스테이지·캐릭터·파츠 잠금 해제 · 지금부터 진행은 저장 안 됨 (게임을 다시 켜면 원래대로)');
         });
     }
 
     initEvents() {
-        $('btn-to-select-v2')?.addEventListener('click', () => this.switchScreen('select'));
-        $('btn-to-lab-v2')?.addEventListener('click', () => {
+        const toSelect = () => this.switchScreen('select');
+        const toLab = () => {
             gameState.resetCartToEquipped();
             this.switchScreen('lab');
-        });
+        };
+        const changed = () => this.updateDisplay();
+        $('btn-to-select-v2')?.addEventListener('click', toSelect);
+        $('btn-to-lab-v2')?.addEventListener('click', toLab);
         $('btn-to-battle-v2')?.addEventListener('click', () => {
             if (this.map !== 'story') return;
             if (!isUnlocked(progress.selectedStage, progress) || !isCharacterReleased(progress.character)) {
                 sound.play('ui_error');
-                $('menu-map-foot-v2').textContent = '아직 공개되지 않은 콘텐츠입니다 — 공개된 구역과 캐릭터를 선택하세요';
+                this.say('아직 공개되지 않은 콘텐츠입니다 — 공개된 구역과 캐릭터를 선택하세요');
                 return;
             }
             if (!progress.isReady()) {   // 몸통을 아직 안 산 캐릭터 (D-051)
                 sound.play('ui_error');
-                $('menu-map-foot-v2').innerHTML = '<b>출격 불가</b> — 몸통 파츠가 없습니다. MUTATION LAB에서 파츠를 구매하세요';
+                this.say(isMobile() ? '<b>출격 불가</b> — 연구소에서 몸통 파츠를 사세요' : '<b>출격 불가</b> — 몸통 파츠가 없습니다. MUTATION LAB에서 파츠를 구매하세요');
+                return;
+            }
+            // 구역의 첫 스테이지(N-1)를 처음 출격: 스토리 인트로(모션 코믹) 뒤 전투 (storyIntro_v2.js, D-100)
+            if (shouldPlayIntro(progress.selectedStage)) {
+                playStoryIntro(introZoneOf(progress.selectedStage)).then(() => this.switchScreen('battle'));
                 return;
             }
             this.switchScreen('battle');
         });
+        // 스토리 다시 보기: 고른 구역의 인트로 (끝나면 메인 화면 그대로)
+        $('btn-story-intro-v2')?.addEventListener('click', () => {
+            const zone = chapterOf(this.currentStage()).zone;
+            if (hasIntro(zone)) playStoryIntro(zone).then(() => sound.playBgm('menu'));
+        });
         $('btn-menu-settings-v2')?.addEventListener('click', () => openSettings());
-        $('btn-menu-support-v2')?.addEventListener('click', () => openGrowthPanel('modules', () => this.updateDisplay()));
-        $('btn-menu-coop-v2')?.addEventListener('click', () => openGrowthPanel('coop', () => this.updateDisplay()));
+        $('btn-menu-support-v2')?.addEventListener('click', () => openGrowthPanel('modules', changed));
+        $('btn-menu-coop-v2')?.addEventListener('click', () => openGrowthPanel('coop', changed));
         this.root?.querySelectorAll('.v2-maptab').forEach(tab => tab.addEventListener('click', () => this.setMap(tab.dataset.map)));
+
+        // 휴대폰 배치 (메인 시안 B): 메뉴 줄 · 스테이지 선택 창
+        $('btn-rail-select-v2')?.addEventListener('click', toSelect);
+        $('btn-rail-lab-v2')?.addEventListener('click', toLab);
+        $('btn-rail-shop-v2')?.addEventListener('click', () => openShop('menu', changed));
+        $('btn-rail-support-v2')?.addEventListener('click', () => openGrowthPanel('modules', changed));
+        $('btn-rail-pets-v2')?.addEventListener('click', () => openGrowthPanel('pets', changed));   // 1-1 전에는 "클리어하면 열림" 안내
+        $('menu-stage-card-v2')?.addEventListener('click', e => { if (e.target.closest('[data-act="stages"]')) this.openStages(true); });
+        $('btn-radar-close-v2')?.addEventListener('click', () => this.openStages(false));
+        $('menu-scrim-v2')?.addEventListener('click', () => this.openStages(false));
+        window.addEventListener('v2-layout', e => {
+            this.radar.scale = e.detail.mobile ? 2.2 : 1;   // 전체 화면 레이더의 점·글자 (radar_v2.js)
+            if (!e.detail.mobile) this.openStages(false);
+            this.syncRadar();
+        });
+        if (isMobile()) this.radar.scale = 2.2;
+    }
+
+    /** 안내 한 줄: 레이더 아래 줄 + 휴대폰 배치에서는 레이더가 접혀 있으니 잠깐 뜨는 알림으로도 */
+    say(html) {
+        $('menu-map-foot-v2').innerHTML = html;
+        const toast = $('menu-toast-v2');
+        if (!toast || !isMobile()) return;
+        toast.innerHTML = html;
+        toast.hidden = false;
+        toast.classList.remove('is-in');
+        void toast.offsetWidth;   // 애니메이션 다시
+        toast.classList.add('is-in');
+        clearTimeout(this.toastTimer);
+        this.toastTimer = setTimeout(() => { toast.hidden = true; }, 2600);
+    }
+
+    /** 휴대폰 배치: 지도(스테이지·구역·난이도 고르기)를 전체 화면으로 열고 닫음 */
+    openStages(on) {
+        const menu = this.root?.querySelector('.v2-menu');
+        if (!menu || menu.classList.contains('is-stages-open') === on) return;
+        menu.classList.toggle('is-stages-open', on);
+        $('menu-scrim-v2').hidden = !on;
+        this.syncRadar();
+        if (on) $('btn-radar-close-v2').focus({ preventScroll: true });
     }
 
     setMap(map) {
@@ -115,14 +201,20 @@ export class MenuController {
         this.root.querySelectorAll('.v2-maptab').forEach(t => t.classList.toggle('is-on', t.dataset.map === map));
         const story = map === 'story';
         $('menu-radar-locked-v2').hidden = story;
-        $('menu-map-name-v2').textContent = story ? chapterOf(this.currentStage()).name : 'SPECIAL · 무한 파밍 / 엘리트 챌린지';
-        $('menu-zones-v2').hidden = !story;
+        $('menu-map-name-v2').textContent = story ? plainName(chapterOf(this.currentStage()).name) : 'SPECIAL · 무한 파밍 / 엘리트 챌린지';
+        this.stageMap.root.hidden = !story;
+        $('menu-radar-v2').hidden = story;
+        this.syncRadar();
         const sortie = $('btn-to-battle-v2');
         sortie.disabled = !story;
         if (story) this.renderStages();
         else {
             $('menu-map-foot-v2').textContent = 'SPECIAL MAP · 준비 중';
             $('menu-sortie-sub-v2').textContent = 'SPECIAL MAP 준비 중 — STORY MAP으로 출격';
+            const card = $('menu-stage-card-v2');
+            if (card) card.innerHTML = `<button class="v2-mstage__zone" data-act="stages">SPECIAL MAP${icon('down', 26)}</button>`
+                + '<div class="v2-mstage__title"><strong>무한 파밍 · 엘리트 챌린지</strong></div><div class="v2-mstage__meta"><span>준비 중 — STORY MAP으로 출격</span></div>'
+                + `<button class="v2-mstage__pick" data-act="stages">${icon('map', 34)}스테이지 선택</button>`;
         }
     }
 
@@ -140,7 +232,7 @@ export class MenuController {
         if (!zoneOpen(ch.zone)) { this.selectZone(ch.id); return; }
         if (!isUnlocked(id, progress)) {
             sound.play('ui_error');
-            $('menu-map-foot-v2').innerHTML = `<b>${id}</b> 잠김 — 이전 스테이지를 먼저 클리어하세요`;
+            this.say(`<b>${id}</b> 잠김 — 이전 스테이지를 먼저 클리어하세요`);
             return;
         }
         sound.play('ui_tab');
@@ -148,25 +240,28 @@ export class MenuController {
         this.renderStages();
     }
 
-    /** 구역 탭: 구역 1 / 구역 2(1-B를 깨면 열림) — 누르면 그 구역의 아직 못 깬 첫 스테이지 */
+    /** 구역 고르기 (지도를 그 구역으로 넘겼을 때): 그 구역의 아직 못 깬 첫 스테이지. 잠긴 구역은 안내만 */
     selectZone(id) {
         const ch = CHAPTERS.find(c => c.id === id);
         if (!ch) return;
-        if (!zoneOpen(ch.zone)) {
-            sound.play('ui_error');
-            $('menu-map-foot-v2').textContent = `구역 ${ch.zone}${[2, 4, 5, 9].includes(ch.zone) ? '는' : '은'} ${releaseDateOf('zones', ch.zone)} 공개 예정입니다`;
-            return;
-        }
         if (!chapterUnlocked(ch, progress)) {
             sound.play('ui_error');
-            const prev = CHAPTERS[CHAPTERS.indexOf(ch) - 1];
-            const last = prev && prev.stages[prev.stages.length - 1];
-            $('menu-map-foot-v2').innerHTML = `<b>구역 ${ch.zone}</b> 잠김 — ${last ? `${last.id} ${last.name}을(를) ` : '이전 구역을 '}클리어하세요`;
+            this.say(`<b>${plainName(ch.name)}</b> — ${this.zoneLockText(ch)}`);
             return;
         }
         sound.play('ui_tab');
         progress.selectStage(defaultStageIn(ch, progress).id);
         this.renderStages();
+    }
+
+    /** 잠긴 구역 안내 (지도 안개 · 안내 줄): 공개 전이면 날짜, 아니면 앞 구역 보스 */
+    zoneLockText(ch) {
+        if (!zoneOpen(ch.zone)) return `${releaseDateOf('zones', ch.zone)} 공개 예정`;
+        const prev = CHAPTERS[CHAPTERS.indexOf(ch) - 1];
+        const last = prev && prev.stages[prev.stages.length - 1];
+        if (!last) return '';
+        const boss = last.boss && ENEMY_TYPES[last.boss.unit];
+        return boss ? `앞 구역 보스 '${boss.name}'을(를) 쓰러뜨리면 열립니다` : `'${last.name}'을(를) 클리어하면 열립니다`;
     }
 
     /** 난이도 버튼: 잠긴 난이도는 바로 앞 난이도의 마지막 스테이지를 깨야 열림 */
@@ -175,7 +270,7 @@ export class MenuController {
             sound.play('ui_error');
             const i = DIFFICULTIES.findIndex(d => d.id === id);
             const prev = DIFFICULTIES[i - 1];
-            $('menu-map-foot-v2').innerHTML = `<b>${difficultyOf(id).name}</b> 잠김 — ${prev.name} ${FINAL_STAGE_ID}까지 클리어하면 열립니다`;
+            this.say(`<b>${difficultyOf(id).name}</b> 잠김 — ${prev.name} ${FINAL_STAGE_ID}까지 클리어하면 열립니다`);
             return;
         }
         if (id === progress.difficulty) return;
@@ -196,42 +291,38 @@ export class MenuController {
         box.querySelectorAll('.v2-difftab').forEach(b => b.addEventListener('click', () => this.selectDifficulty(b.dataset.diff)));
     }
 
-    renderZones(cur) {
-        const box = $('menu-zones-v2');
-        if (!box) return;
-        const curCh = chapterOf(cur);
-        box.innerHTML = CHAPTERS.map(ch => {
+    /** 지도 쪽(구역)마다: 열림 · 잠긴 안내 · 정거장(판 상태·별·NPC) — stageMap_v2.js */
+    mapPages() {
+        return CHAPTERS.map(ch => {
             const open = chapterUnlocked(ch, progress);
-            const soon = !zoneOpen(ch.zone);
-            const label = soon ? `구역 ${ch.zone} — ${releaseDateOf('zones', ch.zone)} 공개` : `구역 ${ch.zone}`;
-            // 구역이 10개라 번호만 (이름은 title·aria-label) — 레이더 머리 폭 안에 들어가게 (새 기획 D-086)
-            return `<button class="v2-zonetab${ch === curCh ? ' is-on' : ''}${open ? '' : ' is-locked'}${soon ? ' is-coming-soon' : ''}" data-zone="${ch.id}" title="${soon ? label : ch.name}" aria-label="${label}">`
-                + `${open ? '' : icon('lock', 10)}${ch.zone}${soon ? '<small class="v2-release-mark">곧</small>' : ''}</button>`;
-        }).join('');
-        box.querySelectorAll('.v2-zonetab').forEach(b => b.addEventListener('click', () => this.selectZone(b.dataset.zone)));
+            const npcs = this.stageNpcs.get(ch.id);
+            return {
+                zone: ch.zone, name: ch.name, open, lockText: open ? '' : this.zoneLockText(ch),
+                nodes: ch.stages.map((st, k) => ({
+                    id: st.id, name: st.name, boss: !!st.boss, stars: progress.stage(st.id).stars, npcs: npcs[k],
+                    state: !open ? 'locked' : progress.stage(st.id).cleared ? 'cleared' : isUnlocked(st.id, progress) ? 'open' : 'locked'
+                }))
+            };
+        });
     }
 
     renderStages() {
         const cur = this.currentStage();
         progress.selectedStage = cur.id;
         const ch = chapterOf(cur);
-        $('menu-map-name-v2').textContent = ch.name;
+        const storyBtn = $('btn-story-intro-v2');
+        if (storyBtn) storyBtn.hidden = !hasIntro(ch.zone);
         const diff = difficultyOf(progress.difficulty);
         const radar = this.root.querySelector('.v2-radar');
         if (radar) { radar.dataset.difficulty = diff.id; radar.style.setProperty('--diff', diff.color); }
         this.renderDifficulties();
-        this.renderZones(cur);
-        const nodes = ch.stages.map(st => ({
-            id: st.id, at: st.map, boss: !!st.boss, name: `${st.id} ${st.name}`,
-            state: !zoneOpen(st.zone) ? 'locked' : progress.stage(st.id).cleared ? 'cleared' : isUnlocked(st.id, progress) ? 'open' : 'locked',
-            stars: progress.starCount(st.id)
-        }));
-        this.radar.setStages(nodes, cur.id, id => this.selectStage(id));
+        this.stageMap.setHero(progress.character, gameState.getEquippedObjects());
+        this.stageMap.setPages(this.mapPages(), cur.id);
+        $('menu-map-name-v2').textContent = plainName((this.stageMap.viewed || ch).name);   // 머리 이름 = 지금 보는 구역 (번호 없이)
         $('btn-to-battle-v2').disabled = !isUnlocked(cur.id, progress) || !isCharacterReleased(progress.character);
         const stars = progress.stage(cur.id).stars.map(f => (f ? '★' : '☆')).join('');
         const enemies = Object.keys(cur.enemy.mix).map(k => ENEMY_TYPES[k].name).join(' · ');
         const best = progress.stage(cur.id).bestTime;
-        const clock = t => `${Math.floor(t / 60)}:${String(Math.floor(t % 60)).padStart(2, '0')}`;
         const shown = stageFor(cur, diff.id);   // 제한·별 시간은 난이도 배율 반영
         // 노말이 아니면 레이더 왼쪽 아래에 배율 요약
         const note = $('menu-diffnote-v2');
@@ -247,6 +338,21 @@ export class MenuController {
             + `<small>${cur.desc} · 적: ${enemies}${cur.boss ? ' · 보스' : ''}</small>`;
         $('menu-sortie-sub-v2').textContent = progress.isReady()
             ? `STAGE ${cur.id} ${cur.name}${diff.id === 'normal' ? '' : ` · ${diff.name}`} 출격` : '몸통 파츠 필요 — 연구소에서 구매';
+        this.renderStageCard(cur, ch, diff, shown);
+    }
+
+    /** 휴대폰 배치의 스테이지 카드: 구역(누르면 스테이지 선택) · 번호·이름 · 별 · 난이도 · 제한 시간 */
+    renderStageCard(cur, ch, diff, shown) {
+        const card = $('menu-stage-card-v2');
+        if (!card) return;
+        const stars = progress.stage(cur.id).stars.map(f => `<i class="${f ? 'is-on' : ''}">${icon('star', 34)}</i>`).join('');
+        const got = progress.starCount(cur.id);
+        card.innerHTML = `<button class="v2-mstage__zone" data-act="stages">${plainName(ch.name).split(':')[0]}${icon('down', 26)}</button>`   // '제14 비밀 벙커' (구역 번호·부제 뺌, D-104)
+            + `<div class="v2-mstage__title"><b>${cur.id}</b><strong>${cur.name}</strong></div>`
+            + `<div class="v2-mstage__meta"><span class="v2-mstage__stars" aria-label="별 ${got}개 / 3개">${stars}</span>`
+            + `<span class="v2-diffbadge" style="--diff:${diff.color}">${diff.name}</span>${cur.boss ? '<span class="v2-mstage__boss">보스</span>' : ''}`
+            + `<span class="v2-mstage__time" aria-label="제한 시간 ${clock(shown.timeLimit)}">${icon('clock', 30)}${clock(shown.timeLimit)}</span></div>`
+            + `<button class="v2-mstage__pick" data-act="stages">${icon('map', 34)}스테이지 선택</button>`;
     }
 
     /** 메인 화면이 보일 때마다: 장착 상태로 캐릭터/설명/능력치/상태 줄 갱신, 레이더 시작 */
@@ -258,7 +364,10 @@ export class MenuController {
         const res = $('menu-res-v2');
         if (res) res.innerHTML = resChipHtml();   // 별·조각·코어 (Q-006)
         const badge = $('menu-support-badge-v2');   // 받을 파견이 있으면 빨간 점
-        if (badge) badge.textContent = progress.dispatch.some(d => d.end <= Date.now()) ? ' ' : '';
+        const dispatchDone = progress.dispatch.some(d => d.end <= Date.now());
+        if (badge) badge.textContent = dispatchDone ? ' ' : '';
+        if ($('rail-support-dot-v2')) $('rail-support-dot-v2').hidden = !dispatchDone;
+        if ($('rail-shop-dot-v2')) $('rail-shop-dot-v2').hidden = !progress.canClaimPass();
         const equipped = gameState.getEquippedObjects();
         const coop = $('btn-menu-coop-v2');
         if (coop) updateSupportMenu(coop);
@@ -275,12 +384,27 @@ export class MenuController {
             tag.textContent = body ? 'UNIT READY' : 'NO BODY';
             tag.classList.toggle('is-warn', !body);
         }
+        const cls = $('menu-unit-class-v2');   // 휴대폰 배치 이름 옆 배지: '거대로봇 (메카닉)' → '메카닉'
+        if (cls) {
+            cls.textContent = body ? (/\(([^)]+)\)/.exec(body.faction)?.[1] || body.faction) : '몸통 없음';
+            cls.classList.toggle('is-warn', !body);
+        }
 
         this.renderCallouts(equipped);
+        this.renderPartsRow(equipped);
         this.renderStats();
         this.renderStatusBar(equipped);
         if (this.map === 'story') this.renderStages();
-        if (gameState.currentScreen === 'menu' || !gameState.currentScreen) this.radar.start();
+        this.syncRadar();
+    }
+
+    /** 지도(STORY)·레이더(SPECIAL)는 보일 때만 움직임 — 휴대폰 배치에서는 스테이지 선택 창을 열었을 때만 */
+    syncRadar() {
+        const onMenu = gameState.currentScreen === 'menu' || !gameState.currentScreen;
+        const shown = onMenu && (!isMobile() || !!this.root?.querySelector('.v2-menu.is-stages-open'));
+        if (shown && this.map !== 'story') this.radar.start();
+        else this.radar.stop();
+        this.stageMap.setActive(shown && this.map === 'story');
     }
 
     updateOfflineReward() {
@@ -302,10 +426,30 @@ export class MenuController {
         }).join('');
     }
 
+    /** 휴대폰 배치: 화면 아래 파츠 4칸 (머리·팔·몸통·다리 — 부위 · 파츠 이름 · 스킬, 11-04 디자인 제안) */
+    renderPartsRow(equipped) {
+        const list = $('menu-parts-list-v2');
+        if (!list) return;
+        const skills = skillsForParts(equipped);
+        list.innerHTML = SLOTS.map(({ slot, ko, role }) => {
+            const part = equipped[slot];
+            const has = part && part.id !== 'none';
+            const sk = skills[slot];
+            const leg = slot === 'leg' ? legPassiveOf(part) : null;
+            const lv = has ? progress.levelOf(part.id) : 1;
+            // 칸이 좁아 역할(필살기·스킬 N·패시브)은 부위 옆에, 아래 줄은 아이콘 + 스킬 이름만
+            const roleName = role === 'ULT' ? '필살기' : role === 'P' ? '패시브' : `스킬 ${role}`;
+            const line = sk ? `${icon(sk.icon, 30)}${sk.name}` : leg ? `${icon('shield', 30)}${leg.name}` : '—';
+            return `<li style="--sk:${sk ? sk.color : leg ? '#8b95a8' : 'var(--v2-dim)'}"><b>${ko} · ${roleName}${lv > 1 ? ` · Lv${lv}` : ''}</b>`
+                + `<strong>${has ? part.name : '비어 있음'}</strong><em>${line}</em></li>`;
+        }).join('');
+    }
+
     renderStats() {
         const st = progress.equippedStats();   // 강화 레벨 반영
-        const rows = [['ARMOR', st.hp], ['POWER', st.dps], ['RANGE', st.range], ['SPEED', st.speed]];
-        $('menu-stats-v2').innerHTML = rows.map(([k, v]) => `<div><dt>${k}</dt><dd>${Number(v).toLocaleString()}</dd></div>`).join('');
+        // 아이콘은 휴대폰 배치에서만 (글자 이름 대신, Q-015)
+        const rows = [['ARMOR', '체력', 'shield', st.hp], ['POWER', '공격력', 'bolt', st.dps], ['RANGE', '사거리', 'aim', st.range], ['SPEED', '이동 속도', 'speed', st.speed]];
+        $('menu-stats-v2').innerHTML = rows.map(([k, ko, ic, v]) => `<div aria-label="${ko} ${Number(v).toLocaleString()}"><dt>${icon(ic, 32)}<span>${k}</span></dt><dd>${Number(v).toLocaleString()}</dd></div>`).join('');
     }
 
     renderStatusBar(equipped) {
@@ -319,9 +463,11 @@ export class MenuController {
             <span><b>SQUAD</b><strong style="color:${ready ? 'var(--v2-green)' : 'var(--v2-amber)'}">${ready ? 'DEPLOYABLE' : 'NO BODY'}</strong></span>`;
     }
 
-    /** 메인 화면을 떠날 때: 레이더 멈춤 */
+    /** 메인 화면을 떠날 때: 지도·레이더 멈춤, 휴대폰 배치의 창 닫기 */
     onLeave() {
+        this.openStages(false);
         this.radar.stop();
+        this.stageMap.setActive(false);
     }
 }
 

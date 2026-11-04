@@ -30,18 +30,16 @@ def run(ctx):
     g = ctx.game(fresh=True)
     g.enter_v2()
 
-    # 구역 탭(1~6), 구역 3은 2-B 전까지 잠김 → 구역 1·2를 깨면 열리고 누르면 3-1
-    st = g.js("""const tabs = [...document.querySelectorAll('#menu-zones-v2 .v2-zonetab')];
-        const z3 = tabs.find(t => t.dataset.zone === 'ch3'); z3.click();
-        return { n: tabs.length, locked: z3.classList.contains('is-locked'), foot: document.getElementById('menu-map-foot-v2').textContent };""")
-    ctx.check(st['n'] == 10 and st['locked'] and '2-B' in st['foot'], '구역 탭 10개: 구역 3은 2-B 전까지 잠김', str(st))
+    # 지도 구역 10쪽, 구역 3은 2-B 전까지 잠김 → 구역 1·2를 깨면 열리고 넘기면 3-1
+    st = g.map_zone('ch3')
+    ctx.check(st['n'] == 10 and st['locked'] and '기간틱 테라포머' in st['foot'], '지도 구역 10쪽: 구역 3은 2-B 보스 전까지 잠김', str(st))
     g.js(CLEAR.replace('IDS', '[1, 2]') + "window.madOverlordGameV2.menuController.renderStages();")
-    st = g.js("""document.querySelector('#menu-zones-v2 .v2-zonetab[data-zone="ch3"]').click();
-        const S = await import('/js/engine_v2/stages_v2.js');
-        return { sel: progress.selectedStage, name: document.getElementById('menu-map-name-v2').textContent,
-                 n3: S.CHAPTER3.stages.length, n4: S.CHAPTER4.stages.length, after2: S.nextStageOf('2-B').id, after3: S.nextStageOf('3-B').id,
-                 z4: document.querySelector('#menu-zones-v2 .v2-zonetab[data-zone="ch4"]').classList.contains('is-locked') };""")
-    ctx.check(st['sel'] == '3-1' and '구역 3' in st['name'] and st['n3'] == 11 and st['n4'] == 11 and st['after2'] == '3-1'
+    name = g.map_zone('ch3')['name']
+    st = g.js("""const S = await import('/js/engine_v2/stages_v2.js');
+        return { sel: progress.selectedStage, n3: S.CHAPTER3.stages.length, n4: S.CHAPTER4.stages.length, after2: S.nextStageOf('2-B').id, after3: S.nextStageOf('3-B').id,
+                 z4: !window.madOverlordGameV2.menuController.stageMap.pages[3].open };""")
+    st['name'] = name
+    ctx.check(st['sel'] == '3-1' and name.startswith('성왕국 수도') and st['n3'] == 11 and st['n4'] == 11 and st['after2'] == '3-1'
               and st['after3'] == '4-1' and st['z4'], '2-B 클리어 → 구역 3 열림(3-1), 구역마다 11판, 3-B 다음 = 4-1, 구역 4는 잠김', str(st))
     g.shot('zone3_menu', '#screen-menu-v2')
 

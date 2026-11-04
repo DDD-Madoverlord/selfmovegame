@@ -79,7 +79,7 @@ export const AttackMethods = {
             this.fx.play(meleeHitVfx(monsterControllerV2.getCharacterId(), this.equippedArmId), aim.x, aim.b + 5);
             const cleave = CLEAVE_BY_ARM[this.equippedArmId] || MELEE_CLEAVE;
             const near = this.enemies.filter(o => o !== targetEnemy && !o.isBuilding && Math.abs(o.x - targetEnemy.x) <= cleave.radius);
-            this.dealDamageToEnemy(targetEnemy, finalDmg, isCrit, { knock: 1, stop: hitScale >= 1 });
+            this.dealDamageToEnemy(targetEnemy, finalDmg * MELEE_CLEAVE.dmg, isCrit, { knock: 1, stop: hitScale >= 1 });   // 근접 주 대상 피해 상향 (11-03)
             near.forEach(o => this.dealDamageToEnemy(o, finalDmg * cleave.mul, false, { knock: 0.6 }));
             if (this.equippedArmId === 'arm_mutant') this.applyAcid(targetEnemy);   // 산성 이빨
         }

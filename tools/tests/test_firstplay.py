@@ -88,3 +88,22 @@ def run(ctx):
     ctx.check(st['text'] and 'WMD-알파' in st['text'] and 'BOSS' in st['text'] and '플라스마 레이저' in st['text'] and st['boss'],
               '보스 등장 카드: BOSS · 이름 · 주요 기술 (최종 기지와 함께)', str(st))
     g.shot('firstplay_boss', '#screen-battle-v2')
+
+    # ---- 2026-11-03 튜토리얼 세부: 첫 과부하 · 첫 최종 기지 · 연구소 강화 단추 안내 (각각 한 번, tips에 저장) ----
+    g.js("document.querySelectorAll('.v2-coach').forEach(c => c.remove()); b.playerHp = 0;")
+    g.wait(600)
+    ctx.check(g.js("return [...document.querySelectorAll('#screen-battle-v2 .v2-coach')].some(c => c.innerText.includes('긴급 수리')) && progress.hasTip('battle_overload');"),
+              '첫 과부하: 긴급 수리 안내')
+    # 이 판은 이미 최종 기지 지점(900m)을 지나 안내를 봤을 수 있음 → 본 기록을 지우고 기지를 새로 세워 확인
+    g.js("document.querySelectorAll('.v2-coach').forEach(c => c.remove()); progress.tips.delete('battle_final');"
+         " b.enemies.forEach(e => e.dom && e.dom.remove()); b.enemies = []; b.finalBaseSpawned = false; b.spawnFinalBase();")
+    g.wait(600)
+    st = g.js("return { ok: [...document.querySelectorAll('#screen-battle-v2 .v2-coach')].some(c => c.innerText.includes('최종 기지')), tip: progress.hasTip('battle_final'),"
+              " spawned: b.finalBaseSpawned, active: b.isActive, coaches: [...document.querySelectorAll('.v2-coach')].map(c => c.innerText) };")
+    ctx.check(st['ok'] and st['tip'], '첫 최종 기지: 승리 조건 안내', str(st))
+    g.js("b.stopBattle(); progress.skipTutorial(); gameState.darkMatter = 99999; document.querySelectorAll('.v2-coach').forEach(c => c.remove()); window.madOverlordGameV2.switchScreen('lab');")
+    g.wait(1200)
+    st = g.js("""const c = document.querySelector('#screen-lab-v2 .v2-coach');
+        return { text: c && c.innerText, tip: progress.hasTip('lab_upgrade') };""")
+    ctx.check(st['text'] and '강화' in st['text'] and st['tip'], '연구소: 장착 파츠를 강화할 수 있으면 강화 단추 안내', str(st))
+    g.shot('firstplay_lab_upgrade', '#screen-lab-v2')

@@ -87,6 +87,13 @@ def run(ctx):
         const hellFirst = S.dropGroupOf(progress.pickDropPart('kaiju', 'hell', { prefer: ['unique', 'rare', 'base'] }, r([0.5])));
         // 드랍으로 얻은 레어 세트 파츠는 커먼으로 뽑혀도 레어
         const got = progress.grantPart('arm_kaiju_b', 'common', r([0.3]));
+        // 등급 단계 (11-03): 거대괴수 커먼 파츠를 3개 가져야 레어 세트를 만들 수 있음 → 커먼 없이 막히는 것을 본 뒤 3개를 줌
+        const { SLOTS, partsOfCharacter } = await import('/js/engine_v2/roster_v2.js');
+        const commons = SLOTS.flatMap(s => partsOfCharacter('kaiju', s)).filter(q => S.dropGroupOf(q) === 'base').map(q => q.id);
+        commons.forEach(id => progress.owned.delete(id));
+        progress.shards = 40;
+        const tierLocked = progress.craftPart('arm_kaiju_a');
+        commons.slice(0, 3).forEach(id => progress.owned.add(id));
         // 조각 제작
         progress.shards = 10;
         const c0 = progress.craftCost('arm_kaiju_a'), poor = progress.craftPart('arm_kaiju_a');
@@ -101,7 +108,7 @@ def run(ctx):
         const save = { ...progress.growthData(), options: {}, grades: {} };
         progress.owned.add('head_hero_a'); delete progress.options.head_hero_a;
         progress.loadGrowth(save);
-        return { floor, dps, want, normal, hard, first, hellFirst, got: [got.type, got.grade, progress.optionsOf('arm_kaiju_b').length],
+        return { tierLocked: [tierLocked.success, tierLocked.reason || ''], floor, dps, want, normal, hard, first, hellFirst, got: [got.type, got.grade, progress.optionsOf('arm_kaiju_b').length],
             c0, poor: poor.success, made: [made.success, made.grade, made.shards], after, locked: locked.success, lockedWhy: locked.reason || '',
             old: [progress.gradeOf('head_hero_a'), progress.optionsOf('head_hero_a').length],
             label: S.setLabelOf(S.setOf('head_hero_a')) };""")
@@ -114,6 +121,8 @@ def run(ctx):
     ctx.check(st['c0'] == {'shards': 30, 'grade': 'rare'} and not st['poor'] and st['made'] == [True, 'rare', 30]
               and st['after'] == {'owned': True, 'shards': 10, 'again': None, 'base': None},
               '조각 제작: 레어 세트 부위 30개 (부족하면 실패), 가진 파츠·기본 파츠는 불가', str(st))
+    ctx.check(not st['tierLocked'][0] and '커먼 파츠를 3개' in st['tierLocked'][1],
+              '등급 단계: 거대괴수 커먼 파츠가 3개 안 되면 레어 세트를 조각으로도 못 만듦', str(st['tierLocked']))
     ctx.check(not st['locked'] and '드랍·조각' in st['lockedWhy'], '드랍 전용 파츠는 개조 확정(DM 구매) 불가', st['lockedWhy'])
     ctx.check(st['old'] == ['rare', 1] and st['label'] == '레어 ① 타락 기사', '예전 저장: 산 A·B → 레어 + 옵션 1개 · 이름표 "레어 ① 타락 기사"', str(st))
     g.js("progress.options = {}; progress.grades = {};")

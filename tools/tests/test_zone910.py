@@ -11,12 +11,12 @@ def run(ctx):
     g.enter_v2()
 
     g.js(CLEAR.replace('IDS', '[1, 2, 3, 4, 5, 6, 7, 8]') + "window.madOverlordGameV2.menuController.renderStages();")
-    st = g.js("""document.querySelector('#menu-zones-v2 .v2-zonetab[data-zone="ch9"]').click();
-        const S = await import('/js/engine_v2/stages_v2.js');
-        return { sel: progress.selectedStage, n: S.CHAPTERS.length, a9: S.nextStageOf('9-B').id, last: S.STAGES[S.STAGES.length - 1].id,
-                 tabs: document.querySelectorAll('#menu-zones-v2 .v2-zonetab').length };""")
-    ctx.check(st['sel'] == '9-1' and st['n'] == 10 and st['a9'] == '10-1' and st['last'] == '10-B' and st['tabs'] == 10,
-              '8-B 클리어 → 구역 9 열림(9-1), 구역 탭 10개, 9-B 다음 = 10-1, 마지막 = 10-B', str(st))
+    pages = g.map_zone('ch9')['n']
+    st = g.js("""const S = await import('/js/engine_v2/stages_v2.js');
+        return { sel: progress.selectedStage, n: S.CHAPTERS.length, a9: S.nextStageOf('9-B').id, last: S.STAGES[S.STAGES.length - 1].id };""")
+    st['pages'] = pages
+    ctx.check(st['sel'] == '9-1' and st['n'] == 10 and st['a9'] == '10-1' and st['last'] == '10-B' and st['pages'] == 10,
+              '8-B 클리어 → 구역 9 열림(9-1), 지도 구역 10쪽, 9-B 다음 = 10-1, 마지막 = 10-B', str(st))
 
     # ---- 구역 9 ----
     battle_at(g, '9-1')

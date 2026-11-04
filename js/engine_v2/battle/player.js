@@ -7,6 +7,7 @@
 
 import { monsterControllerV2 } from '../monster_v2.js';
 import { sound } from '../audio/sound_v2.js';
+import { coach } from '../../ui_v2/coach_v2.js';
 import { HERO_VFX, MECH_VFX, KAIJU_VFX, CHIMERA_VFX, BATTLE_VFX } from '../vfx/vfxDefs.js';
 import { aimAt as aimOf, GROUND_SPEED } from '../bases_v2.js';
 import { PHASE2, HERO, PASSIVE, LEG, PLAYER_STATUS, OVERLOAD, FOOT_B, FROST, WALK_SYNC, REACT } from './tuning.js';
@@ -137,6 +138,7 @@ export const PlayerMethods = {
         this.stats.overloads = (this.stats.overloads || 0) + 1;
         this.applyPlayerStun(OVERLOAD.sec, 'OVERLOAD', true);
         this.director.overload(OVERLOAD.sec);
+        coach('battle_overload', '#hud-hp-v2');   // 처음 한 번: 과부하·긴급 수리 안내
     },
 
     // ---- 주인공 상태 이상 (적 공격) ----

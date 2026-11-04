@@ -18,9 +18,10 @@ const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;',
 
 /** 재화 칩 안쪽 HTML */
 export function resChipHtml() {
-    return `<span title="남은 별 (캐릭터 해금·전술 모듈·계정 연구)"><i>★</i><b>${progress.availableStars()}</b></span>`
-        + `<span title="파츠 조각 (등급 올리기)"><i>조각</i><b>${progress.shards}</b></span>`
-        + `<span title="스킬 코어 (스킬 강화)"><i>코어</i><b>${progress.cores}</b></span>`;
+    // em = 휴대폰 배치(Q-015)에서 글자 이름 대신 보이는 아이콘
+    return `<span title="남은 별 (캐릭터 해금·전술 모듈·계정 연구)" aria-label="별 ${progress.availableStars()}"><em>${icon('star', 15)}</em><i>★</i><b>${progress.availableStars()}</b></span>`
+        + `<span title="파츠 조각 (등급 올리기)" aria-label="조각 ${progress.shards}"><em>${icon('shard', 15)}</em><i>조각</i><b>${progress.shards}</b></span>`
+        + `<span title="스킬 코어 (스킬 강화)" aria-label="코어 ${progress.cores}"><em>${icon('core', 15)}</em><i>코어</i><b>${progress.cores}</b></span>`;
 }
 
 /** 등급 표시 태그 (커먼이면 빈 문자열) */
@@ -108,7 +109,7 @@ function act(name, d) {
         }
     }
     render();
-    if (r) toast(r.success ? (name === 'dispatch' ? '파견 출발!' : '완료!') : r.reason, r.success);
+    if (r) toast(r.success ? (name === 'dispatch' ? (r.supportCleared ? '파견 출발! 협력 출격에서 빠졌습니다' : '파견 출발!') : '완료!') : r.reason, r.success);
 }
 
 function render(preserveScroll = true) {

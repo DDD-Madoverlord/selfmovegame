@@ -15,7 +15,7 @@ import { PARTS_DB } from '../data/parts.js';
 import { SLOTS, DEFAULT_CHARACTER, characterOfPart, partsOfCharacter } from './roster_v2.js';
 import { STAGES, CHAPTERS } from './stages_v2.js';
 import { isZoneReleased, isCharacterReleased, releaseDateOf } from './contentSchedule_v2.js';
-import { minGradeOf, dropGroupOf, setOf } from './sets_v2.js';
+import { minGradeOf, dropGroupOf, setOf, setPerkOf } from './sets_v2.js';
 import { DIFFICULTIES, highestDifficulty, difficultyOf } from './difficulty_v2.js';
 import { emptyPets } from './pets_v2.js';
 import {
@@ -196,6 +196,8 @@ export const GrowthMethods = {
     craftPart(id, rnd = Math.random) {
         const c = this.craftCost(id);
         if (!c) return { success: false, reason: '만들 수 없는 파츠입니다' };
+        const lock = this.tierLock(partById(id));   // 등급 단계 (progress_v2.js tierLock, 11-03)
+        if (lock) return { success: false, reason: this.tierLockText(lock) };
         if (this.shards < c.shards) return { success: false, reason: `파츠 조각이 부족합니다 (${c.shards}개 필요)` };
         this.shards -= c.shards;
         const got = this.grantPart(id, c.grade, rnd);
@@ -363,15 +365,22 @@ export const GrowthMethods = {
         if (reason) return { success: false, reason };
         if (!this.dispatchZones().includes(zone)) return { success: false, reason: '아직 깨지 않은 구역입니다' };
         this.dispatch.push({ character, zone, start: now, end: now + this.dispatchMs() });
+        // 협력으로 골라 둔 캐릭터를 파견 보내면 협력 선택을 비움 — 파견 중에는 협력 편성 불가 (11-03, 홍도도 QA6)
+        const supportCleared = this.supportCharacter === character;
+        if (supportCleared) { this.supportCharacter = null; this.supportRandom = false; }
         gameState.notify();
-        return { success: true };
+        return { success: true, supportCleared };
     },
     /** 다 끝난 파견 받기: DM·조각·코어 + 30% 확률로 그 캐릭터 파츠(레어 이하) */
     collectDispatch(index, now = Date.now(), rnd = Math.random) {
         const d = this.dispatch[index];
         if (!d) return { success: false, reason: '없는 파견입니다' };
         if (now < d.end) return { success: false, reason: '아직 진행 중입니다' };
-        const r = DISPATCH.reward(d.zone);
+        // 파견 보낸 캐릭터가 끼운 세트의 전투 밖 효과: 보상 ×(1 + dispatchLoot) (sets_v2.js SET_PERKS, 11-03)
+        const loot = setPerkOf(Object.fromEntries(Object.entries(this.loadoutFor(d.character)).map(([slot, id]) => [slot, partById(id)])), 'dispatchLoot');
+        const base = DISPATCH.reward(d.zone);
+        const r = loot ? { dm: Math.round(base.dm * (1 + loot)), shards: Math.round(base.shards * (1 + loot)), cores: Math.round(base.cores * (1 + loot)),
+            partChance: base.partChance * (1 + loot) } : base;
         this.dispatch.splice(index, 1);
         gameState.darkMatter += r.dm;
         this.shards += r.shards;
@@ -384,7 +393,7 @@ export const GrowthMethods = {
             if (pick) part = this.grantPart(pick.id, top === 'normal' ? 'common' : 'rare', rnd);
         }
         gameState.notify();
-        return { success: true, dm: r.dm, shards: r.shards, cores, part, character: d.character, zone: d.zone };
+        return { success: true, dm: r.dm, shards: r.shards, cores, part, character: d.character, zone: d.zone, loot };
     }
 };
 

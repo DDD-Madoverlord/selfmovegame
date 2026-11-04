@@ -11,13 +11,41 @@ def run(ctx):
     # 세트 탭: 거대로봇 9세트, 레어 ① 포격 사령부가 맨 위, 강화 칸은 숨김
     g.page.click('.v2-slottab[data-slot="set"]')
     g.wait(200)
-    st = g.js("""const rows = [...document.querySelectorAll('#parts-grid-v2 .v2-setrow')];
+    st = g.js("""const rows = [...document.querySelectorAll('#parts-grid-v2 .v2-setrow:not(.is-common)')];
         return { n: rows.length, first: rows[0] && rows[0].querySelector('.v2-setrow__head b').textContent,
                  parts: rows[0] ? rows[0].querySelectorAll('.v2-setrow__part[data-id]').length : 0,
                  bonus: rows[0] ? rows[0].querySelectorAll('.v2-setrow__bonus li').length : 0,
                  upgHidden: document.getElementById('lab-upgrade-v2').hidden };""")
     ctx.check(st['n'] == 9 and st['first'] == '레어 ① 포격 사령부' and st['parts'] == 4 and st['bonus'] >= 1 and st['upgHidden'],
               '세트 탭: 거대로봇 9세트 (레어 → 유니크 → 레전더리 순), 한 줄에 네 부위·세트 효과, 강화 칸 숨김', str(st))
+
+    # 커먼(세트 아님) 파츠도 맨 아래 줄로 보임 — Trello '세트장비 표시에 일반등급 장비 표기 안 됨' (11-03)
+    st = g.js("""const all = [...document.querySelectorAll('#parts-grid-v2 .v2-setrow')];
+        const rows = all.filter(r => r.classList.contains('is-common'));
+        return { last: all.indexOf(rows[0]) === all.length - rows.length,
+                 rows: rows.map(r => [r.querySelector('.v2-setmark').textContent, r.querySelector('.v2-setrow__head b').textContent,
+                     [...r.querySelectorAll('.v2-setrow__part[data-id]')].map(b => b.dataset.id).join(','), r.querySelector('.v2-setrow__bonus').textContent.trim()]) };""")
+    ctx.check(st['last'] and len(st['rows']) == 3 and st['rows'][0][:3] == ['C①', '커먼 기본 파츠', 'head_red_robot,body_red_robot,arm_red_robot,leg_red_robot']
+              and st['rows'][1][2] == 'head_mech,body_mech,arm_mech_laser,leg_mech_wheel' and st['rows'][2][2] == 'arm_mech_missile'
+              and st['rows'][0][3] == '세트 효과 없음',
+              '세트 탭: 커먼 파츠도 맨 아래 줄로 (거대로봇 기본 로봇 · 메카닉 · 미사일 팔), 세트 효과 없음', str(st))
+    take = "const rows = [...document.querySelectorAll('.v2-setrow.is-common')]; return rows.map(r => r.querySelector('.v2-setrow__take').textContent);"
+    before = g.js(take)
+    g.page.locator('.v2-setrow.is-common', has_text='커먼 강화 파츠').first.locator('.v2-setrow__take').click()
+    g.wait(300)
+    st = g.js("""const c = gameState.getCartObjects();
+        return ['head', 'body', 'arm', 'leg'].map(s => c[s] && c[s].id);""")
+    ctx.check(before[:2] == ['담음', '세트로 담기'] and before[2] == '모두 담기'
+              and st == ['head_mech', 'body_mech', 'arm_mech_laser', 'leg_mech_wheel'] and g.js(take)[:2] == ['세트로 담기', '담음'],
+              '커먼 줄 [세트로 담기]: 기본 파츠는 처음부터 담음, 메카닉 줄을 누르면 네 부위가 장바구니에', str({'before': before, 'cart': st}))
+    g.js("progress.selectCharacter('frost'); window.madOverlordGameV2.labController.refresh();")
+    g.wait(300)
+    st = g.js("""return [...document.querySelectorAll('#parts-grid-v2 .v2-setrow.is-common')].map(r => [r.querySelector('.v2-setmark').textContent,
+        [...r.querySelectorAll('.v2-setrow__part[data-id]')].map(b => b.dataset.id).join(',')]);""")
+    ctx.check(st == [['C①', 'head_frost,body_frost,arm_frost,leg_frost'], ['C②', 'head_frost_up,body_frost_up,arm_frost_up,leg_frost_up']],
+              '새 캐릭터(서리): 커먼 기본 · 강화 두 줄', str(st))
+    g.js("progress.selectCharacter('mech'); window.madOverlordGameV2.labController.refresh();")
+    g.wait(300)
 
     # [세트로 담기] → 네 부위가 장바구니에, 세트 효과 켜짐 표시, 부위 탭 점 4개
     g.page.locator('.v2-setrow', has_text='레어 ① 포격 사령부').locator('.v2-setrow__take').click()

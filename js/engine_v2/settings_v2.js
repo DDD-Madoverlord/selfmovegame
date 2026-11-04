@@ -7,7 +7,8 @@
 import * as saveStore from './saveStore_v2.js';
 
 const KEY = 'mo_v2_settings';
-export const DEFAULT_SETTINGS = { master: 0.8, sfx: 0.9, bgm: 0.5, mute: false, shake: true, sharp: true };
+// layout: 화면 배치 'auto'(휴대폰·태블릿이면 휴대폰 배치, PC는 예전 배치) | 'mobile' | 'pc' — main_v2.js fitScreens (Q-015)
+export const DEFAULT_SETTINGS = { master: 0.8, sfx: 0.9, bgm: 0.5, mute: false, shake: true, sharp: true, layout: 'auto' };
 
 function load() {
     try {

@@ -10,15 +10,14 @@ def run(ctx):
 
     # 구역 5는 4-B 전까지 잠김 → 구역 1~4를 깨면 열리고 누르면 5-1, 5-B 다음 = 6-1
     g.js(CLEAR.replace('IDS', '[1, 2, 3]') + "window.madOverlordGameV2.menuController.renderStages();")
-    st = g.js("""const z5 = document.querySelector('#menu-zones-v2 .v2-zonetab[data-zone="ch5"]'); z5.click();
-        return { locked: z5.classList.contains('is-locked'), foot: document.getElementById('menu-map-foot-v2').textContent };""")
-    ctx.check(st['locked'] and '4-B' in st['foot'], '구역 5는 4-B 전까지 잠김', str(st))
+    st = g.map_zone('ch5')
+    ctx.check(st['locked'] and '오큘러스' in st['foot'], '구역 5는 4-B 보스 전까지 잠김', str(st))
     g.js(CLEAR.replace('IDS', '[1, 2, 3, 4]') + "window.madOverlordGameV2.menuController.renderStages();")
-    st = g.js("""document.querySelector('#menu-zones-v2 .v2-zonetab[data-zone="ch5"]').click();
-        const S = await import('/js/engine_v2/stages_v2.js');
-        return { sel: progress.selectedStage, name: document.getElementById('menu-map-name-v2').textContent,
-                 n: S.CHAPTER5.stages.length, after4: S.nextStageOf('4-B').id, after5: S.nextStageOf('5-B').id };""")
-    ctx.check(st['sel'] == '5-1' and '구역 5' in st['name'] and st['n'] == 11 and st['after4'] == '5-1' and st['after5'] == '6-1',
+    name = g.map_zone('ch5')['name']
+    st = g.js("""const S = await import('/js/engine_v2/stages_v2.js');
+        return { sel: progress.selectedStage, n: S.CHAPTER5.stages.length, after4: S.nextStageOf('4-B').id, after5: S.nextStageOf('5-B').id };""")
+    st['name'] = name
+    ctx.check(st['sel'] == '5-1' and name.startswith('해상 요새 포세이돈') and st['n'] == 11 and st['after4'] == '5-1' and st['after5'] == '6-1',
               '4-B 클리어 → 구역 5 열림(5-1), 11판, 4-B 다음 = 5-1, 5-B 다음 = 6-1', str(st))
     g.shot('zone5_menu', '#screen-menu-v2')
 

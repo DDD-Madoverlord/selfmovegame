@@ -18,18 +18,14 @@ def run(ctx):
     g = ctx.game(fresh=True)
     g.enter_v2()
 
-    # 구역 탭: 처음엔 구역 2 잠김
-    st = g.js("""const tabs = [...document.querySelectorAll('#menu-zones-v2 .v2-zonetab')];
-        const z2 = tabs.find(t => t.dataset.zone === 'ch2'); z2.click();
-        return { n: tabs.length, locked: z2.classList.contains('is-locked'), foot: document.getElementById('menu-map-foot-v2').textContent };""")
-    ctx.check(st['n'] >= 2 and st['locked'] and '잠김' in st['foot'], '구역 탭: 구역 2는 1-B 전까지 잠김', str(st))
+    # 지도: 처음엔 구역 2 잠김 (넘기면 안개, 정거장을 누르면 여는 조건 = 1-B 보스)
+    st = g.map_zone('ch2')
+    ctx.check(st['n'] >= 2 and st['locked'] and 'WMD-알파' in st['foot'] and 'WMD-알파' in st['fog'], '지도: 구역 2는 1-B 전까지 잠김', str(st))
 
-    # 1-B를 깨면 구역 2가 열리고, 누르면 2-1
+    # 1-B를 깨면 구역 2가 열리고, 넘기면 2-1
     g.js(CLEAR_CH1 + "window.madOverlordGameV2.menuController.renderStages();")
-    st = g.js("""document.querySelector('#menu-zones-v2 .v2-zonetab[data-zone="ch2"]').click();
-        return { sel: progress.selectedStage, name: document.getElementById('menu-map-name-v2').textContent,
-                 foot: document.getElementById('menu-map-foot-v2').textContent };""")
-    ctx.check(st['sel'] == '2-1' and '구역 2' in st['name'] and '2-1' in st['foot'], '1-B 클리어 → 구역 2 열림, 2-1 선택', str(st))
+    st = g.map_zone('ch2')
+    ctx.check(st['sel'] == '2-1' and st['name'].startswith('해안 시추 단지') and '2-1' in st['foot'], '1-B 클리어 → 구역 2 열림, 2-1 선택 (머리 이름에 구역 번호 없음)', str(st))
     ctx.check(g.js("return (await import('/js/engine_v2/stages_v2.js')).nextStageOf('1-B').id;") == '2-1', '1-B 다음 스테이지 = 2-1')
     ctx.check(g.js("return (await import('/js/engine_v2/stages_v2.js')).CHAPTER2.stages.length;") == 11, '구역 2 = 11판 (2-1 ~ 2-10 + 보스)')
     g.shot('zone2_menu', '#screen-menu-v2')

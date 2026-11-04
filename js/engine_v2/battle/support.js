@@ -46,7 +46,7 @@ export const SupportMethods = {
         return { ready: !!s?.snapshot && cooldown === 0 && !active,
             hasTarget: targets.length > 0 || defensive, cooldown,
             charge: s?.snapshot ? Math.max(0, Math.min(1, 1 - cooldown / s.interval)) : 0,
-            time: active ? Math.max(0, T.duration - active.elapsed) : 0 };
+            time: active ? Math.max(0, active.duration - active.elapsed) : 0 };
     },
     callSupport() {
         const status = this.supportStatus();
@@ -55,7 +55,9 @@ export const SupportMethods = {
             document.querySelector('.v2-settings') || !status.ready || !status.hasTarget) return false;
         const s = this.support, snap = s.snapshot;
         const target = this.supportTargets()[0];
+        // 협력 시간: 기본 T.duration + 주인공 세트의 전투 밖 효과(sets_v2.js SET_PERKS supportTime, 11-03) — 퇴장 시각도 같이 늦춤
         const active = { owner: `support-${this.runId}-${++s.serial}`, elapsed: 0, cast: false, casts: 0, castUntil: 0, basicAttacks: 0, nextAttack: T.attackAt,
+            duration: T.duration + (snap.extraTime || 0), exitAt: T.exitAt + (snap.extraTime || 0),
             marks: new Map(), tasks: [], snapshot: snap, x: this.monsterX - 45, shieldAllies: new Set(),
             melee: MELEE.has(snap.parts.arm?.attackType || 'melee') || snap.parts.arm?.kitAttack?.kind === 'melee', target, dash: null, dashUsed: false };
         active.x = this.supportPositionX(active.melee && target ? this.supportCombatX(active, target) : active.x);
@@ -86,7 +88,7 @@ export const SupportMethods = {
         });
         this.positionSupport(active);
         sound.play('ui_equip');
-        this.hud.supportNotice?.(rosterOf(snap.id).faction, `${T.duration}초 지원 · 궁극기 ${T.ultimateTimes.length}회`);
+        this.hud.supportNotice?.(rosterOf(snap.id).faction, `${active.duration}초 지원 · 궁극기 ${T.ultimateTimes.length}회`);
         return true;
     },
     // 몸의 앞면을 건물/바리케이드보다 왼쪽에 둔다. 먼 적 앞으로 소환해도 방벽을 건너뛰지 않는다.
@@ -107,7 +109,7 @@ export const SupportMethods = {
         const desired = this.supportPositionX(a.melee ? (target ? this.supportCombatX(a, target) : a.x)
             : a.elapsed >= T.attackAt && target
                 ? Math.max(this.monsterX - 45, target.x - reach - T.actorFront) : this.monsterX - 45);
-        if (a.melee && a.elapsed < T.exitAt && target && a.target &&
+        if (a.melee && a.elapsed < a.exitAt && target && a.target &&
             !this.enemies.includes(a.target) && !a.dashUsed && !this.supportInRange(a, target) && Math.abs(desired - a.x) <= T.dashRange) {
             a.dash = { from: a.x, to: desired, at: a.elapsed };
             a.dashUsed = true;
@@ -125,10 +127,10 @@ export const SupportMethods = {
             a.x = this.supportPositionX(a.x + Math.sign(gap) * Math.min(Math.abs(gap), step));
         }
         if (a.dom) {
-            const fade = Math.min(1, a.elapsed / T.enter, (T.duration - a.elapsed) / (T.duration - T.exitAt));
+            const fade = Math.min(1, a.elapsed / T.enter, (a.duration - a.elapsed) / (a.duration - a.exitAt));
             a.dom.style.left = `${a.x - 160}px`;
             a.dom.style.opacity = String(Math.max(0, fade));
-            a.dom.style.transform = `translateX(${a.elapsed < T.enter ? -35 * (1 - fade) : a.elapsed > T.exitAt ? -35 * (1 - fade) : 0}px)`;
+            a.dom.style.transform = `translateX(${a.elapsed < T.enter ? -35 * (1 - fade) : a.elapsed > a.exitAt ? -35 * (1 - fade) : 0}px)`;
         }
     },
     tickSupport(dt) {
@@ -154,9 +156,9 @@ export const SupportMethods = {
         }
         const a = s.active;
         a.elapsed += dt;
-        if (a.elapsed >= T.duration) { this.clearSupport(); return; }
+        if (a.elapsed >= a.duration) { this.clearSupport(); return; }
         this.positionSupport(a, dt);
-        if (a.casts < T.ultimateTimes.length && a.elapsed >= T.ultimateTimes[a.casts] && a.elapsed < T.exitAt) {
+        if (a.casts < T.ultimateTimes.length && a.elapsed >= T.ultimateTimes[a.casts] && a.elapsed < a.exitAt) {
             a.cast = true;
             a.casts++;
             this.stats.supportUltimates++;
@@ -183,7 +185,7 @@ export const SupportMethods = {
             if (m.silenceUntil && m.silenceUntil <= a.elapsed) { m.silenceUntil = 0; this.updateEnemyFilter(e); }
             if (m.kind === 'diver') this.supportHit(a, e, a.snapshot.stats.dps * 0.12 * dt, { dot: true });
         }
-        if (!a.dash && a.elapsed >= a.castUntil && a.elapsed >= a.nextAttack && a.elapsed < T.exitAt) {
+        if (!a.dash && a.elapsed >= a.castUntil && a.elapsed >= a.nextAttack && a.elapsed < a.exitAt) {
             a.nextAttack += T.attacksEvery;
             const target = this.supportTargets().find(e => this.supportInRange(a, e));
             a.avatar?.setMode(target ? 'attack' : a.moving ? 'walk' : 'idle');
@@ -198,11 +200,11 @@ export const SupportMethods = {
                 }
             }
         }
-        if (a.elapsed >= T.exitAt) a.avatar?.setMode('idle');
+        if (a.elapsed >= a.exitAt) a.avatar?.setMode('idle');
     },
     supportLater(a, delay, fn) { a.tasks.push({ at: a.elapsed + delay, fn }); },
     supportBasicAttack(a, target) {
-        if (this.support?.active !== a || !this.isActive || a.elapsed < a.castUntil || a.elapsed >= T.exitAt) return;
+        if (this.support?.active !== a || !this.isActive || a.elapsed < a.castUntil || a.elapsed >= a.exitAt) return;
         const arm = a.snapshot.parts.arm;
         const type = arm?.attackType || 'melee';
         const visualScale = T.basicFxScale;
@@ -220,7 +222,7 @@ export const SupportMethods = {
             return aim;
         };
         const impact = () => {
-            if (hit || this.support?.active !== a || !this.isActive || a.elapsed >= T.exitAt) return;
+            if (hit || this.support?.active !== a || !this.isActive || a.elapsed >= a.exitAt) return;
             hit = true;
             const p = destination();
             this.supportPlayFx(a, hitFx, p.x, p.b, { scale: visualScale });
@@ -265,7 +267,7 @@ export const SupportMethods = {
     },
     supportHit(a, enemy, damage, extra = {}) {
         if (this.support?.active !== a || !this.isActive || this.cinematic || this.finalBaseDestroyed ||
-            a.elapsed >= T.exitAt || !this.enemies.includes(enemy) || enemy.hp <= 0) return;
+            a.elapsed >= a.exitAt || !this.enemies.includes(enemy) || enemy.hp <= 0) return;
         const base = solid(enemy) ? T.baseDamage : 1;
         this.dealDamageToEnemy(enemy, damage * base, false, { ...extra, source: 'support', supportGear: a.snapshot.gear });
     },

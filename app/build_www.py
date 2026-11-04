@@ -6,7 +6,7 @@ Android 앱(Capacitor WebView)에 넣을 게임 파일 모으기 → app/www/ (D
   같은 복사 규칙·WebP 캐시를 쓰고 v2로 바로 들어가지만 앱 표시·업데이트 주소는 넣지 않는다.
   SNS meta·_headers를 넣고 무료 파일 한도를 검사한다. Gradle 동기화·배포는 하지 않는다.
 
-- 저장소 맨 위의 index.html · index.css · ui_v2.css · js/ · assets/ 를 복사한다.
+- 저장소 맨 위의 index.html · index.css · ui_v2.css · ui_v2_mobile.css · js/ · assets/ 를 복사한다.
 - 게임이 읽지 않는 원본 그림은 뺀다: 폴더 이름이 src · png · _sets_tmp 인 곳, *_raw.png · *_gemini.png (Gemini 원본, 약 450MB).
 - index.html 에는 앱용 두 줄을 넣는다: 모드 고르는 첫 화면을 숨기고 v2(디커플드 엔진)로 바로 들어감.
 - 게임 코드는 상대 경로만 쓰므로(fetch·import) 고칠 것이 없다.
@@ -34,7 +34,7 @@ WEBP_CACHE = os.path.join(HERE, '_webp_cache')
 WEBP_SETTINGS = {'quality': 90, 'alpha_quality': 100, 'method': 6}
 WEBP_WORKERS = min(8, os.cpu_count() or 1)
 
-FILES = ['index.html', 'index.css', 'ui_v2.css']
+FILES = ['index.html', 'index.css', 'ui_v2.css', 'ui_v2_mobile.css']
 DIRS = ['js', 'assets']
 SKIP_DIRS = {'src', 'png', '_sets_tmp', '__pycache__'}
 SKIP_SUFFIX = ('_raw.png', '_gemini.png', '.psd', '.md')

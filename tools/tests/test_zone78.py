@@ -19,11 +19,11 @@ def run(ctx):
 
     # 해금: 6-B → 7-1, 7-B → 8-1, 8-B → 9-1
     g.js(CLEAR.replace('IDS', '[1, 2, 3, 4, 5, 6]') + "window.madOverlordGameV2.menuController.renderStages();")
-    st = g.js("""document.querySelector('#menu-zones-v2 .v2-zonetab[data-zone="ch7"]').click();
-        const S = await import('/js/engine_v2/stages_v2.js');
+    g.map_zone('ch7')
+    st = g.js("""const S = await import('/js/engine_v2/stages_v2.js');
         return { sel: progress.selectedStage, n7: S.CHAPTER7.stages.length, n8: S.CHAPTER8.stages.length,
                  a6: S.nextStageOf('6-B').id, a7: S.nextStageOf('7-B').id, a8: S.nextStageOf('8-B').id,
-                 z8: document.querySelector('#menu-zones-v2 .v2-zonetab[data-zone="ch8"]').classList.contains('is-locked') };""")
+                 z8: !window.madOverlordGameV2.menuController.stageMap.pages[7].open };""")
     ctx.check(st['sel'] == '7-1' and st['n7'] == 11 and st['n8'] == 11 and st['a6'] == '7-1' and st['a7'] == '8-1' and st['a8'] == '9-1' and st['z8'],
               '6-B 클리어 → 구역 7 열림(7-1), 11판씩, 7-B 다음 = 8-1, 8-B 다음 = 9-1, 구역 8은 잠김', str(st))
 

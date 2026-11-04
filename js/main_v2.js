@@ -17,6 +17,7 @@ import { isApp, checkForUpdate } from './ui_v2/appUpdate_v2.js';
 import { applyVfxChoices, readVfxChoices, readVfxStyle } from './engine_v2/vfx/vfxVariants.js';
 import { preloadVfxSheets } from './engine_v2/vfx/vfxPlayer.js';
 import { setFitScale } from './engine_v2/displayRes.js';
+import { settings } from './engine_v2/settings_v2.js';
 import { initAnalytics, track } from './engine_v2/analytics_v2.js';
 import { initCommerceDev } from './engine_v2/commerceDev_v2.js';
 import { TutorialUi } from './ui_v2/tutorialUi_v2.js';
@@ -166,13 +167,15 @@ class GameRouterV2 {
         if (screenName === 'menu') {
             this.menuController.updateDisplay();
             // 처음 한 번: 전투를 한 판 해 본 뒤 연구소 안내 (coach_v2.js)
-            if (Object.keys(progress.stages).length) setTimeout(() => coach('menu_lab', '#btn-to-lab-v2'), 700);
+            if (Object.keys(progress.stages).length) setTimeout(() => coach('menu_lab', '#btn-to-lab-v2, #btn-rail-lab-v2'), 700);
         } else if (screenName === 'select') {
             this.selectController.render();
         } else if (screenName === 'lab') {
             progress.tutorialDone('lab');
             this.labController.renderPartsGrid();
             this.labController.updateMvvmFeedback();
+            // 처음 한 번: 장착한 파츠를 강화할 수 있으면 강화 단추 안내 (튜토리얼 파츠 고르기·구매 단계 중에는 미룸)
+            if (!['compare', 'equip'].includes(progress.tutorialStep()) && progress.canUpgradeEquipped()) setTimeout(() => coach('lab_upgrade', '#btn-upgrade-v2'), 600);
         } else if (screenName === 'battle') {
             battleEngineV2.startBattle();
         }
@@ -182,6 +185,11 @@ class GameRouterV2 {
 
 // 화면 크기 맞춤: 1280x720 화면(테두리 포함 1288x728)을 창 크기에 맞게 비율 유지 확대·축소, 가운데 정렬 (ui_v2.css 'v2-fit')
 const FRAME = { w: 1288, h: 728, min: 0.35, max: 2 };   // min 0.35: 휴대폰 가로 화면(높이 약 360px)에도 다 들어가게 (Android 앱, D-073)
+// 휴대폰 배치 (Q-015 모바일 가독성 — 메인 시안 B · 전투 시안 A, ui_v2_mobile.css): 휴대폰·태블릿(앱이거나 손가락이 주 입력)이면 body.v2-mobile.
+// 마우스가 주 입력인 PC는 창 크기와 상관없이 예전 배치 (D-099 보완 — 수정안은 휴대폰용, 예전 화면은 PC용).
+// 설정 '화면 배치'(자동·휴대폰·PC)나 주소 ?ui=mobile|pc로 고정할 수 있음
+const TOUCH_FIRST = matchMedia('(pointer: coarse)');
+const URL_LAYOUT = new URLSearchParams(location.search).get('ui');
 function fitScreens() {
     const app = document.getElementById('app');
     if (!app) return;
@@ -192,6 +200,16 @@ function fitScreens() {
     st.setProperty('--v2-scale', k.toFixed(4));
     st.setProperty('--v2-x', `${Math.round((aw - FRAME.w * k) / 2)}px`);
     st.setProperty('--v2-y', `${Math.round((ah - FRAME.h * k) / 2)}px`);
+    st.setProperty('--v2-vw', `${(aw / k).toFixed(1)}px`);   // 창 전체 크기(설계 px) — 휴대폰 배치 메인은 20:9 폭을 다 씀
+    st.setProperty('--v2-vh', `${(ah / k).toFixed(1)}px`);
+    st.setProperty('--v2-aw', `${aw}px`);   // 창 크기(실제 px) — 휴대폰 배치 연구소·선택창은 게임 판 배율 없이 실제 크기로 펼침
+    st.setProperty('--v2-ah', `${ah}px`);
+    const pref = ['mobile', 'pc'].includes(URL_LAYOUT) ? URL_LAYOUT : settings.get('layout');
+    const mobile = pref === 'mobile' || (pref !== 'pc' && (isApp() || TOUCH_FIRST.matches));
+    if (document.body.classList.contains('v2-mobile') !== mobile) {
+        document.body.classList.toggle('v2-mobile', mobile);
+        window.dispatchEvent(new CustomEvent('v2-layout', { detail: { mobile } }));
+    }
 }
 
 export function initGameRouterV2() {
@@ -202,6 +220,8 @@ export function initGameRouterV2() {
     document.body.classList.add('v2-fit');
     fitScreens();
     window.addEventListener('resize', fitScreens);
+    TOUCH_FIRST.addEventListener?.('change', fitScreens);   // 태블릿 겸용 노트북에서 키보드를 떼고 붙일 때
+    settings.subscribe(key => { if (key === 'layout') fitScreens(); });
     runLoading().then(() => { if (isApp()) checkForUpdate({ silent: true }); });   // 캐릭터·사운드 미리 받기 (메인 화면은 뒤에서 바로 준비) → 앱이면 새 버전 확인 (D-074)
     window.madOverlordGameV2 = new GameRouterV2();
 }

@@ -22,6 +22,8 @@ const TOGGLES = [
     { key: 'shake', label: '화면 흔들림', desc: '폭발·착지·타격 때 화면이 흔들림' },
     { key: 'sharp', label: '선명한 그림', desc: '큰 화면에서 캐릭터·이펙트를 높은 해상도로 (느리면 끄기)' }
 ];
+// 화면 배치 (Q-015, main_v2.js fitScreens): 휴대폰 배치 = 메인 시안 B · 전투 시안 A
+const LAYOUTS = [['auto', '자동'], ['mobile', '휴대폰'], ['pc', 'PC']];
 
 export function openSettings() {
     if (document.querySelector('.v2-settings')) return;
@@ -47,6 +49,12 @@ export function openSettings() {
                         <span>${t.label}<small>${t.desc}</small></span>
                         <button class="v2-switch" data-toggle="${t.key}" role="switch"><i></i></button>
                     </div>`).join('')}
+                <div class="v2-settings__row">
+                    <span>화면 배치<small>자동: 휴대폰·태블릿은 큰 글자·아이콘 배치, PC는 예전 배치</small></span>
+                    <div class="v2-settings__actions" role="group" aria-label="화면 배치">
+                        ${LAYOUTS.map(([v, label]) => `<button class="v2-btn v2-btn--ghost" data-layout="${v}">${label}</button>`).join('')}
+                    </div>
+                </div>
             </section>
             <section>
                 <h3>진행 데이터</h3>
@@ -82,6 +90,9 @@ export function openSettings() {
                 <div class="v2-settings__row">
                     <span>버전 ${VERSION} <small data-out="update">빌드 ${BUILD} · ${isApp() ? 'Android 앱' : '웹'}</small></span>
                     ${isApp() ? '<button class="v2-btn v2-btn--ghost v2-settings__reset" data-act="update">업데이트 확인</button>' : ''}
+                </div>
+                <div class="v2-settings__row">
+                    <span>사운드<small>일부 효과음·배경음 Powered by Stability AI (Stable Audio 3) · 그 밖은 CC0 (Kenney 등)</small></span>
                 </div>
             </section>
             <div class="v2-settings__actions">
@@ -124,6 +135,11 @@ export function openSettings() {
             btn.classList.toggle('is-on', on);
             btn.setAttribute('aria-checked', String(on));
         });
+        el.querySelectorAll('[data-layout]').forEach(btn => {
+            const on = settings.get('layout') === btn.dataset.layout;
+            btn.classList.toggle('is-on', on);
+            btn.setAttribute('aria-pressed', String(on));
+        });
     };
     render();
 
@@ -141,6 +157,11 @@ export function openSettings() {
     el.querySelectorAll('[data-toggle]').forEach(btn => btn.addEventListener('click', () => {
         const key = btn.dataset.toggle;
         settings.set(key, !settings.get(key));
+        sound.play('ui_toggle');
+        render();
+    }));
+    el.querySelectorAll('[data-layout]').forEach(btn => btn.addEventListener('click', () => {
+        settings.set('layout', btn.dataset.layout);
         sound.play('ui_toggle');
         render();
     }));

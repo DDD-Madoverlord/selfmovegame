@@ -26,6 +26,18 @@ def run(ctx):
         return { locked, empty, partial, ready, sent, duplicate };""")
     ctx.check(not st['locked'] and not st['empty'] and not st['partial'] and st['ready'] and st['sent'] and not st['duplicate'],
               '파견 보유 검사: 잠금·파츠 없음·3부위 거부, 4부위 보유 시 가능, 중복 파견 거부', str(st))
+    # 협력으로 골라 둔 캐릭터를 파견 보내면 협력 선택이 비고, 파견 중에는 다시 고를 수 없음 (11-03, 홍도도 QA6)
+    st = g.js("""const { SLOTS, partsOfCharacter } = await import('/js/engine_v2/roster_v2.js');
+        progress.unlockedChars.push('kaiju');
+        SLOTS.forEach(s => progress.owned.add(partsOfCharacter('kaiju', s)[0].id));
+        const picked = progress.selectSupport('kaiju');
+        const r = progress.startDispatch('kaiju', 1);
+        const res = { picked, sent: r.success, cleared: r.supportCleared, support: progress.supportCharacter,
+                      again: progress.selectSupport('kaiju'), reason: progress.supportReason('kaiju') };
+        progress.dispatch = [];
+        return res;""")
+    ctx.check(st['picked'] and st['sent'] and st['cleared'] and st['support'] is None and not st['again'] and st['reason'] == '파견 중',
+              '협력으로 고른 캐릭터를 파견 → 협력 선택 비움, 파견 중엔 다시 못 고름', str(st))
     # 모든 구역을 깨고 하드·헬도 열어 칸 3개, 캐릭터 모두 열기
     g.js(f"""{ALL}.forEach(id => progress.stages[id] = {CLEAR});
         for (const d of ['hard', 'hell']) ({ALL}).forEach(id => progress.recordsOf(d)[id] = {CLEAR});

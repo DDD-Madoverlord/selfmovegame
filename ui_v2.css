@@ -1231,6 +1231,7 @@
     animation: v2-result-in 0.5s 0.1s cubic-bezier(0.2, 0.9, 0.3, 1) both;
 }
 .v2-result.is-lose .v2-result__panel { --acc: #ff4060; background: linear-gradient(135deg, rgba(255, 64, 96, 0.6), rgba(255, 64, 96, 0.2) 40%, rgba(255, 64, 96, 0.2) 60%, rgba(255, 64, 96, 0.6)); }
+.v2-result__head, .v2-result__body { display: contents; }   /* 휴대폰 배치에서만 두 칸으로 묶음 (ui_v2_mobile.css) */
 .v2-result__stripe { height: 12px; margin: 0 -30px 6px; }
 .v2-result.is-lose .v2-result__stripe { background: repeating-linear-gradient(-45deg, #ff4060 0 8px, #16161a 8px 16px); }
 .v2-result__op { font-family: var(--v2-font-num); font-size: 11px; letter-spacing: 4px; color: var(--v2-dim); }
@@ -1837,20 +1838,9 @@ div.v2-settings__row > span { flex: 1; }
 .v2-radar__locked small { font-size: 12px; }
 .v2-radar__foot { font-family: var(--v2-font-num); font-size: 11px; letter-spacing: 1px; text-align: center; color: var(--v2-dim); }
 .v2-radar__tabs { display: flex; gap: 12px; }
-/* 구역 탭 (레이더 머리, menu_v2.js renderZones): 잠긴 구역은 자물쇠 */
-.v2-zonetabs { display: flex; gap: 4px; margin-left: auto; margin-right: 10px; min-width: 0; }
-.v2-zonetabs::before { content: '구역'; align-self: center; white-space: nowrap; font: 800 11px var(--v2-font); color: var(--v2-dim); margin-right: 2px; }
-.v2-zonetab { white-space: nowrap; }
-.v2-zonetab {
-    display: inline-flex; align-items: center; justify-content: center; gap: 2px; min-width: 24px;
-    font: 800 12px var(--v2-font); color: var(--v2-dim); background: rgba(255, 255, 255, 0.04);
-    border: 1px solid rgba(255, 255, 255, 0.12); border-radius: 4px; padding: 3px 6px; cursor: pointer;
-}
-.v2-zonetab:hover { color: var(--v2-text); border-color: var(--v2-amber); }
-.v2-zonetab.is-on { color: #16120a; background: var(--v2-amber); border-color: var(--v2-amber); }
-.v2-zonetab.is-locked { opacity: 0.55; }
-/* 난이도 (D-063, menu_v2.js renderDifficulties): 레이더 화면 오른쪽 위. 색 = 난이도 (--diff: 'r, g, b') */
-.v2-difftabs { position: absolute; top: 8px; right: 8px; z-index: 2; display: flex; gap: 4px; }
+/* 구역은 지도를 좌우로 밀어 넘김 (stageMap_v2.js, D-104 — 예전 구역 번호 탭 없앰) */
+/* 난이도 (D-063, menu_v2.js renderDifficulties): 지도 머리 줄 오른쪽 (예전 구역 탭 자리 — 지도 위 정거장을 가리지 않게, D-104). 색 = 난이도 (--diff: 'r, g, b') */
+.v2-difftabs { display: flex; gap: 4px; align-self: center; margin-left: auto; }
 .v2-difftab {
     --diff: 120, 220, 140;
     display: inline-flex; align-items: center; gap: 3px;
@@ -2404,6 +2394,10 @@ div.v2-settings__row > span { flex: 1; }
 .v2-partcard__lv { font-family: var(--v2-font-num); font-size: 9px; color: var(--v2-amber); margin-left: 4px; }
 .v2-partcard__badge.is-owned { background: #3a4252; color: #dfe6f2; }   /* 레어 파랑과 헷갈리지 않게 회색 (Q-017) */
 .v2-partcard__badge.is-drop { background: rgb(186, 104, 255); color: #fff; }   /* 드랍·조각 전용 (유니크 세트, Q-008) */
+/* 등급 단계 잠김 (11-03, progress_v2.js tierLock): 아래 등급 파츠를 더 가져야 열림 — 그림을 흐리게, 배지에 자물쇠 + 가진 수/필요 수 */
+.v2-partcard__badge.is-tierlock { display: flex; align-items: center; justify-content: center; gap: 3px; background: #2a2f3a; color: var(--v2-amber); }
+.v2-partcard__badge.is-tierlock .v2-icon { width: 10px; height: 10px; }
+.v2-partcard.is-tierlocked .v2-partcard__thumb img { opacity: 0.45; }
 
 /* 화면 크기 맞춤 (js/main_v2.js fitScreens): 창에 맞게 비율 유지 확대·축소, 가운데 정렬 */
 body.v2-fit .screen-v2.landscape {
@@ -2718,6 +2712,15 @@ body.v2-fit .v2-growth__box { width: 940px; max-height: 655px; }
 /* 시간 정지 (공허의 예언자 필살기, sets2/heroSets2.js): 적이 청자색으로 굳어 보임 */
 #screen-battle-v2.v2-timestop #enemies-container-v2 .v2-enemy__sprite { filter: saturate(0.25) hue-rotate(200deg) brightness(0.85) drop-shadow(0 0 6px rgba(150, 130, 255, 0.9)) !important; }
 
+/* ---------- 휴대폰 배치 (ui_v2_mobile.css, D-099 · D-102)와 같이 쓰는 PC 쪽 규칙 ---------- */
+/* 휴대폰 배치 전용 요소 (PC에서는 숨김) */
+.v2-mrail, .v2-mstage, .v2-mparts-row, .v2-mscrim, .v2-mtoast, .v2-mclass, .v2-sortie__ko, .v2-radar__close, .v2-unit__badge,
+.v2-showroom__stats dt .v2-icon, .v2-chip--res em, .v2-mlabskills,
+#select-res-v2, .v2-charcard__stats .is-mobile, .v2-charcard__stats dt .v2-icon, .v2-partcard__totals { display: none; }
+.v2-bar__text small { font-size: inherit; }
+.v2-settings .v2-btn.is-on { color: #16120a; --btn-c: var(--v2-amber); }   /* 설정 '화면 배치'에서 고른 단추 */
+.v2-settings [data-layout] { min-width: 0; padding: 10px 14px; white-space: nowrap; }
+
 /* ---------- 모바일 웹: 가로 화면·전체 화면·앱 안 브라우저 안내 ---------- */
 .v2-mobile-web { font-family: var(--v2-font); color: var(--v2-text); }
 .v2-mobile-web [hidden] { display: none !important; }
@@ -2752,8 +2755,6 @@ body.v2-fit .v2-growth__box { width: 940px; max-height: 655px; }
 .v2-mobile-web__close { position: absolute; top: 8px; right: 8px; font-size: 20px; padding: 4px 10px; }
 
 /* ??? ?? ?? ?? (v2) */
-.v2-zonetab.is-coming-soon { position: relative; border-style: dashed; border-color: #aa9063; }
-.v2-release-mark { position: absolute; right: 1px; top: -5px; color: #e5bc79; font-size: 8px; line-height: 1; }
 .v2-charcard.is-coming-soon { border-style: dashed; border-color: #aa9063; }
 .v2-charcard__foot .v2-release-date { color: #e5bc79; }
 .v2-dsp-zone.is-coming-soon { border-style: dashed; border-color: #aa9063; }
@@ -2810,6 +2811,9 @@ body.v2-fit .v2-growth__box { width: 940px; max-height: 655px; }
 .v2-pet[data-shape="lantern"]::before { inset: 2px 7px 8px; border-radius: 50% 50% 15% 15%; border-bottom-width: 8px; }
 .v2-pet[data-shape="keeper"]::before { inset: 3px 8px 9px; border-radius: 0 0 45% 45%; border-top: 12px double var(--pet-color); }
 .v2-pet--battle { position: absolute; z-index: 6; }
+/* 펫 그림(11-03): 카드 52px, 전투는 60px로 키워 캐릭터 등 뒤 조금 위에 (위치 기준점 monsterX − 60은 그대로) */
+.v2-petcard .v2-pet:not([data-shape]) { width: 52px; height: 52px; }
+.v2-pet--battle:not([data-shape]) { width: 60px; height: 60px; transform: translate(-46px, -26px); filter: drop-shadow(0 0 6px var(--pet-color)); }
 .v2-result__pet { margin: 8px 0; color: #d5b1ff; font-size: 13px; }
 @media (max-width: 640px) {
     .v2-petgrid { grid-template-columns: 1fr; }
@@ -2831,3 +2835,175 @@ body.v2-fit .v2-growth__box { width: 940px; max-height: 655px; }
 
 /* 시험용 전체 스테이지 잠금 해제 중 — 메뉴 왼쪽 위 아이콘 5번 (menu_v2.js initUnlockTaps) */
 .v2-brand__emblem.is-dev-unlocked { filter: drop-shadow(0 0 6px #6dffb0) drop-shadow(0 0 2px #6dffb0); }
+.v2-brand__emblem.is-dev-all { filter: drop-shadow(0 0 6px #ffd166) drop-shadow(0 0 2px #ffd166); }   /* 시험 모드 2단계: 캐릭터·파츠까지 해제, 저장 안 됨 */
+
+/* ==========================================================================
+   스토리 인트로 — 모션 코믹 (js/ui_v2/storyIntro_v2.js · 대본 js/engine_v2/storyIntros_v2.js, D-100)
+   만화 칸(밝은 테두리 + 망점) 안에서 그림·리그·입자가 움직이고, 내레이션·말풍선·효과음 글자가 칸 위에 뜸
+   ========================================================================== */
+.v2-story { position: absolute; left: 0; top: 0; z-index: 900; width: 1280px; height: 720px; overflow: hidden; opacity: 0; transition: opacity 0.3s ease;
+    border: 4px solid var(--neon-pink); border-radius: 16px; box-shadow: 0 0 50px rgba(0, 0, 0, 0.9); background: #050507;
+    cursor: pointer; user-select: none; -webkit-user-select: none; --accent: #ff3b4a; font-family: 'Noto Sans KR', sans-serif; }
+body.v2-fit .v2-story { left: var(--v2-x, 0); top: var(--v2-y, 0); transform: scale(var(--v2-scale, 1)); transform-origin: 0 0; }
+.v2-story-backdrop { position: fixed; inset: 0; z-index: 899; background: #050507; opacity: 0; transition: opacity 0.3s ease; cursor: pointer; }
+.v2-story-backdrop.is-closing { opacity: 0 !important; transition: opacity 0.4s ease; }
+.v2-story.is-closing { opacity: 0 !important; transition: opacity 0.4s ease; }
+.v2-story__stage { position: absolute; inset: 0; overflow: hidden; }
+.v2-story__page { position: absolute; inset: 0; transition: opacity 0.5s ease, transform 0.5s ease; }
+.v2-story__page.is-out { opacity: 0; transform: scale(0.97); }
+
+/* 칸: 바깥 = 테두리 색, 안쪽 3px 들어간 곳이 그림 */
+.v2-story__panel { position: absolute; background: #ebe4d0; opacity: 0; }
+.v2-story__panel.is-in { animation: v2-story-in-fade 0.45s ease-out both; }
+.v2-story__panel.in-left.is-in { animation-name: v2-story-in-left; }
+.v2-story__panel.in-right.is-in { animation-name: v2-story-in-right; }
+.v2-story__panel.in-down.is-in { animation-name: v2-story-in-down; }
+.v2-story__panel.in-up.is-in { animation-name: v2-story-in-up; }
+.v2-story__panel.in-zoom.is-in { animation: v2-story-in-zoom 0.6s cubic-bezier(0.2, 0.8, 0.3, 1) both; }
+@keyframes v2-story-in-fade { from { opacity: 0; } to { opacity: 1; } }
+@keyframes v2-story-in-left { from { opacity: 0; transform: translateX(-70px); } to { opacity: 1; transform: none; } }
+@keyframes v2-story-in-right { from { opacity: 0; transform: translateX(70px); } to { opacity: 1; transform: none; } }
+@keyframes v2-story-in-down { from { opacity: 0; transform: translateY(-46px); } to { opacity: 1; transform: none; } }
+@keyframes v2-story-in-up { from { opacity: 0; transform: translateY(46px); } to { opacity: 1; transform: none; } }
+@keyframes v2-story-in-zoom { from { opacity: 0; transform: scale(1.14); } to { opacity: 1; transform: none; } }
+.v2-story__inner { position: absolute; inset: 3px; overflow: hidden; background: #000; }
+.v2-story__scene { position: absolute; inset: 0; }
+.v2-story__inner.is-sepia .v2-story__scene { filter: sepia(0.85) saturate(0.85) contrast(1.08) brightness(0.88); }
+.v2-story__inner.is-noir .v2-story__scene { filter: grayscale(1) contrast(1.2) brightness(0.8); }
+.v2-story__halftone { position: absolute; inset: 0; z-index: 50; pointer-events: none; opacity: 0.45; mix-blend-mode: multiply;
+    background: radial-gradient(rgba(0, 0, 0, 0.35) 0.9px, transparent 1.3px) 0 0 / 5px 5px; }
+
+/* 층: 크기 0인 점(x, y)에 붙고, 움직임(이동·확대·회전)은 그 점 기준 */
+.v2-story__layer, .v2-story__flip { position: absolute; width: 0; height: 0; transform-origin: 0 0; }
+.v2-story__flip { left: 0; top: 0; }
+.v2-story__img { position: absolute; max-width: none; pointer-events: none; }
+.v2-story__img.is-b { left: 0; bottom: 0; transform: translateX(-50%); }
+.v2-story__img.is-c { left: 0; top: 0; transform: translate(-50%, -50%); }
+.v2-story__img.is-tl { left: 0; top: 0; }
+.v2-story__particles { position: absolute; left: 0; top: 0; pointer-events: none; }
+
+/* 덮개 효과 */
+.v2-story__fx { position: absolute; left: 0; top: 0; pointer-events: none; }
+.v2-story__fx.is-vignette { background: radial-gradient(ellipse at center, transparent 52%, rgba(0, 0, 0, 0.78) 100%); }
+.v2-story__fx.is-glow, .v2-story__fx.is-rays { mix-blend-mode: screen; }
+.v2-story__fx.is-alarm { mix-blend-mode: screen; animation: v2-story-alarm 1.2s ease-in-out infinite;
+    background: radial-gradient(ellipse 55% 90% at 50% -12%, rgba(255, 30, 45, 0.6), transparent 70%), linear-gradient(0deg, rgba(140, 0, 14, 0.3), transparent 55%); }
+.v2-story__fx.is-alarm.is-strong { animation-duration: 0.7s; }
+@keyframes v2-story-alarm { 0%, 100% { opacity: 0.12; } 50% { opacity: 1; } }
+.v2-story__fx.is-speed { mix-blend-mode: screen; animation: v2-story-speed 0.16s steps(2) infinite;
+    background: repeating-conic-gradient(from 0deg at 50% 50%, var(--c, rgba(255, 255, 255, 0.55)) 0deg 0.7deg, transparent 0.7deg 6.5deg);
+    -webkit-mask-image: radial-gradient(circle at center, transparent 32%, #000 78%); mask-image: radial-gradient(circle at center, transparent 32%, #000 78%); }
+@keyframes v2-story-speed { to { transform: rotate(2.5deg) scale(1.02); } }
+.v2-story__fx.is-rays { animation: v2-story-rays 5s ease-in-out infinite alternate;
+    background: repeating-linear-gradient(104deg, var(--c) 0 16px, transparent 16px 64px);
+    -webkit-mask-image: linear-gradient(180deg, #000, transparent 85%); mask-image: linear-gradient(180deg, #000, transparent 85%); }
+@keyframes v2-story-rays { from { opacity: 0.55; background-position-x: 0; } to { opacity: 1; background-position-x: 60px; } }
+.v2-story__flash { position: absolute; inset: 0; z-index: 60; pointer-events: none; background: #fff; animation: v2-story-flash 0.4s ease-out forwards; }
+.v2-story__flash.is-red { background: #ff1e3c; mix-blend-mode: screen; }
+.v2-story__flash.is-black { background: #000; animation-duration: 0.7s; }
+@keyframes v2-story-flash { from { opacity: 0.95; } to { opacity: 0; } }
+
+/* 글자: 내레이션(cap) · 말풍선(say) · 시스템 경고(sys) · 효과음(sfx) — 칸 위에 떠서 칸 밖으로 넘칠 수 있음 */
+.v2-story__texts { position: absolute; inset: 0; z-index: 100; pointer-events: none; }
+.v2-story__text { position: absolute; white-space: pre-line; word-break: keep-all; line-height: 1.45; transform: rotate(var(--r, 0deg)) scale(var(--k, 1)); transform-origin: 0 0;
+    animation: v2-story-pop 0.28s cubic-bezier(0.2, 1.4, 0.4, 1) both; --bg: #fff; --bd: #111; }
+.v2-story__text .is-rest { visibility: hidden; }
+@keyframes v2-story-pop { from { opacity: 0; transform: rotate(var(--r, 0deg)) scale(calc(var(--k, 1) * 0.6)); } to { opacity: 1; transform: rotate(var(--r, 0deg)) scale(var(--k, 1)); } }
+.v2-story__text.is-cap { background: #f2e7c9; color: #17130e; border: 2px solid #111; padding: 7px 12px; font-size: 15.5px; font-weight: 700;
+    box-shadow: 3px 3px 0 rgba(0, 0, 0, 0.85); animation-name: v2-story-cap; animation-duration: 0.32s; animation-timing-function: ease-out; }
+@keyframes v2-story-cap { from { opacity: 0; transform: translateX(-14px) scale(var(--k, 1)); } to { opacity: 1; transform: scale(var(--k, 1)); } }
+.v2-story__text.is-say { background: var(--bg); color: #111; border: 2.5px solid var(--bd); border-radius: 22px; padding: 10px 17px; font-size: 17px; font-weight: 700;
+    box-shadow: 3px 3px 0 rgba(0, 0, 0, 0.55); }
+.v2-story__text.is-say.is-shout { font-size: 19px; font-weight: 900; padding: 12px 19px; border-width: 3px; }
+.v2-story__text.is-say.tone-dark { --bg: #140b18; --bd: var(--accent); color: #f4ecff; box-shadow: 0 0 18px color-mix(in srgb, var(--accent) 45%, transparent), 3px 3px 0 rgba(0, 0, 0, 0.6); }
+.v2-story__text.is-say.tone-gold { --bg: #fbf1d2; --bd: #7a5a12; color: #2b1d05; box-shadow: 0 0 16px rgba(255, 210, 120, 0.5), 3px 3px 0 rgba(0, 0, 0, 0.5); }
+.v2-story__text.is-say.tone-red { --bd: #c0182c; }
+/* 말꼬리: ::before = 테두리 색 삼각형, ::after = 안쪽 색 (풍선 테두리 위를 덮어 이어 붙임) */
+.v2-story__text.is-say[class*="tail-"]::before, .v2-story__text.is-say[class*="tail-"]::after { content: ""; position: absolute; }
+.v2-story__text.is-say[class*="tail-"]::before { background: var(--bd); width: 26px; height: 24px; }
+.v2-story__text.is-say[class*="tail-"]::after { background: var(--bg); width: 18px; height: 16px; }
+.v2-story__text.tail-bl::before { left: 26px; top: calc(100% - 1px); clip-path: polygon(0 0, 100% 0, 0 100%); }
+.v2-story__text.tail-bl::after { left: 29.5px; top: calc(100% - 3.5px); clip-path: polygon(0 0, 100% 0, 0 100%); }
+.v2-story__text.tail-br::before { right: 26px; top: calc(100% - 1px); clip-path: polygon(0 0, 100% 0, 100% 100%); }
+.v2-story__text.tail-br::after { right: 29.5px; top: calc(100% - 3.5px); clip-path: polygon(0 0, 100% 0, 100% 100%); }
+.v2-story__text.tail-tl::before { left: 26px; bottom: calc(100% - 1px); clip-path: polygon(0 100%, 100% 100%, 0 0); }
+.v2-story__text.tail-tl::after { left: 29.5px; bottom: calc(100% - 3.5px); clip-path: polygon(0 100%, 100% 100%, 0 0); }
+.v2-story__text.tail-tr::before { right: 26px; bottom: calc(100% - 1px); clip-path: polygon(0 100%, 100% 100%, 100% 0); }
+.v2-story__text.tail-tr::after { right: 29.5px; bottom: calc(100% - 3.5px); clip-path: polygon(0 100%, 100% 100%, 100% 0); }
+.v2-story__text.tail-l::before { right: calc(100% - 1px); top: calc(50% - 12px); width: 24px; clip-path: polygon(100% 0, 100% 100%, 0 60%); }
+.v2-story__text.tail-l::after { right: calc(100% - 3.5px); top: calc(50% - 8px); width: 17px; clip-path: polygon(100% 0, 100% 100%, 0 60%); }
+.v2-story__text.tail-r::before { left: calc(100% - 1px); top: calc(50% - 12px); width: 24px; clip-path: polygon(0 0, 0 100%, 100% 60%); }
+.v2-story__text.tail-r::after { left: calc(100% - 3.5px); top: calc(50% - 8px); width: 17px; clip-path: polygon(0 0, 0 100%, 100% 60%); }
+.v2-story__who { position: absolute; left: 14px; top: -11px; padding: 1px 8px; border-radius: 3px; background: #111; color: #fff;
+    font-style: normal; font-size: 11px; font-weight: 900; letter-spacing: 0.5px; line-height: 1.6; white-space: nowrap; }
+.v2-story__text.tone-dark .v2-story__who { background: var(--accent); }
+.v2-story__text.tail-tl .v2-story__who { left: auto; right: 14px; }   /* 위쪽 말꼬리와 안 겹치게 */
+.v2-story__text.tone-gold .v2-story__who { background: #7a5a12; }
+.v2-story__text.is-sys { background: rgba(40, 0, 6, 0.9); border: 1.5px solid #ff3b4a; color: #ff6d78; padding: 8px 12px; font-family: var(--v2-font); font-size: 15px; font-weight: 700;
+    letter-spacing: 0.5px; text-shadow: 0 0 8px rgba(255, 40, 60, 0.75); box-shadow: 0 0 18px rgba(255, 30, 50, 0.4); animation: v2-story-pop 0.28s ease-out both, v2-story-sys 0.9s steps(2) 0.3s infinite; }
+@keyframes v2-story-sys { 50% { border-color: rgba(255, 59, 74, 0.25); } }
+.v2-story__text.is-sfx { font-size: 72px; font-weight: 900; font-style: italic; letter-spacing: -2px; line-height: 1; color: var(--c, #ffd23f); white-space: nowrap;
+    text-shadow: 3px 3px 0 #111, -3px 3px 0 #111, 3px -3px 0 #111, -3px -3px 0 #111, 0 4px 0 #111, 4px 0 0 #111, -4px 0 0 #111, 0 -4px 0 #111, 7px 9px 0 rgba(0, 0, 0, 0.45);
+    animation: v2-story-sfx 0.3s cubic-bezier(0.2, 1.5, 0.4, 1) both; }
+@keyframes v2-story-sfx { from { opacity: 0; transform: rotate(var(--r, 0deg)) scale(calc(var(--k, 1) * 2.2)); } to { opacity: 1; transform: rotate(var(--r, 0deg)) scale(var(--k, 1)); } }
+
+/* 위에 뜨는 조작: 건너뛰기 · 계속 안내 · 진행 막대 */
+.v2-story__ui { position: absolute; inset: 0; z-index: 200; pointer-events: none; }
+.v2-story__skip { position: absolute; top: 22px; right: 24px; pointer-events: auto; cursor: pointer; padding: 7px 16px; border-radius: 999px;
+    background: rgba(0, 0, 0, 0.66); border: 1px solid rgba(255, 255, 255, 0.4); color: #fff; font-family: var(--v2-font); font-size: 13px; font-weight: 700; letter-spacing: 1px; }
+.v2-story__skip b { color: var(--accent); }
+.v2-story__skip:hover { background: rgba(0, 0, 0, 0.85); border-color: #fff; }
+.v2-story__hint { position: absolute; left: 26px; bottom: 14px; padding: 3px 10px; border-radius: 999px; background: rgba(0, 0, 0, 0.6);
+    color: rgba(255, 255, 255, 0.75); font-size: 12px; font-weight: 700; animation: v2-story-hint 1.6s ease-in-out infinite; }
+@keyframes v2-story-hint { 50% { opacity: 0.35; } }
+.v2-story__progress { position: absolute; left: 14px; right: 14px; bottom: 4px; height: 3px; background: rgba(255, 255, 255, 0.1); }
+.v2-story__progress i { display: block; height: 100%; width: 0; background: var(--accent); transition: width 0.4s ease; }
+/* 휴대폰 배치(화면 배율 약 0.5): 글자 상자는 왼쪽 위 기준으로 키우고(--k), 단추·안내도 손가락 크기로 */
+body.v2-mobile .v2-story { --k: 1.32; }
+body.v2-mobile .v2-story__skip { zoom: 1.7; }
+body.v2-mobile .v2-story__hint { zoom: 1.6; }
+body.v2-mobile .v2-story__progress { height: 5px; }
+body.v2-mobile .v2-story__title-text { zoom: 1.2; }
+
+/* 마지막 제목 카드 */
+.v2-story__title { position: absolute; inset: 0; z-index: 150; display: flex; align-items: center; gap: 56px; padding: 0 130px;
+    background: radial-gradient(circle at 28% 50%, color-mix(in srgb, var(--c, #ff3b4a) 28%, #050507), #050507 68%); animation: v2-story-in-fade 0.5s ease-out both; }
+.v2-story__title-face { flex: none; width: 260px; height: 260px; border-radius: 50%; overflow: hidden; display: grid; place-items: center;
+    background: radial-gradient(circle, color-mix(in srgb, var(--c, #ff3b4a) 35%, #111), #0b0b10 70%); border: 3px solid var(--c, #ff3b4a);
+    box-shadow: 0 0 40px color-mix(in srgb, var(--c, #ff3b4a) 55%, transparent); animation: v2-story-in-left 0.6s cubic-bezier(0.2, 0.8, 0.3, 1) both; }
+.v2-story__title-face img { width: 100%; height: 100%; object-fit: cover; }
+.v2-story__title-text small { display: block; font-family: 'Orbitron', var(--v2-font); font-size: 18px; font-weight: 800; letter-spacing: 10px; color: var(--c, #ff3b4a); }
+.v2-story__title-text h2 { margin: 6px 0 14px; font-size: 62px; font-weight: 900; color: #fff; letter-spacing: 2px;
+    text-shadow: 0 0 24px color-mix(in srgb, var(--c, #ff3b4a) 70%, transparent), 4px 4px 0 #000; animation: v2-story-in-right 0.55s 0.1s cubic-bezier(0.2, 0.8, 0.3, 1) both; }
+.v2-story__title-text > i { display: block; height: 3px; width: 560px; margin-bottom: 18px; background: linear-gradient(90deg, var(--c, #ff3b4a), transparent);
+    transform-origin: 0 0; animation: v2-story-line 0.6s 0.25s ease-out both; }
+@keyframes v2-story-line { from { transform: scaleX(0); } to { transform: none; } }
+.v2-story__title-text p { display: flex; gap: 16px; margin: 8px 0; animation: v2-story-in-right 0.45s ease-out both; }
+.v2-story__title-text p:nth-of-type(1) { animation-delay: 0.35s; }
+.v2-story__title-text p:nth-of-type(2) { animation-delay: 0.5s; }
+.v2-story__title-text p:nth-of-type(3) { animation-delay: 0.65s; }
+.v2-story__title-text b { flex: none; width: 84px; font-family: var(--v2-font); font-size: 13px; letter-spacing: 1px; color: var(--c, #ff3b4a); line-height: 26px; }
+.v2-story__title-text span { font-size: 18px; font-weight: 700; color: #ece8f4; line-height: 26px; }
+
+/* 소품: 붉은 도장 (is-go로 쾅 찍힘) */
+.v2-story-stamp { position: absolute; left: 0; top: 0; transform: translate(-50%, -50%) rotate(var(--r, -12deg)) scale(2.4); opacity: 0; white-space: nowrap;
+    padding: 2px 12px; border: 4px solid #ff2e45; border-radius: 4px; color: #ff2e45; background: rgba(40, 0, 6, 0.45);
+    font-family: 'Noto Sans KR', sans-serif; font-size: 30px; font-weight: 900; letter-spacing: 3px; text-shadow: 0 0 10px rgba(255, 40, 60, 0.7); box-shadow: 0 0 18px rgba(255, 30, 50, 0.45); }
+.v2-story-stamp.is-go { animation: v2-story-stamp 0.3s cubic-bezier(0.3, 1.6, 0.5, 1) forwards; }
+@keyframes v2-story-stamp { to { opacity: 1; transform: translate(-50%, -50%) rotate(var(--r, -12deg)) scale(1); } }
+/* 그림 속 빛(차원문·모니터·눈·오라)이 숨 쉬듯 */
+.v2-story__fx.is-pulse { animation: v2-story-pulse 1.6s ease-in-out infinite alternate; }
+@keyframes v2-story-pulse { from { filter: brightness(0.75); } to { filter: brightness(1.25); } }
+
+/* 소품: 칼날 섬광 (is-go) */
+.v2-story-slash { position: absolute; top: -3px; height: 6px; opacity: 0; scale: 0 1;
+    background: linear-gradient(90deg, transparent, #fff 18%, #fff 82%, transparent); box-shadow: 0 0 18px #fff, 0 0 42px rgba(255, 60, 80, 0.85); }
+.v2-story-slash.is-go { animation: v2-story-slash 0.6s ease-out forwards; }
+@keyframes v2-story-slash { 0% { opacity: 1; scale: 0 1; } 35% { opacity: 1; scale: 1 1; } 100% { opacity: 0; scale: 1 0.2; } }
+
+/* 메인 레이더 아래 '▶ STORY' — 고른 구역의 스토리 인트로 다시 보기 (menu_v2.js, D-100) */
+.v2-storybtn { flex: none; height: 44px; padding: 0 16px; border: 1px solid rgba(181, 108, 255, 0.55); background: linear-gradient(180deg, rgba(42, 20, 64, 0.9), rgba(14, 8, 20, 0.95));
+    color: #dcbcff; font-family: var(--v2-font-num); font-size: 13px; font-weight: 900; letter-spacing: 1.5px; cursor: pointer;
+    clip-path: polygon(10px 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%, 0 10px); transition: filter 0.15s ease; }
+.v2-storybtn:hover { filter: brightness(1.25); }
+.v2-storybtn[hidden] { display: none; }

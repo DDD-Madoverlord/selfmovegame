@@ -28,7 +28,7 @@ import { openSettings } from './settingsPanel_v2.js';
 import { openProbInfo } from './probInfo_v2.js';
 import { GRADES, gradeOf, gradeIndex, SKILL_LEVEL } from '../engine_v2/growth_v2.js';
 import { optionText, resChipHtml } from './growthUi_v2.js';
-import { setOf, setIdOf, setCounts, setLabelOf, setBonusList, isDropOnly, SETS, SET_TIERS } from '../engine_v2/sets_v2.js';
+import { setOf, setIdOf, setCounts, setLabelOf, setBonusList, isDropOnly, SETS, SET_TIERS, SET_PERKS } from '../engine_v2/sets_v2.js';
 
 const $ = id => document.getElementById(id);
 const ROLE = { arm: { tag: '1', label: '스킬 1' }, body: { tag: '2', label: '스킬 2' }, head: { tag: 'ULT', label: '필살기' }, leg: { tag: 'P', label: '패시브' } };
@@ -54,7 +54,8 @@ const TIER_ORDER = { rare: 0, unique: 1, legendary: 2 };
 const TIER_SHORT = { rare: 'R', unique: 'U', legendary: 'L' };
 /** 카드 그림 모서리의 세트 표시: 등급 첫 글자 + 번호 (R① · U② · L①), 등급 색 */
 const setMark = s => (s ? `<span class="v2-setmark" style="--grade:${gradeOf(SET_TIERS[s.tier].minGrade).color}">${TIER_SHORT[s.tier]}${'①②③④'[s.no - 1] || s.no}</span>` : '');
-const LAB_RIG = { width: 350, height: 400, rootX: 175, rootY: 384, scale: 0.36, fit: { x: 22, y: 16 }, shadow: true };
+const COMPARE_ROWS = [['최대 체력', 'hp'], ['초당 피해', 'dps'], ['사거리', 'range'], ['이동 속도', 'speed']];   // 능력치 비교 · 휴대폰 카드 안 능력치
+const LAB_RIG = { width: 350, height: 400, rootX: 175, rootY: 384, scale: 0.36, fit: { x: 22, y: 16 }, shadow: true, fitCss: true };   // fitCss: 휴대폰 배치 실제 크기에서도 선명하게 (rigAvatar.js _fitRes)
 
 /** 카드 그림 { src, filter }: A·B 세트 파츠는 세트 그림(있으면) 또는 기본 그림 + 세트 색 (D-050) */
 function thumbOf(slot, part) {
@@ -103,6 +104,12 @@ export class LabController {
     initEvents() {
         $('btn-lab-back-v2')?.addEventListener('click', () => this.switchScreen('menu'));
         $('btn-lab-settings-v2')?.addEventListener('click', () => openSettings());
+        // 휴대폰 배치 (ui_v2_mobile.css): [스킬]을 누르면 파츠 칸 자리에 스킬 구성 (한 번 더 누르면 파츠)
+        $('btn-lab-skills-v2')?.addEventListener('click', e => {
+            const on = this.root?.querySelector('.v2-lab')?.classList.toggle('is-mskills');
+            e.currentTarget.setAttribute('aria-pressed', String(!!on));
+            this.updateSkillScrollHint();
+        });
 
         const skills = $('lab-skills-v2');
         if (skills) {
@@ -269,15 +276,18 @@ export class LabController {
             const sk = skillOf(slot, part);
             const thumb = thumbOf(slot, part);
             const owned = progress.isOwned(part.id);
+            const lock = progress.tierLock(part);   // 등급 단계 잠김 (11-03): 아래 등급 파츠를 더 가져야 사거나 만들 수 있음
             const badge = part.id === equippedId ? ['EQUIPPED', 'is-equipped']
                 : owned ? [part.cost ? 'OWNED' : 'FREE', part.cost ? 'is-owned' : 'is-free']
-                    : isDropOnly(part) ? ['드랍·조각', 'is-drop']
-                        : [`${part.cost.toLocaleString()} DM`, part.cost > gameState.darkMatter ? 'is-poor' : ''];
+                    : lock ? [`${icon('lock', 10)}${gradeOf(lock.from).name} ${lock.have}/${lock.need}`, 'is-tierlock']
+                        : isDropOnly(part) ? ['드랍·조각', 'is-drop']
+                            : [`${part.cost.toLocaleString()} DM`, part.cost > gameState.darkMatter ? 'is-poor' : ''];
             const st = progress.partStats(part);
             const lv = progress.levelOf(part.id);
             const card = document.createElement('div');
-            card.className = `part-card v2-partcard${part.id === cartId ? ' is-selected' : ''}${mate ? ' is-setmate' : ''}`;
-            card.dataset.id = part.id;   // 이름이 같은 파츠가 있어(예: 서리 '얼음 결정 왕관' 강화·유니크 세트) 검사는 id로 찾음
+            card.className = `part-card v2-partcard${part.id === cartId ? ' is-selected' : ''}${mate ? ' is-setmate' : ''}${lock ? ' is-tierlocked' : ''}`;
+            if (lock) card.title = progress.tierLockText(lock);
+            card.dataset.id = part.id;   // 검사는 이름 대신 id로 찾음
             card.dataset.grade = grade.id;
             card.style.setProperty('--fc', color);
             card.style.setProperty('--grade', grade.color);
@@ -290,6 +300,7 @@ export class LabController {
                     <div class="v2-partcard__name">${part.name}${part.id !== 'none' && lv > 1 ? `<span class="v2-partcard__lv">Lv${lv}</span>` : ''}</div>
                     <div class="v2-partcard__faction">세트 · ${partSetLabel(part)}${mate ? `<b class="v2-partcard__mate">모으는 중 ${focusCount}/4</b>` : ''}</div>
                     <div class="v2-partcard__stats">HP +${st.hp} · DPS +${st.dps}${st.range ? ` · RNG +${st.range}` : ''}</div>
+                    <dl class="v2-partcard__totals"></dl>
                     ${sk ? `<div class="v2-partcard__skill" style="--sk:${sk.color}"><em>${ROLE[slot].tag}</em>${icon(sk.icon, 13)}${sk.name}</div>` : '<div class="v2-partcard__skill">스킬 없음</div>'}
                 </div>`;
             card.addEventListener('click', () => {
@@ -302,6 +313,7 @@ export class LabController {
             });
             this.domPartsGrid.appendChild(card);
         });
+        this.renderCardTotals();
     }
 
     /** 부위 탭 아래 등급 거르기 칩: 전체 · 레전더리 · 유니크 · 레어 · 커먼 + 개수 (그 부위에 없는 등급은 못 누름) */
@@ -319,20 +331,34 @@ export class LabController {
         const grid = this.domPartsGrid;
         grid.innerHTML = '';
         grid.classList.add('is-sets');
-        const sets = Object.entries(SETS).filter(([, s]) => s.character === char)
-            .sort(([, a], [, b]) => (TIER_ORDER[a.tier] - TIER_ORDER[b.tier]) || (a.no - b.no));
-        if (!sets.length) {
+        const rows = Object.entries(SETS).filter(([, s]) => s.character === char)
+            .sort(([, a], [, b]) => (TIER_ORDER[a.tier] - TIER_ORDER[b.tier]) || (a.no - b.no))
+            .map(([sid, s]) => {
+                const perk = SET_PERKS[sid];   // 전투 밖 세트 효과 (협력·파견, 11-03)
+                return { sid, color: gradeOf(SET_TIERS[s.tier].minGrade).color, mark: setMark(s), label: setLabelOf({ id: sid, ...s }),
+                    parts: SLOTS4.map(slot => partsOfCharacter(char, slot).find(p => setIdOf(p) === sid) || null),
+                    bonus: [...Object.entries(s.bonus || {}), ...(perk ? [[perk.need, perk.text]] : [])] };
+            });
+        // 세트가 아닌 커먼 파츠도 맨 아래에 줄로 보임 — 부위마다 n번째 커먼 파츠끼리 한 줄 (기본 · 강화), 세트 효과 없음 (11-03)
+        const commons = SLOTS4.map(slot => partsOfCharacter(char, slot).filter(p => !setIdOf(p)));
+        const cColor = gradeOf('common').color;
+        for (let k = 0; k < Math.max(0, ...commons.map(l => l.length)); k++) {
+            rows.push({ sid: null, color: cColor, parts: commons.map(l => l[k] || null),
+                mark: `<span class="v2-setmark" style="--grade:${cColor}">C${'①②③④'[k] || k + 1}</span>`,
+                label: k ? `커먼 강화 파츠${k > 1 ? ` ${k}` : ''}` : '커먼 기본 파츠', bonus: [] });
+        }
+        if (!rows.length) {
             grid.innerHTML = '<p class="v2-setrow__empty">이 캐릭터는 아직 세트가 없습니다</p>';
             return;
         }
         const color = (rosterOf(char) || {}).color || '#5a6272';
-        for (const [sid, s] of sets) {
-            const parts = SLOTS4.map(slot => partsOfCharacter(char, slot).find(p => setIdOf(p) === sid) || null);
+        for (const { sid, color: gColor, mark, label, parts, bonus: bonusList } of rows) {
+            const n = parts.filter(Boolean).length;
             const owned = parts.filter(p => p && progress.isOwned(p.id)).length;
             const inCart = parts.filter((p, i) => p && cart[SLOTS4[i]] && cart[SLOTS4[i]].id === p.id).length;
             const row = document.createElement('div');
-            row.className = `v2-setrow${inCart ? ' is-in' : ''}`;
-            row.style.setProperty('--grade', gradeOf(SET_TIERS[s.tier].minGrade).color);
+            row.className = `v2-setrow${inCart ? ' is-in' : ''}${sid ? '' : ' is-common'}`;
+            row.style.setProperty('--grade', gColor);
             row.style.setProperty('--fc', color);
             const cells = parts.map((p, i) => {
                 if (!p) return '<div class="v2-setrow__part is-none"></div>';
@@ -342,11 +368,12 @@ export class LabController {
                     + `<span class="v2-setrow__img">${t ? `<img src="${t.src}" alt=""${t.filter ? ` style="filter: ${t.filter}"` : ''}>` : ''}</span>`
                     + `<small>${SLOT_NAME[SLOTS4[i]]}</small><span class="v2-setrow__name">${p.name}</span></button>`;
             }).join('');
-            const bonus = Object.entries(s.bonus || {}).map(([n, d]) => `<li class="${inCart >= Number(n) ? 'is-on' : ''}"><b>${n}부위</b> ${d}</li>`).join('');
+            const bonus = bonusList.map(([need, d]) => `<li class="${inCart >= Number(need) ? 'is-on' : ''}"><b>${need}부위</b> ${d}</li>`).join('')
+                || '<li>세트 효과 없음</li>';
             row.innerHTML = `
-                <div class="v2-setrow__head">${setMark(s)}<b>${setLabelOf({ id: sid, ...s })}</b>
-                    <small>보유 ${owned}/4 · 담음 ${inCart}/4</small>
-                    <button class="v2-btn v2-setrow__take" ${inCart === 4 ? 'disabled' : ''}>${inCart === 4 ? '담음' : '세트로 담기'}</button></div>
+                <div class="v2-setrow__head">${mark}<b>${label}</b>
+                    <small>보유 ${owned}/${n} · 담음 ${inCart}/${n}</small>
+                    <button class="v2-btn v2-setrow__take" ${inCart === n ? 'disabled' : ''}>${inCart === n ? '담음' : n === 4 ? '세트로 담기' : '모두 담기'}</button></div>
                 <div class="v2-setrow__parts">${cells}</div>
                 <ul class="v2-setrow__bonus">${bonus}</ul>`;
             row.querySelector('.v2-setrow__take').addEventListener('click', () => {
@@ -383,13 +410,23 @@ export class LabController {
     renderCompare() {
         const cur = progress.statsFor(gameState.getEquippedObjects());
         const next = progress.statsFor(gameState.getCartObjects());
-        const rows = [['최대 체력', 'hp'], ['초당 피해', 'dps'], ['사거리', 'range'], ['이동 속도', 'speed']];
-        $('lab-compare-v2').innerHTML = rows.map(([label, k]) => {
+        this.renderCardTotals(cur, next);
+        $('lab-compare-v2').innerHTML = COMPARE_ROWS.map(([label, k]) => {
             const d = next[k] - cur[k];
             const cls = d > 0 ? 'is-up' : d < 0 ? 'is-down' : '';
             const delta = d ? `${d > 0 ? '▲' : '▼'}${Math.abs(d).toLocaleString()}` : '';
             return `<div><dt>${label}</dt><dd class="is-old">${cur[k].toLocaleString()}</dd><dd class="is-arrow">→</dd>`
                 + `<dd class="${cls}">${next[k].toLocaleString()}</dd><dd class="is-delta ${cls}">${delta}</dd></div>`;
+        }).join('');
+    }
+
+    /** 휴대폰 배치 (11-04 디자인 제안): 고른 파츠 카드 안에 개조 후 능력치 4칸 — PC는 숨김 (ui_v2.css) */
+    renderCardTotals(cur = progress.statsFor(gameState.getEquippedObjects()), next = progress.statsFor(gameState.getCartObjects())) {
+        const box = this.domPartsGrid?.querySelector('.v2-partcard.is-selected .v2-partcard__totals');
+        if (!box) return;
+        box.innerHTML = COMPARE_ROWS.map(([label, k]) => {
+            const d = next[k] - cur[k];
+            return `<div><dt>${label}</dt><dd class="${d > 0 ? 'is-up' : d < 0 ? 'is-down' : ''}">${next[k].toLocaleString()}</dd></div>`;
         }).join('');
     }
 

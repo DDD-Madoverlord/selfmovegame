@@ -75,7 +75,8 @@ def run(ctx):
             if hp1 < hp0:
                 break
         ctx.check(all(st['used']) and sid in st['on'] and st['kit'], f'{sid}: 4부위 세트 효과 켜짐 · 스킬 1·2·필살기 사용 · 다리 패시브', str(st))
-        ctx.check(hp1 < hp0 - 2000, f'{sid}: 기본 공격·스킬이 적에게 피해', f'{round(hp0)} → {round(hp1)}')
+        # 1200: 원거리 관통 하향(D-098, 물줄기 0.6 → 0.45) 뒤 탱커 세트(길잡이 '산호 수호자')가 약 1700 — 피해가 들어가는지만 봄
+        ctx.check(hp1 < hp0 - 1200, f'{sid}: 기본 공격·스킬이 적에게 피해', f'{round(hp0)} → {round(hp1)}')
         g.shot(f'kit_{sid}', '#screen-battle-v2')
 
     # ---- 부품 동작 하나씩 ----

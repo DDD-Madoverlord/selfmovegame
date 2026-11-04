@@ -185,6 +185,10 @@ def run(ctx):
     # 카드 조작·작은 가로 화면.
     g.js("(await import('/js/ui_v2/growthUi_v2.js')).openGrowthPanel('pets');")
     ctx.check(g.page.locator('.v2-petcard').count() == 5, '펫 카드 5종·획득 조건·진행률 표시')
+    g.wait(400)
+    st = g.js("""return [...document.querySelectorAll('.v2-petcard .v2-pet')].map(p => { const i = p.querySelector('img');
+        return [p.closest('.v2-petcard').dataset.pet, !p.dataset.shape && !!i && i.complete && i.naturalWidth >= 128, Math.round(p.getBoundingClientRect().width)]; });""")
+    ctx.check(len(st) == 5 and all(ok and w == 52 for _, ok, w in st), '펫 그림 5종 (assets/sprites/pets/*.webp, 카드 52px)', str(st))
     g.page.click('[data-pet="scrap_drone"] [data-act="equipPet"]')
     ctx.check(g.js("return progress.pets.equipped===null;"), '펫 카드에서 장착 해제')
     g.page.click('[data-pet="scrap_drone"] [data-act="equipPet"]')
@@ -222,7 +226,7 @@ def run(ctx):
     st = g.js(API + """
         const {emptyCommerce}=await import('/js/engine_v2/progressCommerce_v2.js');
         const {isMockCommerce}=await import('/js/engine_v2/commerceDev_v2.js');
-        const {DAY_MS}=await import('/js/engine_v2/kstTime_v2.js');
+        const {DAY_MS,kstDayKey}=await import('/js/engine_v2/kstTime_v2.js');
         progress.pets=pets.emptyPets();progress.commerce=emptyCommerce();
         setReleaseSchedule({zones:{7:'2099-01-01'},characters:{}});
         const hidden=progress.commerceProductState('pet_clockwork_keeper')==='공개 예정';setReleaseSchedule(null);
@@ -240,7 +244,8 @@ def run(ctx):
         progress.pets=pets.emptyPets();await progress.restorePurchases();
         purchase.push(progress.ownsPet('clockwork_keeper'),!progress.pets.earned.includes('clockwork_keeper'),progress.shards===shards);
         progress.pets=pets.emptyPets();progress.commerce=emptyCommerce();
-        const start=Date.parse('2026-11-01T03:00:00Z');
+        // 지금 시각 기준(내일 한국시간 정오) — 고정 날짜는 그 날이 지나면 구매 뒤 lastSeenAt(실제 시각)보다 과거라 '시계 되돌림'으로 막혀 실패함
+        const start=Date.parse(kstDayKey(Date.now()+DAY_MS)+'T12:00:00+09:00');
         await progress.purchaseProduct('weekly_pass_7d',start);
         const before=progress.shards;
         for(let i=0;i<7;i++) progress.claimPass(start+i*DAY_MS);

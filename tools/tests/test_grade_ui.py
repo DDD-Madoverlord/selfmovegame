@@ -90,3 +90,43 @@ def run(ctx):
     rest = [ORDER.index(c['grade']) for c in cards if not c['mate']]
     ctx.check(heads[0] == '모으는 세트' and cards[0]['name'] == '레일건' and cards[0]['mate'] and rest == sorted(rest),
               "모으는 세트 짝은 '모으는 세트' 묶음으로 맨 앞, 나머지는 등급 순", f'{heads} {[c["name"] for c in cards]}')
+
+    # 등급별 강화 비용 (11-03): 같은 파츠·같은 레벨이면 커먼 < 레어 < 유니크 < 레전더리 (배율 1.0 · 1.3 · 1.7 · 2.2, growth_v2.js GRADES upCost)
+    st = g.js("""const id = 'arm_mech_laser', out = {};
+        for (const gr of ['common', 'rare', 'unique', 'legendary']) { progress.grades[id] = gr; out[gr] = progress.upgradeCost(id); }
+        progress.grades[id] = 'rare';
+        return out;""")
+    ctx.check(st['common'] < st['rare'] < st['unique'] < st['legendary'] and abs(st['legendary'] / st['common'] - 2.2) < 0.05,
+              '강화 비용: 등급이 높을수록 비쌈 (레전더리 = 커먼의 약 2.2배)', str(st))
+
+    # 등급 단계 (11-03, growth_v2.js TIER_UNLOCK): 그 캐릭터의 커먼 3개 → 레어 · 레어 4개 → 유니크 · 유니크 5개 → 레전더리
+    st = g.js("""const { SLOTS, partsOfCharacter } = await import('/js/engine_v2/roster_v2.js'); const S = await import('/js/engine_v2/sets_v2.js');
+        const all = SLOTS.flatMap(s => partsOfCharacter('kaiju', s)), tier = p => S.dropGroupOf(p);
+        const rare = partsOfCharacter('kaiju', 'arm').find(p => tier(p) === 'rare'), unique = all.find(p => tier(p) === 'unique');
+        all.forEach(p => progress.owned.delete(p.id));
+        all.filter(p => tier(p) === 'base').slice(0, 2).forEach(p => progress.owned.add(p.id));
+        const l2 = progress.tierLock(rare);
+        gameState.darkMatter = 99999;
+        const cart0 = { ...gameState.cartParts };
+        gameState.cartParts = { ...cart0, arm: rare.id };
+        const buy = progress.confirmCart();
+        gameState.cartParts = cart0;
+        all.filter(p => tier(p) === 'base').slice(0, 3).forEach(p => progress.owned.add(p.id));
+        const l3 = progress.tierLock(rare), u0 = progress.tierLock(unique);
+        all.filter(p => tier(p) === 'rare').slice(0, 4).forEach(p => progress.owned.add(p.id));
+        const u4 = progress.tierLock(unique);
+        progress.owned.delete(all.filter(p => tier(p) === 'base').at(2).id);   // 다시 커먼 2개로 → 연구소 카드 자물쇠 확인
+        all.filter(p => tier(p) === 'rare').forEach(p => progress.owned.delete(p.id));
+        return { l2, buy: [buy.success, buy.reason || ''], l3, u0, u4 };""")
+    ctx.check(st['l2'] and st['l2']['need'] == 3 and st['l2']['have'] == 2 and not st['buy'][0] and '커먼 파츠를 3개' in st['buy'][1]
+              and st['l3'] is None and st['u0'] and st['u0']['need'] == 4 and st['u4'] is None,
+              '등급 단계: 커먼 2개면 레어 세트 구매 막힘 · 3개면 열림 · 레어 4개면 유니크 열림', str(st))
+    g.js("progress.selectCharacter('kaiju'); window.madOverlordGameV2.switchScreen('lab');")
+    g.wait(800)
+    g.page.click('.v2-slottab[data-slot="arm"]')
+    g.wait(300)
+    st = g.js("""const c = document.querySelector('#parts-grid-v2 .v2-partcard.is-tierlocked[data-grade="rare"]');
+        return c && { badge: c.querySelector('.v2-partcard__badge').textContent, title: c.title };""")
+    ctx.check(st and '2/3' in st['badge'] and '커먼' in st['badge'] and '3개' in st['title'],
+              '연구소 카드: 잠긴 레어 세트에 자물쇠 + "커먼 2/3", 마우스를 올리면 조건 설명', str(st))
+    g.shot('grade_ui_tierlock', '.v2-lab__parts')

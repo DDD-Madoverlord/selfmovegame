@@ -636,7 +636,12 @@ export class RigAvatar {
 
     /** 캔버스 픽셀 크기 = 표시 크기(opts) × 해상도 배율 (displayRes.js). 표시 크기는 CSS·인라인 스타일이 정함 */
     _fitRes() {
-        const res = displayRes();
+        // opts.fitCss: 화면에 opts보다 크게 보이면(휴대폰 배치 메인 캐릭터, Q-015) 그만큼 더 촘촘히 — 최대 3배
+        const shown = this.opts.fitCss && this.canvas.clientWidth > this.opts.width ? this.canvas.clientWidth / this.opts.width : 1;
+        let res = shown > 1 ? Math.min(3, Math.round(displayRes() * shown * 4) / 4) : displayRes();
+        // 휴대폰 배치: 연구소·선택창은 게임 판 배율 없이 실제 크기로 펼침(ui_v2_mobile.css) → 화면 위 크기 × 기기 배율로 잼 (최대 3배)
+        const onScreen = this.opts.fitCss && document.body.classList.contains('v2-mobile') ? this.canvas.getBoundingClientRect().width : 0;
+        if (onScreen > 0 && displayRes() > 1) res = Math.max(res, Math.min(3, Math.round(onScreen * (window.devicePixelRatio || 1) / this.opts.width * 4) / 4));
         const w = Math.round(this.opts.width * res), h = Math.round(this.opts.height * res);
         if (this.canvas.width !== w || this.canvas.height !== h) {
             this.canvas.width = w;

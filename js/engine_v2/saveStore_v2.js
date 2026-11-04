@@ -32,6 +32,18 @@ export function setSaveStore(next) {
     store = next;
 }
 
+/** 시험용 전체 해제(메뉴 아이콘 — menu_v2.js): 지금 저장을 메모리 사본으로 바꿔 이번 실행에서 바뀐 것은 실제 저장에 남기지 않음.
+ *  새로고침하면 원래 저장 (상점 시험 모드 commerceDev_v2.js와 같은 방식) */
+let isolated = false;
+export function isolateSaveInMemory() {
+    if (isolated) return false;
+    const copy = new Map([...knownKeys].map(key => [key, load(key)]));
+    setSaveStore({ load: key => copy.get(key) ?? null, save: (key, value) => copy.set(key, value), remove: key => copy.delete(key), keys: () => copy.keys() });
+    isolated = true;
+    return true;
+}
+export const saveIsolated = () => isolated;
+
 export function load(key) {
     knownKeys.add(key);
     return store.load(key);
@@ -71,7 +83,7 @@ function checksum(text) {
 }
 
 export function exportSave() {
-    if (isMockCommerce()) throw new Error('시험 중에는 백업을 내보낼 수 없습니다. 새로고침하면 일반 진행으로 돌아갑니다.');
+    if (isMockCommerce() || isolated) throw new Error('시험 중에는 백업을 내보낼 수 없습니다. 새로고침하면 일반 진행으로 돌아갑니다.');
     const progress = JSON.parse(load('mo_v2_save') || 'null');
     if (progress?.commerce) validateCommerce(progress.commerce, false);
     const entries = {};

@@ -126,7 +126,7 @@ export const AllyMethods = {
                 ally.dom.classList.toggle('is-attacking', fighting);
             }
             if (fighting) {
-                if (!ally.supportOwner || this.support?.active?.elapsed < SUPPORT.exitAt) {
+                if (!ally.supportOwner || this.support?.active?.elapsed < (this.support?.active?.exitAt ?? SUPPORT.exitAt)) {
                     const mul = ally.supportOwner ? 1 : this.allyDmgMul() * this.supportAttackMul();
                     this.dealDamageToEnemy(closestEnemyToAlly, ally.dps * mul * dt, false,
                         { dot: true, source: ally.supportOwner ? 'support' : 'ally', supportGear: ally.supportGear });

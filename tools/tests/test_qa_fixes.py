@@ -44,8 +44,9 @@ def run(ctx):
     # 긴 적 설명이 있는 2-B: 메뉴 안 모든 요소가 화면 오른쪽을 넘지 않음
     g.js(CLEAR + "window.madOverlordGameV2.menuController.selectStage('2-B');")
     g.wait(300)
+    # 지도의 옆 구역 쪽(좌우로 밀어 넘기는 줄, stageMap_v2.js)은 일부러 지도 상자 밖에 놓고 잘라서 뺌 — 지도 상자 자체는 검사함
     st = g.js("""return { stage: progress.selectedStage, width: window.innerWidth,
-        overflow: [...document.querySelectorAll('#screen-menu-v2 *')].map(el => ({
+        overflow: [...document.querySelectorAll('#screen-menu-v2 *')].filter(el => !el.closest('.v2-smap__track')).map(el => ({
             tag: el.tagName, id: el.id, cls: el.getAttribute('class'), right: el.getBoundingClientRect().right
         })).filter(el => el.right > window.innerWidth + 0.5) };""")
     ctx.check(st['stage'] == '2-B' and not st['overflow'], '2-B 메뉴: 모든 요소가 1280px 화면 안에 표시', str(st))

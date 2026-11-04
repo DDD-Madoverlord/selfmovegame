@@ -93,7 +93,8 @@ def run(ctx):
         const savedPets = JSON.parse(JSON.stringify(progress.pets));
         progress.pets = emptyPets();
         progress.commerce = emptyCommerce();
-        const start = Date.parse('2026-10-26T14:59:59Z');
+        // 내일 한국시간 자정 1초 전 — 지금 시각 기준. 고정 날짜는 그 날이 지나면 구매 뒤 lastSeenAt(실제 시각)보다 과거라 '시계 되돌림'으로 막혀 실패함
+        const start = Date.parse(kstDayKey(Date.now() + DAY_MS) + 'T00:00:00+09:00') - 1000;
         await progress.purchaseProduct('weekly_pass_7d',start);
         const p = progress.commerce.weeklyPass;
         const initial = gameState.darkMatter, shards = progress.shards;

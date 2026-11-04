@@ -124,7 +124,7 @@ export const FROST_SETS2 = packOf('frost', [
         letter: 'u', tier: 'unique', no: 1, name: '얼음 여왕', style: 'balance', tint: 'saturate(0.6) brightness(1.4) hue-rotate(-10deg) drop-shadow(0 0 5px rgba(170, 230, 255, 0.8))',
         bonus: { 2: '빙결 시간 +0.5초', 4: '빙결을 깨뜨릴 때마다 필살기 게이지 +3%' },
         kit: { 2: { mods: { freezeSec: 0.5 } }, 4: { on: [{ when: 'shatter', gauge: 0.03 }] } },
-        head: { name: '얼음 결정 왕관', look: '높이 솟은 얼음 결정 왕관, 하늘빛 광채', skill: 'fsAbsoluteZero', desc: '필살기 절대 영도: 화면 모든 적 빙결 → 2초 뒤 차례로 깨짐 (둘레에 연쇄 피해)', stats: { hp: 850, dps: 140, range: 50, speed: 10 } },
+        head: { name: '얼음 여왕의 왕관', look: '높이 솟은 얼음 결정 왕관, 하늘빛 광채', skill: 'fsAbsoluteZero', desc: '필살기 절대 영도: 화면 모든 적 빙결 → 2초 뒤 차례로 깨짐 (둘레에 연쇄 피해)', stats: { hp: 850, dps: 140, range: 50, speed: 10 } },
         body: { name: '서리 왕실 드레스', look: '긴 얼음 망토가 달린 드레스', skill: 'fsIceKnights', desc: '얼음 기사 소환: 얼음 기사 2기 (10초) — 벤 적에 냉기', stats: { hp: 1900, dps: 100, range: 0, speed: 10 } },
         arm: { name: '얼음 왕홀', look: '끝에 큰 얼음 결정이 박힌 왕홀', skill: 'fsSpikePath', desc: '기본 공격 얼음 기둥 (맞힌 적 발밑에서 솟음, 냉기) · 얼음 가시 길: 땅을 따라 얼음 가시가 줄지어 솟음 — 관통, 냉기 3', stats: { hp: 500, dps: 580, range: 320, speed: 0 },
             kitAttack: { kind: 'melee', vfx: V.shatter(0, 120, { dur: 0.35 }), status: { chill: 1 }, knock: 0.4 } },

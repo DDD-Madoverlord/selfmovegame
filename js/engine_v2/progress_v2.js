@@ -20,7 +20,7 @@
 
 import { gameState } from '../engine/state.js';
 import { PARTS_DB } from '../data/parts.js';
-import { SLOTS, DEFAULT_CHARACTER, rosterOf, characterOfPart, partsOfCharacter } from './roster_v2.js';
+import { ROSTER, SLOTS, DEFAULT_CHARACTER, rosterOf, characterOfPart, partsOfCharacter } from './roster_v2.js';
 import { DIFFICULTIES, DEFAULT_DIFFICULTY, difficultyOf, difficultyUnlocked, highestDifficulty } from './difficulty_v2.js';
 import { GrowthMethods, emptyGrowth } from './progressGrowth_v2.js';
 import { CommerceMethods, emptyCommerce } from './progressCommerce_v2.js';
@@ -28,7 +28,7 @@ import { PetMethods } from './progressPets_v2.js';
 import { OfflineMethods, emptyOffline } from './offlineReward_v2.js';
 import { TutorialMethods, emptyTutorial } from './tutorial_v2.js';
 import { track } from './analytics_v2.js';
-import { gradeOf } from './growth_v2.js';
+import { gradeOf, TIER_UNLOCK } from './growth_v2.js';
 import { isDropOnly, dropGroupOf } from './sets_v2.js';
 import { allStagesUnlocked, isUnlockedNormally } from './stages_v2.js';
 import * as saveStore from './saveStore_v2.js';
@@ -259,6 +259,19 @@ class Progress {
         return this.owned.has(id);
     }
 
+    /** 시험용 전체 해제 2단계 (메뉴 왼쪽 위 아이콘 5번 → 다시 5번, menu_v2.js): 저장을 메모리 사본으로 돌린 뒤
+     *  캐릭터 전부·파츠 전부를 가짐. 이 뒤의 진행은 실제 저장에 안 남고, 게임을 다시 켜면 원래 저장 */
+    unlockEverythingTemp() {
+        if (this.everythingUnlocked) return false;
+        saveStore.isolateSaveInMemory();
+        this.everythingUnlocked = true;
+        ROSTER.forEach(c => { if (!this.unlockedChars.includes(c.id)) this.unlockedChars.push(c.id); });
+        SLOTS.forEach(slot => (PARTS_DB[slot] || []).forEach(p => { if (p.id !== 'none') this.owned.add(p.id); }));
+        this.save();
+        gameState.notify();
+        return true;
+    }
+
     /** 장바구니 중 보유하지 않은 파츠의 구매 비용 */
     cartCost() {
         return SLOTS.reduce((sum, slot) => {
@@ -278,10 +291,29 @@ class Progress {
             .filter(p => p && p.id !== 'none' && !this.owned.has(p.id) && isDropOnly(p));
     }
 
+    /** 등급 단계 잠김 (growth_v2.js TIER_UNLOCK): 안 가진 파츠가 아직 못 여는 등급이면 { tier, from, need, have }, 열렸으면 null.
+     *  그 등급 파츠가 need개보다 적은 캐릭터는 그 등급을 전부 가지면 열림 */
+    tierLock(part) {
+        if (!part || part.id === 'none' || this.owned.has(part.id)) return null;
+        const tierOf = p => (dropGroupOf(p) === 'base' ? 'common' : dropGroupOf(p));
+        const tier = tierOf(part), rule = TIER_UNLOCK[tier];
+        if (!rule) return null;
+        const pool = SLOTS.flatMap(slot => partsOfCharacter(characterOfPart(part), slot)).filter(p => tierOf(p) === rule.from);
+        const need = Math.min(rule.need, pool.length);
+        const have = pool.filter(p => this.owned.has(p.id)).length;
+        return have >= need ? null : { tier, from: rule.from, need, have };
+    }
+
+    tierLockText(lock) {
+        return `${gradeOf(lock.tier).name} 파츠는 이 캐릭터의 ${gradeOf(lock.from).name} 파츠를 ${lock.need}개 가지면 열립니다 (지금 ${lock.have}개)`;
+    }
+
     /** 장바구니 확정: 보유하지 않은 파츠는 구매 후 장착 (세트 파츠는 등급 바닥만큼 옵션을 채움) */
     confirmCart() {
         const locked = this.cartLocked();
         if (locked.length) return { success: false, reason: `${locked[0].name}: 드랍·조각으로만 얻는 파츠입니다` };
+        const tierLocked = SLOTS.map(slot => partOf(slot, gameState.cartParts[slot])).find(p => this.tierLock(p));
+        if (tierLocked) return { success: false, reason: `${tierLocked.name}: ${this.tierLockText(this.tierLock(tierLocked))}` };
         const cost = this.cartCost();
         if (gameState.darkMatter < cost) return { success: false, reason: '다크 매터(DM)가 부족합니다' };
         const partIds = SLOTS.map(slot => gameState.cartParts[slot]).filter(id => id !== 'none' && !this.owned.has(id));
@@ -311,6 +343,11 @@ class Progress {
         return highestDifficulty(this).maxLevel;
     }
 
+    /** 장착한 파츠 중 지금 DM으로 강화할 수 있는 것이 있는지 (연구소 강화 안내 — main_v2.js) */
+    canUpgradeEquipped() {
+        return SLOTS.some(slot => { const c = this.upgradeCost(gameState.equippedParts[slot]); return c != null && c <= gameState.darkMatter; });
+    }
+
     /** 다음 레벨 강화 비용 (최대면 null) */
     upgradeCost(id) {
         const lv = this.levelOf(id);
@@ -318,7 +355,8 @@ class Progress {
         const p = partOf(slotOf(id), id);
         // 강화 기준값 = 가격 (가격 없는 유니크 세트는 1200 — 레어 세트 부위 값보다 조금 위, 레전더리 세트는 1600)
         const base = Math.max(p ? p.cost || ({ unique: 1200, legendary: 1600 }[dropGroupOf(p)] || 0) : 0, 200);
-        return Math.round((base * 0.6 * lv) / 10) * 10;
+        const grade = gradeOf(this.gradeOf(id)).upCost;   // 등급 배율 (growth_v2.js GRADES upCost, 11-03)
+        return Math.round((base * 0.6 * lv * grade) / 10) * 10;
     }
 
     upgrade(id) {

@@ -7,15 +7,15 @@ export const PET_CDR_CAP = 0.35;
 export const PET_ATTACK_SECONDS = 2;
 export const PETS = {
     scrap_drone: { name: '회수 드론 영호', zone: 1, stage: '1-1', effect: 'battleDm', base: 0.01, per: 0.005,
-        condition: '노말 1-1 첫 클리어', art: 'shape:drone', color: '#c39aff' },
+        condition: '노말 1-1 첫 클리어', art: 'assets/sprites/pets/scrap_drone.webp', color: '#c39aff' },
     cinder_larva: { name: '화산갑각 유생', zone: 2, stage: '2-B', effect: 'attack', base: 0.02, per: 0.005,
-        condition: '노말 2-B 첫 클리어', art: 'shape:larva', color: '#ff984f' },
+        condition: '노말 2-B 첫 클리어', art: 'assets/sprites/pets/cinder_larva.webp', color: '#ff984f' },
     void_eye: { name: '공허 복안체', zone: 4, stage: '4-B', effect: 'cdr', base: 0.005, per: 0.0025,
-        condition: '노말 4-B 첫 클리어', art: 'shape:eye', color: '#b493ff' },
+        condition: '노말 4-B 첫 클리어', art: 'assets/sprites/pets/void_eye.webp', color: '#b493ff' },
     abyss_lantern: { name: '심연 등불충', zone: 1, stars: 30, effect: 'offlineDm', base: 0.02, per: 0.01,
-        condition: '노말 누적 별 30개 (소비하지 않음)', art: 'shape:lantern', color: '#69ead9' },
+        condition: '노말 누적 별 30개 (소비하지 않음)', art: 'assets/sprites/pets/abyss_lantern.webp', color: '#69ead9' },
     clockwork_keeper: { name: '태엽 묘지기', zone: 7, stage: '7-B', effect: 'battleDm', base: 0.01, per: 0.005,
-        condition: '노말 7-B 첫 클리어 / 주간 패스 7회째 받기 / 상점 직접 구매', art: 'shape:keeper', color: '#f0d58f' }
+        condition: '노말 7-B 첫 클리어 / 주간 패스 7회째 받기 / 상점 직접 구매', art: 'assets/sprites/pets/clockwork_keeper.webp', color: '#f0d58f' }
 };
 
 export const petOf = id => Object.hasOwn(PETS, id) ? PETS[id] : null;

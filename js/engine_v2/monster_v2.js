@@ -27,7 +27,7 @@ const BATTLE_RIG_SCALE = { mech: 0.235, kaiju: 0.235, hero: 0.215, chimera: 0.23
 const HP_BAR = { width: 80, gap: 16 };  // 머리 위 체력바 (index.css .monster-hp-container 폭)
 // 메뉴(메인 화면 대기실): 캐릭터마다 캔버스 안에 들어오도록 배율/위치 자동 맞춤 (최대 0.34)
 // (좌우에 부위 설명이 붙으므로 가로 여백을 넉넉히)
-const MENU_RIG = { width: 440, height: 300, rootX: 220, rootY: 288, scale: 0.34, fit: { x: 58, y: 12 }, shadow: false };
+const MENU_RIG = { width: 440, height: 300, rootX: 220, rootY: 288, scale: 0.34, fit: { x: 58, y: 12 }, shadow: false, fitCss: true };
 const PAPERDOLL_CANVAS = { width: 330, height: 248 };
 
 // 몬스터 상태 → 애니메이션

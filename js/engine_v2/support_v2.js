@@ -3,6 +3,7 @@ import { PARTS_DB } from '../data/parts.js';
 import { ROSTER, SLOTS, characterOfPart, rosterOf, partsOfCharacter } from './roster_v2.js';
 import { skillsForParts, SKILLS, PART_SKILL } from './skills_v2.js';
 import { RIG_CHARACTERS } from './rig/characters.js';
+import { setPerkOf } from './sets_v2.js';
 
 export const SUPPORT = Object.freeze({
     cooldown: 40, // 첫 충전·재충전. 계정 연구로 최대 9초 단축.
@@ -111,7 +112,12 @@ export const SupportProgressMethods = {
         this.save();
     },
     supportCooldown() {
-        return SUPPORT.cooldown - Math.min(9, Math.max(0, this.researchBonus('supportCooldown')));
+        return SUPPORT.cooldown - Math.min(9, Math.max(0, this.researchBonus('supportCooldown'))) - this.mainSetPerk('supportCd');
+    },
+    /** 주인공이 끼운 세트의 전투 밖 효과 합 (sets_v2.js SET_PERKS — supportTime 협력 시간 · supportCd 협력 대기, 11-03) */
+    mainSetPerk(key, main = this.character) {
+        const ids = this.loadoutFor(main);
+        return setPerkOf(Object.fromEntries(SLOTS.map(s => [s, (PARTS_DB[s] || []).find(p => p.id === ids[s])])), key);
     },
     supportSnapshot(main = this.character) {
         const id = this.supportCharacter;
@@ -121,7 +127,7 @@ export const SupportProgressMethods = {
         const parts = Object.fromEntries(SLOTS.map(s => [s, structuredClone(PARTS_DB[s].find(p => p.id === ids[s]))]));
         const sk = skillsForParts(parts).head;
         const skillLevel = this.skillLevel(sk?.id || supportUnitOf(id).skill);
-        return { id, parts, stats: { ...this.statsFor(parts) }, gear: { ...this.gearTotals(parts) },
+        return { id, parts, stats: { ...this.statsFor(parts) }, gear: { ...this.gearTotals(parts) }, extraTime: this.mainSetPerk('supportTime', main),
             skillLevel, cooldown: this.supportCooldown(), auto: !!this.supportAuto, random: !!this.supportRandom };
     }
 };

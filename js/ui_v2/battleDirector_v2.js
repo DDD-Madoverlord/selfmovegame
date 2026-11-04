@@ -479,6 +479,7 @@ export class BattleDirector {
         const el = this.layer(`v2-result ${r.victory ? 'is-win' : 'is-lose'}`, `
             <div class="v2-result__panel v2-panel">
                 <div class="v2-hazard v2-result__stripe"></div>
+                <div class="v2-result__head">   <!-- 머리(결과·별)와 몸(기록·보상): PC는 없는 셈(display: contents), 휴대폰 배치는 두 칸 (ui_v2_mobile.css) -->
                 <small class="v2-result__op">STAGE ${stage.id} · ${stage.name}${diffTag(stage)}</small>
                 <h2 class="v2-result__title">${r.victory ? 'MISSION COMPLETE' : 'MISSION FAILED'}</h2>
                 <p class="v2-result__sub">${r.victory ? '적 수비대 거점을 모두 분쇄했습니다' : '제한 시간 안에 최종 기지를 부수지 못했습니다'}</p>
@@ -488,6 +489,8 @@ export class BattleDirector {
                             ${icon('star', 48)}<span>${st.label}</span>${st.isNew ? '<em>NEW</em>' : ''}
                         </div>`).join('')}
                 </div>
+                </div>
+                <div class="v2-result__body">
                 <dl class="v2-result__stats">
                     <div><dt>진격 거리</dt><dd>${Math.round(r.distance)}m</dd></div>
                     <div><dt>처치</dt><dd>${r.kills}</dd></div>
@@ -500,6 +503,7 @@ export class BattleDirector {
                 ${(r.pets || []).map(id => `<p class="v2-result__pet">펫 획득 · ${petOf(id).name} — 작전 지원에서 장착할 수 있어요</p>`).join('')}
                 ${r.unlocked ? `<p class="v2-result__unlock" style="--diff:${r.unlocked.color}">${icon('star', 16)} <b>${r.unlocked.name}</b> 난이도가 열렸습니다 · 파츠 강화 한도 Lv${r.unlocked.maxLevel}</p>` : ''}
                 ${r.victory ? '' : reportHtml(r.report)}
+                </div>
                 <div class="v2-result__actions">
                     ${r.next ? `<button class="v2-btn v2-btn--primary" data-act="next">${icon('play', 16)} 다음 ${r.next.id}</button>` : ''}
                     <button class="v2-btn ${r.next ? 'v2-btn--ghost' : 'v2-btn--primary'}" data-act="retry">${r.next ? '' : icon('play', 16)} ${r.victory ? '다시 출격' : '재도전'}</button>

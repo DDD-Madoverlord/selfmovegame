@@ -33,9 +33,10 @@ def run(ctx):
         S.CHAPTER2.stages.forEach(s => progress.stages[s.id] = {CLEAR});
         const menu = window.madOverlordGameV2.menuController;
         menu.renderStages();
-        const tab = document.querySelector('.v2-zonetab[data-zone="ch2"]');
-        tab.click();
         const before = progress.selectedStage;
+        menu.stageMap.go(1);   // 지도를 구역 2로 넘기고 정거장을 누름 (잠긴 안내)
+        const page = menu.stageMap.root.querySelectorAll('.v2-smap__page')[1];
+        page.querySelector('.v2-smap__stop').click();
         menu.selectStage('2-1');
         const diffs = ['normal', 'hard', 'hell', 'nightmare'].map(d => {{
             progress.recordsOf(d)['1-B'] = {CLEAR};
@@ -45,16 +46,14 @@ def run(ctx):
         progress.difficulty = 'normal';
         progress.unlockedChars = ['kaiju'];
         return {{ chapter: S.chapterUnlocked(S.CHAPTER2, progress), diffs,
-            locked: tab.classList.contains('is-locked'), soon: tab.classList.contains('is-coming-soon'),
-            title: tab.title, aria: tab.getAttribute('aria-label'),
+            locked: !menu.stageMap.pages[1].open, fog: page.querySelector('.v2-smap__fog')?.textContent || '',
             foot: document.getElementById('menu-map-foot-v2').textContent,
             unchanged: before === progress.selectedStage, zones: progress.dispatchZones(),
             dispatch: progress.startDispatch('kaiju', 2).success }};""")
     ctx.check(not st['chapter'] and not any(st['diffs']) and st['unchanged'],
               '미래 구역: 이전 구역·기존 클리어 기록이 있어도 모든 난이도에서 선택 불가', str(st))
-    ctx.check(st['locked'] and st['soon'] and st['title'] == '구역 2 — 12월 31일 공개'
-              and st['aria'] == st['title'] and st['foot'] == '구역 2는 12월 31일 공개 예정입니다',
-              '구역 탭: 잠금·곧 표시, title·aria-label·안내 문구에 날짜', str(st))
+    ctx.check(st['locked'] and '12월 31일 공개 예정' in st['fog'] and st['foot'] == '해안 시추 단지: 끓어오르는 대지 — 12월 31일 공개 예정',
+              '지도: 잠긴 구역 안개·안내 문구에 공개 날짜 (구역 번호 없음)', str(st))
     ctx.check(2 not in st['zones'] and not st['dispatch'], '미래 구역: 클리어 기록이 있어도 파견 불가', str(st))
 
     g.js("(await import('/js/ui_v2/growthUi_v2.js')).openGrowthPanel('dispatch');")

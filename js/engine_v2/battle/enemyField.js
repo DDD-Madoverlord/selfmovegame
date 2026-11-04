@@ -617,6 +617,7 @@ export const EnemyMethods = {
         const name = boss && ENEMY_TYPES[boss.unit].name;
         if (boss && !boss.afterBase) this.director.bossCard(boss.unit, ENEMY_TYPES[boss.unit], '최종 기지를 지키고 있다 — 기지를 부수면 승리');
         else this.director.warning('final', boss ? `최종 기지를 부수면 ${name}이(가) 나타난다` : null);
+        coach('battle_final', '#battle-distance-v2');   // 처음 한 번: 최종 기지 = 승리 조건
         sound.playBgm('boss', 0.8);
         // 보스전: 기지 앞에 보스 (구역 3은 기지를 부순 뒤 — openBossGate)
         if (boss && !boss.afterBase) this.boss = this.spawnMinion(boss.unit, { x: base.x - 70, elite: false });
