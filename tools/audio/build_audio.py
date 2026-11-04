@@ -22,6 +22,7 @@ MAD OVERLORD // 게임 사운드 만들기 (v2)
 효과음 이름은 이펙트 정의(sfx: '...')와 전투 연출(director.sfx)에서 부르는 이름과 같다.
 음량/겹침 제한 같은 재생 규칙은 js/engine_v2/audio/sound_v2.js 의 SFX 표에서 정한다.
 """
+import json
 import os
 import subprocess
 import sys
@@ -796,9 +797,19 @@ BGM = {
 BGM_RMS_DB = -17.0   # 배경음끼리 체감 음량을 맞춤
 
 
+def ai_picked():
+    """AI로 만들어 팀이 고른 소리(ai_apply.py → ai_picks.json) — 이 도구로 다시 만들면 덮어써지니 건너뜀 (D-109)"""
+    p = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'ai_picks.json')
+    return set(json.load(open(p, encoding='utf-8'))) if os.path.exists(p) else set()
+
+
 def build_sfx(src, prefix=''):
+    skip = ai_picked()
     for name, spec in SFX.items():
         if not name.startswith(prefix):
+            continue
+        if name in skip:
+            print(f'sfx {name:20s} AI 소리라 건너뜀 (ai_picks.json)')
             continue
         if callable(spec):
             a = spec(src) if spec.__code__.co_argcount else spec()
@@ -811,7 +822,11 @@ def build_sfx(src, prefix=''):
 
 
 def build_bgm(src):
+    skip = ai_picked()
     for name, (path, t0, dur) in BGM.items():
+        if 'bgm_' + name in skip:
+            print(f'bgm {name:8s} AI 곡이라 건너뜀 (ai_picks.json)')
+            continue
         a = load(os.path.join(src, path), channels=2)
         a = a[int(t0 * SR): int((t0 + dur) * SR) if dur else None]
         rms = np.sqrt(np.mean(a ** 2)) + 1e-9

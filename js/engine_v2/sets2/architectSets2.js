@@ -41,18 +41,18 @@ export const ARCHITECT_BASE = basePackOf('architect', {
             passive: { name: '안전화 (강화)', desc: '거점·바리케이드에 주는 피해 +35%', target: [{ when: 'building', dmg: 0.35 }] } }
     ]
 }, {
-    arFoundation: { name: '기초 파쇄', slot: 'arm', cd: 9, icon: 'drill', color: '#ff9a2e', target: 'enemy', range: 160, clip: 'slam', sfx: 'chimera_slam',
+    arFoundation: { name: '기초 파쇄', slot: 'arm', cd: 9, icon: 'drill', color: '#ff9a2e', target: 'enemy', range: 160, clip: 'slam', sfx: 'arch_drill',
         desc: '드릴을 땅에 박아 앞쪽 지면이 터짐 — 범위 피해 + 1초 기절, 거점 2배',
         steps: [{ at: 0.45, do: 'hit', pick: 'all', range: 170, dmg: 2.2, baseMul: 2, status: { stun: 1 }, knock: 0.8, vfx: V.sheet('drill_burst', 190, { anchorY: 0.88, dur: 0.5 }), ground: true },
             { at: 0.45, do: 'shake', power: 6, ms: 220 }, { at: 0.45, do: 'fx', x: 60, vfx: V.ring(SPARK, 170) }] },
     // 벽은 바닥에 서서 걸을 때 함께 흘러감 → 적이 앞에 있을 때만 씀 (target enemy)
-    arRebuild: { name: '강제 재건', slot: 'body', cd: 14, icon: 'scaffold', color: '#ff9a2e', target: 'enemy', range: 160, clip: 'cast', sfx: 'mech_fist_hit',
+    arRebuild: { name: '강제 재건', slot: 'body', cd: 14, icon: 'scaffold', color: '#ff9a2e', target: 'enemy', range: 160, clip: 'cast', sfx: 'arch_scaffold',
         desc: '앞에 철골 바리케이드 6초 — 보스가 아닌 적은 넘어오지 못함, 끝날 때 무너지며 피해',
         steps: [{ at: 0.45, do: 'zone', tag: 'scaffold', wall: true, x: 40, w: 60, sec: 6, art: SCAFFOLD,
             end: { dmg: 2, radius: 150, vfx: V.impact(0, 200) } }, { at: 0.45, do: 'fx', x: 70, vfx: V.sheet('steel_scaffold', 220, { anchorY: 0.95, dur: 0.6 }) }] },
     arDemolish: { name: '철거 명령', slot: 'head', ult: true, cd: 0, icon: 'hammer', color: '#ff9a2e', target: 'enemy', range: 420, clip: 'cast',
         desc: '크레인 철구가 앞쪽을 세 번 내리침 — 큰 피해, 거점 3배',
-        steps: [{ at: 0.45, do: 'rain', count: 3, every: 0.45, x: [60, 380], radius: 120, dmg: 3, baseMul: 3, vfx: V.sheet('crane_ball', 280, { anchorY: 0.95, dur: 0.6 }), shake: 9, sfx: 'base_blast' }] }
+        steps: [{ at: 0.45, do: 'rain', count: 3, every: 0.45, x: [60, 380], radius: 120, dmg: 3, baseMul: 3, vfx: V.sheet('crane_ball', 280, { anchorY: 0.95, dur: 0.6 }), shake: 9, sfx: 'arch_crane' }] }
 });
 
 // ---- 세트 9개 ----

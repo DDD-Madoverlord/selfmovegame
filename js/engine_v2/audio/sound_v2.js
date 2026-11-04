@@ -81,34 +81,41 @@ export const SFX = {
     chimera_quake: { vol: 0.18, gap: 0.3 },
     chimera_slam: { vol: 0.75 },
     // 심연의 길잡이 (합성음, tools/audio/build_audio.py)
-    diver_jet: { vol: 0.2, gap: 0.08, voices: 3, pitch: 0.1 },
-    diver_anchor_throw: { vol: 0.45, gap: 0.2 },
-    diver_anchor_hit: { vol: 0.5, gap: 0.1, pitch: 0.05 },
-    diver_surge: { vol: 0.6 },
-    diver_hands: { vol: 0.65, duck: 0.6 },
+    diver_jet: { vol: 0.31, gap: 0.08, voices: 3, pitch: 0.1 },
+    diver_anchor_throw: { vol: 0.63, gap: 0.2 },
+    diver_anchor_hit: { vol: 0.22, gap: 0.1, pitch: 0.05 },
+    diver_surge: { vol: 1.02 },
+    diver_hands: { vol: 0.83, duck: 0.6 },
     // 봉합 성녀 (합성음)
-    saint_needle: { vol: 0.2, gap: 0.06, voices: 3, pitch: 0.08 },
-    saint_stitch: { vol: 0.24, gap: 0.06, voices: 3, pitch: 0.1 },
-    saint_seal: { vol: 0.6 },
-    saint_revive: { vol: 0.7, duck: 0.55 },
+    saint_needle: { vol: 0.26, gap: 0.06, voices: 3, pitch: 0.08 },
+    saint_stitch: { vol: 0.21, gap: 0.06, voices: 3, pitch: 0.1 },
+    saint_seal: { vol: 0.98 },
+    saint_revive: { vol: 1.22, duck: 0.55 },
     // 서리의 무희 (합성음)
-    frost_fan: { vol: 0.2, gap: 0.08, voices: 3, pitch: 0.08 },
-    frost_hit: { vol: 0.2, gap: 0.06, voices: 3, pitch: 0.12 },
-    frost_freeze: { vol: 0.32, gap: 0.12, pitch: 0.1 },
-    frost_shatter: { vol: 0.42, gap: 0.08, voices: 4, pitch: 0.1 },
-    frost_crescent: { vol: 0.55 },
-    frost_blizzard: { vol: 0.55 },
-    frost_eternal: { vol: 0.7, duck: 0.55 },
+    frost_fan: { vol: 0.37, gap: 0.08, voices: 3, pitch: 0.08 },
+    frost_hit: { vol: 0.16, gap: 0.06, voices: 3, pitch: 0.12 },
+    frost_freeze: { vol: 0.3, gap: 0.12, pitch: 0.1 },
+    frost_shatter: { vol: 0.29, gap: 0.08, voices: 4, pitch: 0.1 },
+    frost_crescent: { vol: 0.79 },
+    frost_blizzard: { vol: 0.81 },
+    frost_eternal: { vol: 0.3, duck: 0.55 },
     // 뒤틀린 인형사 (합성음)
-    doll_snip: { vol: 0.3, gap: 0.06, voices: 3, pitch: 0.1 },
+    doll_snip: { vol: 0.47, gap: 0.06, voices: 3, pitch: 0.1 },
     doll_xcut: { vol: 0.55 },
-    doll_summon: { vol: 0.4, gap: 0.1, pitch: 0.12 },
-    doll_burst: { vol: 0.45, gap: 0.08, voices: 3, pitch: 0.12 },
-    doll_strings: { vol: 0.65, duck: 0.55 },
+    doll_summon: { vol: 0.74, gap: 0.1, pitch: 0.12 },
+    doll_burst: { vol: 0.52, gap: 0.08, voices: 3, pitch: 0.12 },
+    doll_strings: { vol: 0.75, duck: 0.55 },
     chimera_phase2: { vol: 0.8, duck: 0.45 },
-    rampage_roar: { vol: 0.75, duck: 0.5, src: 'chimera_phase2', rate: 0.9 },   // 변신 (kit.kitTransform · 삼두 포효) — 전용 소리 전까지 빌림
-    kaiju_breath: { vol: 0.5, src: 'mech_thrust', rate: 0.7 },                 // 멸망의 숨결 · 용왕의 숨결 — 전용 소리 전까지 빌림
+    rampage_roar: { vol: 0.7, duck: 0.5 },                                     // 변신 (kit.kitTransform · 삼두 포효) — AI 소리 (D-109)
+    kaiju_breath: { vol: 0.35 },                                               // 멸망의 숨결 · 용왕의 숨결 (불 뿜기) — AI 소리 (D-109)
     generic_slash: { vol: 0.42, gap: 0.05, pitch: 0.08 },
+    // 설계자 · 방송자 기본 스킬 — AI 소리 (D-109, 전에는 남의 소리를 빌려 씀)
+    arch_drill: { vol: 0.61 },                                                 // 기초 파쇄 (드릴 — 다이너마이트처럼 터짐)
+    arch_scaffold: { vol: 0.6 },                                               // 강제 재건 (철골 바리케이드)
+    arch_crane: { vol: 0.77, gap: 0.2, pitch: 0.06 },                          // 철거 명령 (철구 3번)
+    bc_burst: { vol: 0.98 },                                                   // 공명 파열 (음파 고리 3겹 — 코드 음파 + AI)
+    bc_dome: { vol: 1.62 },                                                    // 정적의 장막
+    bc_emergency: { vol: 0.5, duck: 0.55 },                                    // 긴급 방송 (필살기)
     // 실드
     shield_on: { vol: 0.5 },
     shield_hit: { vol: 0.28, ext: 0.25, gap: 0.15, pitch: 0.1 },
@@ -124,15 +131,15 @@ export const SFX = {
     intro_sortie: { vol: 0.6, ext: 1.19 },
     warning: { vol: 0.32, ext: 1.72, duck: 0.6 },
     warning_danger: { vol: 0.38, ext: 1.27, duck: 0.5 },
-    ult_cutin: { vol: 0.6, duck: 0.45 },
+    ult_cutin: { vol: 0.62, duck: 0.45 },
     ult_ready: { vol: 0.42, ext: 1.7, gap: 1 },
     skill_ready: { vol: 0.32, ext: 0.35, gap: 0.3 },
-    skill_use: { vol: 0.32, gap: 0.1 },
+    skill_use: { vol: 0.55, gap: 0.1 },
     star_get: { vol: 0.55, ext: 2.06 },
     mission_complete: { vol: 0.7, ext: 1.79 },
     mission_failed: { vol: 0.7, ext: 1.76 },
     result_win: { vol: 0.4, ext: 1.14 },
-    result_lose: { vol: 0.4 },
+    result_lose: { vol: 0.52 },
     result_star: { vol: 0.5, ext: 1.07, gap: 0.1 },
     low_hp: { vol: 0.55, ext: 0.81 },
     // 구역 2·3·4 적·보스·거점 (합성, D-056)
