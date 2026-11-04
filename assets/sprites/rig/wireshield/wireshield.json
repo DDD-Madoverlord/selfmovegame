@@ -1,0 +1,18 @@
+{
+  "frameWidth": 90,
+  "frameHeight": 104,
+  "anchorX": 53.7,
+  "res": 2.0,
+  "clips": {
+    "walk": {
+      "src": "assets/sprites/rig/wireshield/wireshield_walk.webp",
+      "frames": 16,
+      "duration": 0.85
+    },
+    "attack": {
+      "src": "assets/sprites/rig/wireshield/wireshield_attack.webp",
+      "frames": 14,
+      "duration": 0.9
+    }
+  }
+}

@@ -1,0 +1,114 @@
+{
+ "_설명": "새 스테이지 기획(MD/기획_스테이지설계.md, D-085) 배경 40장 Gemini 요청 글. 키 = 저장 이름(assets/sprites/stage/src/<키>_gemini.png), attach = 첨부(앞 그림의 결과는 <키>로), edit = 첨부 그림의 조명만 바꿈. 스테이지마다 far(먼 배경) → far_boss(보스전 조명) → mid(중간 층, 단색 = 투명) → floor(바닥, 단색 = 투명). 표현은 기획서 그대로(12세 순화 해제).",
+ "style": "Match the pixel-art style of the attached image exactly: 16-bit style pixel art, {mood}, thick dark outlines, limited color palette, subtle rim light from the upper left. Use the same pixel size and level of detail, but draw a completely new scene and do not draw any of the characters from the attached image.",
+ "far_rules": "Draw a far background layer for a 2D side-scrolling game. It is a flat, orthographic elevation view, exactly perpendicular, like a theater backdrop: NO perspective, NO vanishing point, NO road or corridor going into the distance, NO side walls. The horizon and the ground line are perfectly horizontal straight lines, and all buildings and structures stand side by side in rows parallel to the image plane (nothing recedes diagonally).\n{scene}\n- Dark and low contrast so characters in front stand out; no dark vignette and no rounded dark corners, the picture fills all four corners\n- The left edge and the right edge must connect seamlessly so the image can tile horizontally\n- Wide landscape image, 16:9. No text, no logos, no watermark, no people, no characters",
+ "boss_rules": "Edit the attached image. Output exactly one image of the same size with the same composition: every structure stays in exactly the same place.\nChange only the lighting for the boss fight: {light}\nKeep it fairly dark and low contrast. The left and right edges must still connect seamlessly. No text, no people.",
+ "mid_rules": "Use the same pixel size, outline and colors as the attached background, but do not copy it. Draw a nearer background layer for a 2D side-scrolling game: a low band of objects from the same place, seen in a flat, orthographic side view (no perspective, no vanishing point), running across the whole width of the image.\n- The band occupies only a horizontal strip between 62% and 92% of the image height; nothing may rise above 62%, and do not reuse the buildings of the attached image (draw new, low objects)\n- Fill everything above the band (the top 62%) with one perfectly flat pure chroma {key}\n- Also fill the bottom 8% under the band with the same flat {key_name}\n- The band: {band}, with an irregular top silhouette\n- No {key_name} colors on the objects, no bright glow on the flat background\n- The left edge and the right edge must connect seamlessly so the image can tile horizontally\n- Wide landscape image, 16:9. No text, no logos, no people, no characters",
+ "floor_rules": "Use the same pixel size, outline and colors as the attached background, but do not copy it. Draw the floor strip for a 2D side-scrolling game in the same place, flat orthographic side view (no perspective, no vanishing point):\n- The floor occupies only a horizontal band between 45% and 75% of the image height; fill everything above and below the band with one perfectly flat pure chroma {key}\n- Top edge of the band: {top}\n- Below it: {front}\n- The pattern must repeat evenly so the left edge and the right edge connect seamlessly\n- No {key_name} colors on the floor\n- Wide landscape image, 16:9. No text, no logos, no people",
+ "keys": {
+  "green": "green #00FF00",
+  "yellow": "yellow #FFFF00"
+ },
+ "stages": {
+  "1": {
+   "name": "거대로봇 : 심연의 출격",
+   "mood": "dark and gritty military sci-fi, an underground bunker",
+   "key": "green",
+   "far": "- The inside of a vast secret military bunker 1,000 m underground, seen from the side: endless layers of steel girders, catwalks and support beams across the whole width, and several gigantic ventilation fans set into the back wall\n- Faint red emergency lights and small blue electrical sparks in the darkness\n- Colors: cold steel grey, emergency blood crimson, spark blue. No green, no wood, no warm natural colors",
+   "light": "a huge hatch high in the ceiling has opened, and cold pale moonlight pours down through it in wide beams onto the steel structures, the metal catches cold silver highlights, the red emergency lights are brighter; the rest stays dark.",
+   "band": "burning server racks with flames and smoke (secret research data burning), parked armored government transport trucks, broken concrete bunker wall segments with exposed rebar; colors: steel grey, crimson fire, cold blue screen glow",
+   "top": "a cold steel grill (grate) floor seen slightly from above, with hazard markings worn away",
+   "front": "the front face of the floor made of riveted steel plates, with burst pipes leaking white steam and small blue sparks"
+  },
+  "2": {
+   "name": "거대괴수 : 끓어오르는 대지",
+   "mood": "industrial disaster, smog and primeval magma",
+   "key": "green",
+   "far": "- A coastal drilling complex of a giant energy corporation destroying the coastline, seen from the side: huge factory smokestacks spewing thick black smoke across the whole width, a dirty brown smog covering the sky, a dark polluted sea on the horizon\n- Colors: magma red glow, dirty concrete grey, rusty brown steel. No fluorescent green",
+   "light": "flashing yellow and orange construction warning lights all over the complex, and a towering fire rising from a collapsing drilling tower paints the smog and everything below in burning red.",
+   "band": "brutally carved rocky cliffs, long rows of drilling pipelines on supports, trucks crushed flat as if stomped by a giant monster; colors: concrete grey, rust brown, dark rock, a little magma red",
+   "top": "cracked asphalt and concrete seen slightly from above, with glowing molten lava seeping out of the cracks and melting the asphalt",
+   "front": "the broken front edge of the road with layers of concrete, rebar and dark rock, lava dripping down"
+  },
+  "3": {
+   "name": "타락 히어로 : 피로 물든 순례길",
+   "mood": "dark gothic medieval fantasy, corrupted holiness",
+   "key": "green",
+   "far": "- A gigantic, gaudy but subtly twisted golden holy capital seen from the side: golden castles and cathedral spires topped with crosses across the whole width, under a blood-red sunset sky\n- Colors: faded gold, execution blood red, abyssal black. No clear sky blue, no pure white",
+   "light": "sacred golden light streams down through a gigantic stained-glass window of the cathedral, while ominous blood-red demonic light rises from the ground below; the gold and the blood red cross each other eerily.",
+   "band": "wooden execution stakes with chains and charred remains of the burned, luxurious golden angel statues, white marble pillars splattered with blood; colors: faded gold, dark wood, blood red, dirty white marble",
+   "top": "a white marble pilgrimage road seen slightly from above, trampled black by marching feet and stained with red blood",
+   "front": "the front face of the road made of large marble blocks with a worn gold trim line, blood dripping down the cracks"
+  },
+  "4": {
+   "name": "합성괴인 : 진화의 심연",
+   "mood": "dark cosmic horror, organic and bioluminescent",
+   "key": "yellow",
+   "far": "- An organic experiment chamber in a rift between dimensions, the 'cradle of flesh', seen from the side: through membranes, a deep purple cosmic void full of faintly swirling stars\n- In the far distance, several enormous blurry eye-shaped silhouettes of unknown cosmic beings watching from beyond the stars\n- Colors: void purple, fleshy crimson, bioluminescent fluorescent green. No silver metal, no sterile white",
+   "light": "the whole scene is flooded with blood-crimson light, as if a gigantic single eye were beaming red light across it; the purple turns to crimson.",
+   "band": "endlessly writhing pillars of flesh with grotesque half-human half-beast figures being fused into them, small glowing green spots; colors: fleshy crimson, void purple, a little fluorescent green",
+   "top": "living, breathing flesh ground seen slightly from above, oozing blood and slime",
+   "front": "the front face of the flesh ground: layers of muscle, veins and slime"
+  },
+  "5": {
+   "name": "심연의 길잡이 : 가라앉는 오만",
+   "mood": "dark stormy naval fortress, rusted brass and the deep sea",
+   "key": "green",
+   "far": "- The invincible sea fortress 'Poseidon' on the ocean planet Abyss, seen from the side: a stormy sky with black clouds, heavy rain and lightning, a black sea with huge crashing waves, silhouettes of other sea fortresses in the distance\n- Colors: abyssal dark blue-black, corroded brass and rusty steel, murky toxic magma orange. No clear emerald or tropical water colors",
+   "light": "red rotating emergency beacons flash across the fortress in the storm, and a murky toxic orange magma glow rises from below the sea, lighting the scene from beneath.",
+   "band": "rusted harbor cranes, thick iron chains, a naval transport ship, rain-soaked missile launchers; colors: dark blue steel, corroded brass, rust",
+   "top": "a steel grill (grate) floor seen slightly from above, always flooded with sea water from the waves, with wide gaps",
+   "front": "the front face of the deck: rusty steel beams with the churning black sea visible through the gaps below"
+  },
+  "6": {
+   "name": "봉합 성녀 : 피에 젖은 성역",
+   "mood": "corrupted holy hospital, sterile and hypocritical",
+   "key": "green",
+   "far": "- The 'Grand Ward of Miracles', the top facility of a corrupt church where only rich nobles are treated, seen from the side: splendid crystal chandeliers and magnificent stained-glass windows, and beyond them grey church spires with crosses\n- Colors: pale sterile white, dried blood, hypocritical gold. No soft pastel colors, no healing green",
+   "light": "cold, flashing white surgical shadowless lamps light the ward harshly, and a piercing hypocritical golden glow shines from a holy grail in the distance; a chilling contrast of clinical white and gold.",
+   "band": "gold-leaf decorated operating tables caked with dried blood, iron cages with straitjackets hanging inside, blood-red IV bottles hanging from ceiling rails; colors: sterile white, gold, dried blood red",
+   "top": "a luxurious white marble floor seen slightly from above, smashed and stained black with pools of blood",
+   "front": "the front face of the floor made of white marble blocks with gold inlay, cracked, blood running down"
+  },
+  "7": {
+   "name": "뒤틀린 인형사 : 잿빛 인형극",
+   "mood": "bleak endless trench warfare, ash and gunmetal",
+   "key": "green",
+   "far": "- An endless battlefield covered in ash around a destroyed orphanage, seen from the side: the silhouette of a ruined city with black smoke columns rising, constant flashes of artillery fire on the horizon, airships in the dark sky\n- Colors: ash grey, gunmetal, sickly yellow fire. No bright blue, no vivid red",
+   "light": "the dull ash-grey sky is lit only by blood-red flares fired into the sky, casting eerie red light over the whole battlefield.",
+   "band": "skeletal brick building ruins, wrecks of destroyed tanks, layers of barbed wire and trench lines with sandbags; colors: ash grey, gunmetal, dull brown",
+   "top": "muddy ground seen slightly from above, full of shell craters, with broken bayonets, spent shell casings and half-burnt wooden doll pieces",
+   "front": "the front face of the ground: layers of mud and dirt with buried debris"
+  },
+  "8": {
+   "name": "서리의 무희 : 얼어붙은 안식",
+   "mood": "frozen royal castle in an eternal blizzard",
+   "key": "green",
+   "far": "- The inside of the royal castle of the frozen kingdom Nordin, seen from the side: a ferocious endless blizzard and tall spires of ice\n- Colors: pale frost blue, greedy furnace red from distant furnace stones, swirling white snow. No warm natural sunlight",
+   "light": "cruel pale frost-blue light and the greedy furnace-red glow clash violently, splitting the whole scene in two halves of blue and red.",
+   "band": "rows of horrifying ice statues of dancers and villagers frozen in agony, displayed along both sides of the road, covered with snow; colors: frost blue, white, a little dark red",
+   "top": "a thick frozen marble floor seen slightly from above, with bloodstains trapped under the ice",
+   "front": "the front face of the floor made of frozen marble blocks with icicles"
+  },
+  "9": {
+   "name": "철거의 설계자 : 무너진 보금자리",
+   "mood": "collapsed construction site in thick smog",
+   "key": "green",
+   "far": "- 'Redevelopment Zone 1' of a greedy construction company whose shoddy work killed many people, seen from the side: beyond thick smog, a gigantic central broadcasting tower glowing ominous neon pink stands tall in the distance, half-built high-rises around it\n- Colors: hazard yellow, dirty concrete grey, distant neon magenta. No natural green, no clear sky blue",
+   "light": "flashing hazard-yellow warning lights all over the site, a thick dust storm, and the neon pink glow of the distant tower grows stronger and more ominous.",
+   "band": "half-built skeletal steel frames, a crashed helicopter, a dusty construction site with concrete blocks and warning barriers; colors: concrete grey, hazard yellow, rust",
+   "top": "a cracked cement floor seen slightly from above, with rebar sticking out",
+   "front": "the broken front face of the cement slab with exposed rebar and rubble"
+  },
+  "10": {
+   "name": "침묵의 방송자 : 거짓된 주파수",
+   "mood": "neon cyberpunk broadcasting tower",
+   "key": "green",
+   "far": "- The view from the top floor of the central broadcasting tower of the press control bureau, seen from the side: a dark city at night, and far away the collapsed giant construction district with dust clouds rising\n- Colors: intense neon magenta, dirty concrete grey, light-absorbing obsidian black",
+   "light": "intense neon magenta light floods the scene from glitching broadcast screens, flickering pink and white, the darkness becomes deeper around it.",
+   "band": "constantly running neon billboards and hologram corporate advertisements (no readable text), countless thick cables; colors: neon magenta, obsidian black, concrete grey",
+   "top": "a smooth cold black high-gloss floor seen slightly from above, reflecting pink neon, cracked with sparks bursting out",
+   "front": "the front face of the floor: black glossy panels with broken edges and sparking wires inside"
+  }
+ }
+}

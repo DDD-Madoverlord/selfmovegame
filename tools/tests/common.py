@@ -70,11 +70,12 @@ def start_server():
 class Game:
     """게임 페이지 하나. fresh=True면 저장 데이터를 지우고 시작"""
 
-    def __init__(self, pw, base, fresh=True, viewport=(1300, 740)):
+    def __init__(self, pw, base, fresh=True, viewport=(1300, 740), touch=False):
         self.base = base
         self.errors = []
         self.browser = pw.chromium.launch(channel='chrome', args=['--autoplay-policy=no-user-gesture-required'])
-        self.page = self.browser.new_page(viewport={'width': viewport[0], 'height': viewport[1]})
+        # touch=True: 휴대폰·태블릿 흉내 (손가락이 주 입력 → 휴대폰 배치, D-099)
+        self.page = self.browser.new_page(viewport={'width': viewport[0], 'height': viewport[1]}, has_touch=touch, is_mobile=touch)
         self.page.on('pageerror', lambda e: self.errors.append('pageerror: ' + (e.stack or str(e))[:400]))
         self.page.on('console', self._console)
         self.page.goto(f'{base}/index.html?t={time.time()}')
@@ -90,6 +91,8 @@ class Game:
         self.page.click('#btn-select-v2')
         self.page.wait_for_selector('#screen-menu-v2.active', timeout=30000)
         self.page.wait_for_selector('.v2-loading', state='detached', timeout=30000)
+        # 스토리 인트로(1-1·2-1·3-1 첫 출격, D-100)는 출격 단추를 누르는 검사마다 끼어들므로 끔 — test_story_intro.py만 다시 켬
+        self.page.evaluate('() => { window.madOverlordNoIntro = true; }')
         self.wait(300)
 
     def reload_v2(self):
@@ -115,6 +118,18 @@ class Game:
             b.enemies.filter(e => !e.isBuilding).forEach((e, i) => {{
                 e.x = b.monsterX + {first} + i * {gap}; e.speed = {speed}; e.hp = e.maxHp = {hp}; e.dps = {dps};
                 e.dom.style.left = e.x + 'px'; }});""")
+
+    def map_zone(self, ch_id):
+        """메인 화면 지도(stageMap_v2.js)를 그 구역으로 넘김 (좌우 밀기·‹ › 단추와 같음, D-104).
+        열린 구역이면 그 구역 판이 골라지고, 잠긴 구역이면 첫 정거장을 눌러 잠긴 안내를 띄움"""
+        return self.js(f"""const sm = window.madOverlordGameV2.menuController.stageMap;
+            const i = sm.pages.findIndex(p => 'ch' + p.zone === '{ch_id}');
+            sm.go(i);
+            const page = sm.root.querySelectorAll('.v2-smap__page')[i];
+            if (!sm.pages[i].open) page.querySelector('.v2-smap__stop').click();
+            return {{ n: sm.pages.length, locked: !sm.pages[i].open, fog: page.querySelector('.v2-smap__fog')?.textContent || '',
+                     sel: progress.selectedStage, name: document.getElementById('menu-map-name-v2').textContent,
+                     foot: document.getElementById('menu-map-foot-v2').textContent }};""")
 
     def wait(self, ms):
         self.page.wait_for_timeout(ms)

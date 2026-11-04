@@ -1,0 +1,146 @@
+{
+ "charge_up": {
+  "file": "part3/InMotionAudio - Arc/ELECArc_ArcPowerUpDesign04_InMotionAudio_Arc.wav",
+  "from": 0.0,
+  "to": 1.8,
+  "max": 1.8,
+  "kind": "magic",
+  "heart": false,
+  "desc": "전기 아크 충전"
+ },
+ "enemy_die": {
+  "file": "part5/SoundBits - Vox Bestiae - Source Elements/CREAHmn_Violent Humanoid Creature Exhale Short 4_SNDBTS_VB-SE.wav",
+  "from": 0.0,
+  "to": 0.43,
+  "max": 0.5,
+  "kind": "creature",
+  "heart": false,
+  "desc": "괴물 숨 내뱉기"
+ },
+ "intro_sortie": {
+  "file": "part2/Epic Stock Media - Tower Defense Game/ROBTMvmt_Tower Deploy Hitech Robot Motor Dark Thump Servo Whine 04_ESM_TDG.wav",
+  "from": 0.07,
+  "to": 0.78,
+  "max": 1.0,
+  "kind": "cue",
+  "heart": false,
+  "desc": "로봇 배치 모터"
+ },
+ "intro_whoosh": {
+  "file": "part1/344 Audio - Elemental Palette Designed Vol. 1/WINDDsgn_Wind, Rush, Whoosh, Long x5 01_344 Audio_Elemental Palette Designed Vol 1.wav",
+  "from": 0.02,
+  "to": 1.03,
+  "max": 1.1,
+  "kind": "cue",
+  "heart": false,
+  "desc": "바람 휙"
+ },
+ "low_hp": {
+  "file": "part1/344 Audio - Cinematic Fight Vol. 1/FGHTImpt_4 x Punch, Body 02_344 Audio_Cinematic Fight Vol 1.wav",
+  "from": 0.16,
+  "to": 0.41,
+  "max": 0.25,
+  "kind": "cue",
+  "heart": true,
+  "desc": "몸통 타격으로 만든 박동"
+ },
+ "mission_complete": {
+  "file": "part2/Epic Stock Media - Anime Game/DSGNStngr_Power Up Bright Positive Successful Light Saturation Crash Shimmer 05_ESM_AG.wav",
+  "from": 0.04,
+  "to": 1.21,
+  "max": 1.5,
+  "kind": "cue",
+  "heart": false,
+  "desc": "밝은 성공 스팅어"
+ },
+ "mission_failed": {
+  "file": "part1/344 Audio - Bass Drops & Downers Vol. 1/DSGNBass_Bass Drop & Downer Slow 10_344 Audio_Bass Drops & Downers.wav",
+  "from": 0.0,
+  "to": 2.4,
+  "max": 2.4,
+  "kind": "cue",
+  "heart": false,
+  "desc": "천천히 꺼지는 저음"
+ },
+ "player_hit": {
+  "file": "part2/David Dumais Audio - Melee Weapons Sound Effects Pack 2/METLImpt_METAL SWING HIT Weapon Swing To Metallic Body Impact And Resonant Tail 01_DDUMAIS_MWP2.wav",
+  "from": 0.25,
+  "to": 0.85,
+  "max": 0.6,
+  "kind": "impact",
+  "heart": false,
+  "desc": "금속 몸체 타격"
+ },
+ "result_star": {
+  "file": "part2/Cinematic Sound Design - UI Interaction Elements/Ting Coins.wav",
+  "from": 0.08,
+  "to": 0.77,
+  "max": 1.0,
+  "kind": "ui",
+  "heart": false,
+  "desc": "동전 팅"
+ },
+ "result_win": {
+  "file": "part2/Cinematic Sound Design - Hybrid Game & UI Elements/Game Entry Happy Short.wav",
+  "from": 0.0,
+  "to": 0.32,
+  "max": 0.9,
+  "kind": "ui",
+  "heart": false,
+  "desc": "게임 입장"
+ },
+ "shield_hit": {
+  "file": "part3/InMotionAudio - Arc/ELECArc_ArcDesign15_InMotionAudio_Arc.wav",
+  "from": 0.0,
+  "to": 0.8,
+  "max": 0.8,
+  "kind": "impact",
+  "heart": false,
+  "desc": "전기 아크"
+ },
+ "skill_ready": {
+  "file": "part2/CB_Sounddesign - Applicable Sounds - Organic UI and Building Games SFX/UIMisc_Kalimba 3 Up_CB Sounddesign_APPlicable Sounds.wav",
+  "from": 0.0,
+  "to": 0.37,
+  "max": 0.6,
+  "kind": "ui",
+  "heart": false,
+  "desc": "칼림바"
+ },
+ "star_get": {
+  "file": "part2/Cinematic Sound Design - User Interface/Button Arp Twinkle.wav",
+  "from": 0.0,
+  "to": 1.0,
+  "max": 1.0,
+  "kind": "ui",
+  "heart": false,
+  "desc": "반짝 아르페지오"
+ },
+ "ult_ready": {
+  "file": "part2/Epic Stock Media - Anime Game/DSGNStngr_Power Up Bright Positive Successful Light Saturation Crash Shimmer 05_ESM_AG.wav",
+  "from": 0.04,
+  "to": 1.21,
+  "max": 1.5,
+  "kind": "ui",
+  "heart": false,
+  "desc": "밝은 파워업"
+ },
+ "warning": {
+  "file": "part2/Federico Soler - Effective Trailer Alarms Vol. 2/EffectiveTrailer_Alarms_Vol2_QuarterNotes_013.wav",
+  "from": 0.0,
+  "to": 2.0,
+  "max": 2.0,
+  "kind": "cue",
+  "heart": false,
+  "desc": "예고편 경보 (4분음)"
+ },
+ "warning_danger": {
+  "file": "part2/Federico Soler - Effective Trailer Alarms Vol. 2/EffectiveTrailer_Alarms_Vol2_WholeNotes_011.wav",
+  "from": 0.0,
+  "to": 2.4,
+  "max": 2.4,
+  "kind": "cue",
+  "heart": false,
+  "desc": "예고편 경보 (온음)"
+ }
+}

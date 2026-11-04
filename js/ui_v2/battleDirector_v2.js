@@ -26,6 +26,7 @@ import { chapterOf } from '../engine_v2/stages_v2.js';
 import { difficultyOf, difficultyOfStage } from '../engine_v2/difficulty_v2.js';
 import { gradeOf, OPTIONS, MUTATORS } from '../engine_v2/growth_v2.js';
 import { setOf, setLabelOf } from '../engine_v2/sets_v2.js';
+import { petOf } from '../engine_v2/pets_v2.js';
 
 // 별 3개 조건 (D-029): 요새 / 최종 기지 / 목표 시간 안에 클리어
 const starLabels = stage => ['중간 요새', '최종 기지', `${stage.starTime}초 안에`];
@@ -73,7 +74,17 @@ const BOSS_SKILLS = {
     scrapking: '자석 끌어당기기 · 고철 낙하',
     archbishop: '천상의 심판 · 악마병 소환 · 심연의 문',
     oculus: '심연의 파동 · 유전자 붕괴 · 극한의 변이',
-    orbian: '단죄의 빛 · 생명의 저울 · 파문의 종'
+    orbian: '단죄의 빛 · 생명의 저울 · 파문의 종',
+    // 새 기획 (D-085)
+    wmdalpha: '플라스마 레이저 · 집게 팔 내려치기',
+    terraformer: '대지 분쇄 (파일벙커) · 집게 크레인',
+    benedict: '신성한 심판 · 숨겨진 마성 · 지옥문',
+    ironclad: '심해 압축포 · 폭뢰 융단폭격',
+    grailheart: '핏빛 파동 · 혈정석 쐐기 · 생명력 착취',
+    behemoth: '철갑탄 직사 · 백린 소이탄 · 궤도 톱니 돌진',
+    vladimir: '화룡의 숨결 · 잿더미 유성우 · 온기 강탈',
+    panopticon: '철골 분쇄 · H빔 투하 · 부실의 대가',
+    mothervoice: '주파수 폭발 · 거짓의 메아리 · 통제 레이저'
 };
 const INTRO_MS = { card: 150, sortie: 1750, reveal: 2150, end: 2700 };
 const FB = 58;   // 지면 높이 (bottom px)
@@ -468,6 +479,7 @@ export class BattleDirector {
         const el = this.layer(`v2-result ${r.victory ? 'is-win' : 'is-lose'}`, `
             <div class="v2-result__panel v2-panel">
                 <div class="v2-hazard v2-result__stripe"></div>
+                <div class="v2-result__head">   <!-- 머리(결과·별)와 몸(기록·보상): PC는 없는 셈(display: contents), 휴대폰 배치는 두 칸 (ui_v2_mobile.css) -->
                 <small class="v2-result__op">STAGE ${stage.id} · ${stage.name}${diffTag(stage)}</small>
                 <h2 class="v2-result__title">${r.victory ? 'MISSION COMPLETE' : 'MISSION FAILED'}</h2>
                 <p class="v2-result__sub">${r.victory ? '적 수비대 거점을 모두 분쇄했습니다' : '제한 시간 안에 최종 기지를 부수지 못했습니다'}</p>
@@ -477,6 +489,8 @@ export class BattleDirector {
                             ${icon('star', 48)}<span>${st.label}</span>${st.isNew ? '<em>NEW</em>' : ''}
                         </div>`).join('')}
                 </div>
+                </div>
+                <div class="v2-result__body">
                 <dl class="v2-result__stats">
                     <div><dt>진격 거리</dt><dd>${Math.round(r.distance)}m</dd></div>
                     <div><dt>처치</dt><dd>${r.kills}</dd></div>
@@ -486,8 +500,10 @@ export class BattleDirector {
                     <div class="is-reward"><dt>${icon('gem', 16)} 획득 DM</dt><dd><strong data-count="${r.dm}">+0</strong></dd></div>
                 </dl>
                 ${lootHtml(r.loot)}
+                ${(r.pets || []).map(id => `<p class="v2-result__pet">펫 획득 · ${petOf(id).name} — 작전 지원에서 장착할 수 있어요</p>`).join('')}
                 ${r.unlocked ? `<p class="v2-result__unlock" style="--diff:${r.unlocked.color}">${icon('star', 16)} <b>${r.unlocked.name}</b> 난이도가 열렸습니다 · 파츠 강화 한도 Lv${r.unlocked.maxLevel}</p>` : ''}
                 ${r.victory ? '' : reportHtml(r.report)}
+                </div>
                 <div class="v2-result__actions">
                     ${r.next ? `<button class="v2-btn v2-btn--primary" data-act="next">${icon('play', 16)} 다음 ${r.next.id}</button>` : ''}
                     <button class="v2-btn ${r.next ? 'v2-btn--ghost' : 'v2-btn--primary'}" data-act="retry">${r.next ? '' : icon('play', 16)} ${r.victory ? '다시 출격' : '재도전'}</button>

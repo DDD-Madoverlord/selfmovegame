@@ -1,0 +1,23 @@
+{
+  "frameWidth": 361,
+  "frameHeight": 254,
+  "anchorX": 177.7,
+  "res": 1.5,
+  "clips": {
+    "walk": {
+      "src": "assets/sprites/rig/terraformer/terraformer_walk.webp",
+      "frames": 16,
+      "duration": 1.15
+    },
+    "attack": {
+      "src": "assets/sprites/rig/terraformer/terraformer_attack.webp",
+      "frames": 16,
+      "duration": 1.1
+    },
+    "pile": {
+      "src": "assets/sprites/rig/terraformer/terraformer_pile.webp",
+      "frames": 20,
+      "duration": 1.4
+    }
+  }
+}

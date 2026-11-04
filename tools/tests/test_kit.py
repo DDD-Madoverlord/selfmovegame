@@ -60,7 +60,7 @@ def run(ctx):
         c, l = sid.split('_')
         parts = tuple(f'{s}_{c}_{l}' for s in ('head', 'body', 'arm', 'leg'))
         for attempt in range(2):   # 긴 검사 중 가끔 한 판이 통째로 멈춤(창 포커스 일시정지 추정) → 피해가 하나도 없으면 한 번 다시
-            g.js("progress.selectStage('2-2');")
+            g.js("progress.selectStage('2-1');")   # 새 기획 2-2는 장갑 불도저가 섞여 피해가 판마다 들쭉날쭉 → 용병만 나오는 2-1
             g.battle(parts, wait_ms=1500)
             g.place_enemies(n=5, gap=45, first=110, hp=9000, speed=8, dps=8)
             g.wait(1600)
@@ -75,7 +75,8 @@ def run(ctx):
             if hp1 < hp0:
                 break
         ctx.check(all(st['used']) and sid in st['on'] and st['kit'], f'{sid}: 4부위 세트 효과 켜짐 · 스킬 1·2·필살기 사용 · 다리 패시브', str(st))
-        ctx.check(hp1 < hp0 - 2000, f'{sid}: 기본 공격·스킬이 적에게 피해', f'{round(hp0)} → {round(hp1)}')
+        # 1200: 원거리 관통 하향(D-098, 물줄기 0.6 → 0.45) 뒤 탱커 세트(길잡이 '산호 수호자')가 약 1700 — 피해가 들어가는지만 봄
+        ctx.check(hp1 < hp0 - 1200, f'{sid}: 기본 공격·스킬이 적에게 피해', f'{round(hp0)} → {round(hp1)}')
         g.shot(f'kit_{sid}', '#screen-battle-v2')
 
     # ---- 부품 동작 하나씩 ----
@@ -117,7 +118,7 @@ def run(ctx):
     g.js("b.stopBattle(); progress.selectCharacter('kaiju'); window.madOverlordGameV2.switchScreen('lab');")
     g.wait(800)
     st = g.js("""const labels = [...document.querySelectorAll('.v2-partcard__faction')].map(c => c.textContent);
-        const tags = [...document.querySelectorAll('.v2-partcard .v2-gradetag')].map(t => t.textContent);
+        const tags = [...document.querySelectorAll('.v2-partcard .v2-partcard__grade')].map(t => t.textContent);
         return { n: labels.filter(t => /레어 ③|레어 ④|유니크|레전더리/.test(t)).length, leg: tags.filter(t => t === '레전더리').length, any: labels.length };""")
     ctx.check(st['n'] >= 7 and st['leg'] >= 2, '연구소: 2차 세트 파츠 카드 (레어 ③④·유니크·레전더리 등급 표시)', str(st))
     g.shot('kit_lab')

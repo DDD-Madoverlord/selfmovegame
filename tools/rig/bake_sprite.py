@@ -119,6 +119,10 @@ def main_multi(char, spec, height, out, res=1, webp=None):
     scale = height / (ref[3] - ref[1])
     box = union_box([f for frames, _ in caps.values() for f in frames])
     x0, y0, x1, y1 = box
+    # 게임은 프레임 바닥을 땅에 맞춤 → 공격 동작이 땅 아래로 내려가면(처형인 성기사 대검 등) 그만큼 걷는 동안 발이 뜸 (11-02 QA).
+    # 바닥은 '걷기 발'과 '땅' 중 낮은 쪽까지만 — 그 아래는 땅속이라 자름. 원래 떠 있는 적(걷기 발이 땅 위)은 그대로
+    y1 = min(y1, max(ref[3], round(anchor[1])))
+    box = (x0, y0, x1, y1)
     fw, fh = max(1, round((x1 - x0) * scale)), max(1, round((y1 - y0) * scale))
     base = os.path.splitext(out)[0]
     os.makedirs(os.path.dirname(out), exist_ok=True)

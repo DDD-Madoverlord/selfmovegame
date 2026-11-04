@@ -1,0 +1,18 @@
+{
+  "frameWidth": 55,
+  "frameHeight": 94,
+  "anchorX": 28.3,
+  "res": 2.0,
+  "clips": {
+    "walk": {
+      "src": "assets/sprites/rig/sapper/sapper_walk.webp",
+      "frames": 16,
+      "duration": 0.6
+    },
+    "attack": {
+      "src": "assets/sprites/rig/sapper/sapper_attack.webp",
+      "frames": 14,
+      "duration": 0.9
+    }
+  }
+}

@@ -15,6 +15,7 @@ import { MODULES, MODULE_MAX_LEVEL, MUTATORS, SKILL_LEVEL, CORES } from '../grow
 import { setCounts } from '../sets_v2.js';
 import { SET_VFX } from '../vfx/vfxDefs.js';
 import { FOOT_B } from './tuning.js';
+import { PET_DM_CAP, PET_CDR_CAP } from '../pets_v2.js';
 
 export const MODULE_SLOT_IDS = ['mod1', 'mod2'];
 
@@ -140,7 +141,7 @@ export const GrowthBattleMethods = {
 
     /** 계정 연구 'DM 정제'를 붙인 스테이지 (보상만 바뀐 얕은 복사본) */
     growthStage(stage) {
-        const dm = progress.researchBonus('dmBoost');
+        const dm = Math.min(PET_DM_CAP, progress.researchBonus('dmBoost') + progress.petBattleDmBonus());
         if (!dm) return stage;
         const r = stage.reward;
         return { ...stage, reward: { kill: Math.round(r.kill * (1 + dm)), mid: Math.round(r.mid * (1 + dm)), final: Math.round(r.final * (1 + dm)) } };
@@ -151,7 +152,8 @@ export const GrowthBattleMethods = {
         const lvMul = sk.module ? 1 : skillCdMulOf(this.skillLevels?.[slot] || 1);
         const kitCd = sk.module ? 0 : (this.kitPatch?.[sk.id]?.cd || 0);   // 2차 세트 효과: 쿨다운 -초 (kit.js)
         const kitCdr = sk.module ? 0 : this.kitMod('cdr');                  // 2차 패시브: 쿨다운 -%
-        return Math.max(1, (sk.cd + kitCd) * lvMul * (1 - (this.gear?.cdr || 0)) * (1 - kitCdr) * (this.mutator?.cdMul || 1));
+        const cdr = Math.min(PET_CDR_CAP, (this.gear?.cdr || 0) + (!sk.module && ['arm', 'body'].includes(slot) ? this.petBonuses?.cdr || 0 : 0));
+        return Math.max(1, (sk.cd + kitCd) * lvMul * (1 - cdr) * (1 - kitCdr) * (this.mutator?.cdMul || 1));
     },
 
     /**

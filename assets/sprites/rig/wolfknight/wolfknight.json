@@ -1,0 +1,18 @@
+{
+  "frameWidth": 195,
+  "frameHeight": 150,
+  "anchorX": 110.2,
+  "res": 2.0,
+  "clips": {
+    "walk": {
+      "src": "assets/sprites/rig/wolfknight/wolfknight_walk.webp",
+      "frames": 12,
+      "duration": 0.6
+    },
+    "attack": {
+      "src": "assets/sprites/rig/wolfknight/wolfknight_attack.webp",
+      "frames": 14,
+      "duration": 0.9
+    }
+  }
+}

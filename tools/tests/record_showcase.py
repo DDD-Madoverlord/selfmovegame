@@ -36,8 +36,7 @@ SET_SEC = 7.0                                        # 세트 한 장면 길이
 BASE_SEC, BASE_WALK = 10.0, 2.5                      # 기본·강화 장면 길이, 그중 적 없이 걷는 시간
 SKILLS = [(0.6, 'arm'), (2.3, 'body'), (4.0, 'head')]   # 팔 → 몸통 → 필살기
 FONT = "C\\:/Windows/Fonts/malgunbd.ttf"
-ALL = ("['1-1','1-2','1-3','1-4','1-5','1-B','2-1','2-2','2-3','2-4','2-5','2-B',"
-       "'3-1','3-2','3-3','3-4','3-5','3-6','3-B','4-1','4-2','4-3','4-4','4-5','4-6','4-B']")
+ALL = "(await import('/js/engine_v2/stages_v2.js')).STAGES.map(s => s.id)"   # 모든 스테이지 id (구역이 늘어도 그대로)
 CLEAR = "{ stars: [true,true,true], cleared: true, bestTime: 60 }"
 
 SET_JS = """async ([parts, sec, sched, walk]) => {
@@ -153,7 +152,7 @@ def record_dispatch(browser, base, tmp):
     ctx, page, t0 = open_game(browser, base, tmp)
     page.evaluate(f"""async () => {{ {IMPORTS}
         {ALL}.forEach(id => progress.stages[id] = {CLEAR});
-        ['hard', 'hell'].forEach(d => {ALL}.forEach(id => progress.recordsOf(d)[id] = {CLEAR}));
+        for (const d of ['hard', 'hell']) ({ALL}).forEach(id => progress.recordsOf(d)[id] = {CLEAR});
         progress.unlockedChars = ['kaiju', 'hero', 'chimera', 'diver', 'saint', 'frost', 'doll'];
         progress.selectCharacter('mech');
         const now = Date.now();

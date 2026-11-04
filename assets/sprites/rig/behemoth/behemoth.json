@@ -1,0 +1,28 @@
+{
+  "frameWidth": 295,
+  "frameHeight": 258,
+  "anchorX": 141.7,
+  "res": 1.5,
+  "clips": {
+    "walk": {
+      "src": "assets/sprites/rig/behemoth/behemoth_walk.webp",
+      "frames": 16,
+      "duration": 1
+    },
+    "attack": {
+      "src": "assets/sprites/rig/behemoth/behemoth_attack.webp",
+      "frames": 16,
+      "duration": 1
+    },
+    "cannon": {
+      "src": "assets/sprites/rig/behemoth/behemoth_cannon.webp",
+      "frames": 16,
+      "duration": 1
+    },
+    "charge": {
+      "src": "assets/sprites/rig/behemoth/behemoth_charge.webp",
+      "frames": 14,
+      "duration": 0.9
+    }
+  }
+}

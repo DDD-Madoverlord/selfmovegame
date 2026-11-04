@@ -15,6 +15,7 @@ export const gameTime = {
     slowScale: 1,
     paused: false,
     speed: 1,
+    onSlow: null,   // (scale, sec) — 사운드 매니저가 느린 화면 동안 소리를 먹먹하게 (audio/sound_v2.js)
 
     /** sec초 동안 멈춤. 연타로 계속 멈추지 않도록 멈춤이 끝난 뒤 짧은 재사용 대기 */
     hitStop(sec = 0.05, cooldown = 0.12) {
@@ -31,6 +32,7 @@ export const gameTime = {
         this.slowScale = scale;
         this.slowFrom = now;
         this.slowUntil = now + sec * 1000;
+        if (this.onSlow) this.onSlow(scale, sec);
     },
 
     slowFactor(now) {

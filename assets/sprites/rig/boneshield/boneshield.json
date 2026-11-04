@@ -1,0 +1,18 @@
+{
+  "frameWidth": 118,
+  "frameHeight": 113,
+  "anchorX": 63.0,
+  "res": 2.0,
+  "clips": {
+    "walk": {
+      "src": "assets/sprites/rig/boneshield/boneshield_walk.webp",
+      "frames": 16,
+      "duration": 0.95
+    },
+    "attack": {
+      "src": "assets/sprites/rig/boneshield/boneshield_attack.webp",
+      "frames": 14,
+      "duration": 0.9
+    }
+  }
+}

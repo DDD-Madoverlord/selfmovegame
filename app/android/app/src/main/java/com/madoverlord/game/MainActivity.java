@@ -15,7 +15,7 @@ import com.getcapacitor.BridgeActivity;
 public class MainActivity extends BridgeActivity {
     @Override
     public void onCreate(Bundle savedInstanceState) {
-        registerPlugin(AppUpdatePlugin.class);   // 앱 업데이트 내려받기·설치 (D-074)
+        FlavorPlugins.register(this);   // 개발판만 앱 업데이트 내려받기·설치
         super.onCreate(savedInstanceState);
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
         getBridge().getWebView().getSettings().setMediaPlaybackRequiresUserGesture(false);

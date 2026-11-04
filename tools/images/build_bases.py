@@ -1,7 +1,8 @@
 """
 거점 그림(Gemini) → 게임용 그림 (로드맵 C단계)
 
-실행: 프로젝트 루트에서  python tools/images/build_bases.py
+실행: 프로젝트 루트에서  python tools/images/build_bases.py          (전부)
+                         python tools/images/build_bases.py st1_ st2_ (이름 앞부분으로 골라서, 나머지는 기존 값)
 
 입력: assets/sprites/stage/src/<그림>_{1,2,3}_gemini.png  (1 온전 / 2 파손 / 3 붕괴) — 그림 목록은 BASES
 출력: assets/sprites/stage/<그림>_{1,2,3}.png  (게임 크기의 2배 — 화면을 키워도 선명하게, 무손실 원본)
@@ -54,6 +55,44 @@ BASES = {
     'cocoon': {'h': 270, 'key': 'yellow', 'top': 120},
     'chitin': {'h': 66, 'key': 'yellow', 'states': 2},
 }
+# ---- 새 기획 스테이지 1~10 (D-085, 그림 2026-10-25 Gemini 765×1024 / 장벽 1024×1024) ----
+# 그림 이름 st<N>_fort(중간 요새) · st<N>_base(최종 기지) · st<N>_barr(장벽), 원본 src/st<N>/<fort|base|barr>_<1|2|3>_gemini.png
+# clip_x0: 이 x보다 왼쪽을 지움 (10단계 요새 왼쪽으로 뻗은 레이저 선)
+NEW_BASES = {
+    1: {'fort': {'h': 220, 'muzzle': (98, 116)},                      # 보안 게이트 — 위 자동 포탑
+        'base': {'h': 300},                                           # 지상행 거대 승강기
+        'barr': {'h': 58}},                                           # 대전차 장애물
+    2: {'fort': {'h': 220, 'muzzle': (28, 349)},                      # 해안 방파제 게이트 — 왼쪽 위 쌍포
+        'base': {'h': 290, 'top': 140, 'muzzle': (452, 150)},          # 메인 시추 코어 — 꼭대기 불꽃은 높이에서 뺌
+        'barr': {'h': 70}},                                           # 드럼통 장벽
+    3: {'fort': {'h': 240, 'muzzle': (57, 372)},                      # 이단 심문소 철문 — 왼쪽 쇠꼬챙이
+        'base': {'h': 280},                                           # 대성당 정문
+        'barr': {'h': 80}},                                           # 성십자 방패 장벽
+    4: {'fort': {'h': 230, 'key': 'yellow'},                          # 박동하는 고기 벽
+        'base': {'h': 270, 'key': 'yellow', 'top': 180},               # 우주적 고치 — 위 촉수는 높이에서 뺌
+        'barr': {'h': 70, 'key': 'yellow'}},                          # 갑각 장벽
+    5: {'fort': {'h': 230, 'muzzle': (51, 128)},                      # 해상 차단 수문 — 위 작살포
+        'base': {'h': 290, 'muzzle': (36, 558)},                       # 중앙 통제 시추선 — 왼쪽 배관 노즐
+        'barr': {'h': 54}},                                           # 닻사슬 장벽
+    6: {'fort': {'h': 210, 'muzzle': (57, 605)},                      # 화형의 소각로 — 왼쪽 분사구
+        'base': {'h': 260},                                           # 성배의 성역
+        'barr': {'h': 66}},                                           # 병상 장벽
+    7: {'fort': {'h': 150, 'muzzle': (11, 505)},                      # 강철 참호 벙커 — 왼쪽 포신
+        'base': {'h': 330},                                           # 제국군 전방 사령탑
+        'barr': {'h': 66}},                                           # 철조망 장벽
+    8: {'fort': {'h': 240},                                           # 용광로 성문
+        'base': {'h': 250},                                           # 메인 화로석 제단
+        'barr': {'h': 60}},                                           # 화로 방패 장벽
+    9: {'fort': {'h': 170, 'muzzle': (123, 290)},                     # 불법 톨게이트 — 위 기관총
+        'base': {'h': 340},                                           # 메인 크레인 타워
+        'barr': {'h': 66}},                                           # 공사 차단벽
+    10: {'fort': {'h': 250, 'muzzle': (220, 520), 'clip_x0': 205},     # 전파 차단 격벽 — 왼쪽 레이저 발사구
+         'base': {'h': 290, 'top': 160},                               # 타워 최상층 코어 룸 — 위 케이블은 높이에서 뺌
+         'barr': {'h': 70}},                                          # 진압 차단벽
+}
+for _n, _kinds in NEW_BASES.items():
+    for _k, _spec in _kinds.items():
+        BASES[f'st{_n}_{_k}'] = {'src': f'st{_n}/{_k}', **({'states': 2} if _k == 'barr' else {}), **_spec}
 OUT_SCALE = 2
 WEBP_Q = 90                 # 게임이 읽는 .webp 품질 (stageArt_v2.js src) — 이펙트 시트와 같음 (D-062)
 KEY_LO, KEY_HI = 12, 60     # 초록 정도(초록 - max(빨강, 파랑)): LO 이하 불투명, HI 이상 투명, 사이는 반투명
@@ -117,12 +156,17 @@ def blank_text(rgb, box):
 
 def build(name, spec):
     states = []
+    src = spec.get('src', name)
     for n in range(1, spec.get('states', 3) + 1):
-        rgb, _ = load_clean(SRC.format(name=name, n=n))
+        rgb, _ = load_clean(SRC.format(name=src, n=n))
         for st, *box in spec.get('blank', []):
             if st == n:
                 rgb = blank_text(rgb, box)
-        states.append(key_out(rgb, spec.get('key', 'green')))
+        rgba, main = key_out(rgb, spec.get('key', 'green'))
+        if 'clip_x0' in spec:
+            rgba[:, :spec['clip_x0'], 3] = 0
+            main[:, :spec['clip_x0']] = False
+        states.append((rgba, main))
     _, top, _, ground = bbox(states[0][1])                  # 1단계 건물 = 높이·바닥선 기준
     top = spec.get('top', top)                              # 연기 등을 뺀 건물 맨 위
     boxes = [bbox(rgba[..., 3] > 0) for rgba, _ in states]
@@ -139,7 +183,7 @@ def build(name, spec):
             fade = np.linspace(0, 1, top - y0)[:, None]
             crop[:top - y0, :, 3] = (crop[:top - y0, :, 3] * fade).astype(np.uint8)
         img = shrink(crop, (w * OUT_SCALE, h * OUT_SCALE))
-        path = OUT.format(name=name, n=n)
+        path = OUT.format(name=src, n=n)
         img.save(path, optimize=True)                       # 무손실 원본 (미리보기·다시 굽기용)
         webp = path[:-4] + '.webp'                           # 게임용: WebP 품질 90 — PNG의 약 1/6 (로딩 단축, 2026-10-24)
         img.save(webp, 'WEBP', quality=WEBP_Q, method=6)
@@ -185,9 +229,27 @@ def preview(arts):
 
 
 def main():
-    arts = {name: build(name, spec) for name, spec in BASES.items()}
+    import json
+    only = sys.argv[1:]          # 이름 앞부분으로 골라 다시 굽기 (예: st1_) — 나머지는 지금 stageArt_v2.js 값을 그대로 씀
+    old = {}
+    if only and os.path.exists(JS_OUT):
+        for line in open(JS_OUT, encoding='utf-8'):
+            line = line.strip()
+            if line.endswith('},') and ': {' in line:
+                k, v = line.split(': {', 1)
+                v = '{' + v[:-1]
+                v = v.replace("'", '"')
+                for f in ('w', 'h', 'sink', 'src', 'muzzle'):
+                    v = v.replace(f'{f}:', f'"{f}":')
+                old[k] = json.loads(v)
+    arts = {}
+    for name, spec in BASES.items():
+        if only and not any(name.startswith(p) for p in only) and name in old:
+            arts[name] = old[name]
+        else:
+            arts[name] = build(name, spec)
     write_js(arts)
-    preview(arts)
+    preview({k: v for k, v in arts.items() if not only or any(k.startswith(p) for p in only)})
     print(f'→ {JS_OUT}, 미리보기 {PREVIEW}')
 
 

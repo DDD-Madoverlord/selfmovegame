@@ -1,0 +1,232 @@
+{
+ "_설명": "새 스테이지 기획(D-085) 거점 그림 80장 Gemini 요청 글. 저장: assets/sprites/stage/src/st<N>/<fort|base|barr>_<1|2|3>_gemini.png (1 온전 / 2 파손 / 3 붕괴, 장벽은 1·2만). 1번은 새 대화에 그 스테이지 먼 배경(st<N>/far_gemini.png)을 첨부해 화풍·색만 맞춤, 2·3번은 새 대화에 1번 결과를 첨부해 상태만 바꿈. 배경색은 pending_newplan_bg.json의 key(4단계만 노랑). 거점 설명은 MD/기획_스테이지설계.md '거점', 장벽은 각 스테이지 분위기로 정함. 10-25: 3단계 철문 파손판을 'Edit the attached image … heavily damaged'로 보냈더니 거절('그런 것을 하도록 프로그램되지 않았습니다') → '게임용 건물 스프라이트, battle-worn version'으로 바꾸자 됨. 2·3번 글을 이 말투로 바꿈.",
+ "style": "Match the pixel-art style of the attached image exactly: 16-bit style pixel art, {mood}, thick dark outlines, limited color palette, subtle rim light from the upper left. The attached image shows the same place: use the same pixel size and colors, but do not copy the scene.",
+ "rules": "- Strict side view (profile), orthographic, no perspective tilt\n- Background: one perfectly flat solid color only (given above). No shadow, no floor, no gradient, no background props\n- Only one subject, fully visible and centered, with generous empty margin on all sides\n- No text, no letters, no numbers, no logos, no watermark, no border. Keep the bottom-right corner empty",
+ "first": "{style}\n\nBackground color: pure {key}.\n{shape}\n\nDraw {desc}\n- The bottom edge sits on a straight horizontal line just above the bottom margin (do not draw the ground)\n- No people\n\n{rules}",
+ "shape_tall": "Portrait image, 3:4 aspect ratio.",
+ "shape_low": "Square image, 1:1 aspect ratio. The object is wide and low: about three times wider than it is tall, centered in the image.",
+ "damaged": "This is a pixel-art building sprite for my 2D game. Redraw the attached {thing} clearly half-destroyed (heavy, obvious damage), keeping exactly the same building, composition, size, position and camera angle, the same flat pure {key} background and the same pixel art style.\n{dmg}\n- No people, no text",
+ "destroyed": "This is a pixel-art building sprite for my 2D game. Redraw the attached {thing} as a collapsed ruin, with the same flat pure {key} background and the same pixel art style:\n- Nothing is left standing: the {thing} has collapsed\n- Only a low, wide pile of wreckage remains, about one third of the original height\n{ruin}\n- A few small embers and thin dust\n- Keep the same left and right edges and the same bottom baseline. No people, no text",
+ "stages": {
+  "1": {
+   "fort": {
+    "ko": "보안 게이트",
+    "thing": "security gate",
+    "desc": "the \"security gate\" of an underground military bunker, seen strictly from the side as a flat front facade. It faces the LEFT side of the image.\n- A massive, firmly closed titanium bulkhead made of thick riveted plates with yellow-black hazard stripes and red warning lights\n- On top: an automatic defense turret with a long beam-emitter barrel pointing LEFT\n- Colors: gunmetal, dark steel blue, hazard yellow, red lights",
+    "dmg": "- Dented and torn titanium plates with several holes, exposed wires and sparks\n- The turret barrel bent, its red lights flickering, thin smoke",
+    "ruin": "- Torn titanium plates, the fallen bent turret and broken hazard-striped beams mixed together on the pile"
+   },
+   "base": {
+    "ko": "지상행 거대 승강기",
+    "thing": "giant elevator",
+    "desc": "the \"surface-bound giant elevator\" of a government military base, seen strictly from the side. It faces the LEFT side of the image.\n- A colossal cargo lift: a heavy steel platform stacked with military supply crates and containers, inside a tall steel tower frame with thick cables, pulleys and a winch house on top\n- Blinking warning lights, hazard stripes on the platform edge\n- Colors: gunmetal, olive drab crates, hazard yellow, red lights",
+    "dmg": "- The tower frame bent, several cables snapped and hanging, crates broken open\n- Sparks from the winch house, thin smoke, lights flickering",
+    "ruin": "- The fallen platform, twisted tower beams, snapped cables and spilled broken crates on the pile"
+   },
+   "barr": {
+    "ko": "대전차 장애물",
+    "thing": "barricade",
+    "desc": "a low, wide \"tank trap barricade\" of an underground military base:\n- A row of steel czech hedgehog tank traps and stacked sandbags with one short concrete block in the middle, hazard stripes\n- Colors: gunmetal, sandbag khaki, hazard yellow",
+    "dmg": "- Two tank traps knocked over, sandbags torn and spilling sand, the concrete block cracked"
+   }
+  },
+  "2": {
+   "fort": {
+    "ko": "해안 방파제 게이트",
+    "thing": "breakwater gate",
+    "desc": "the \"coastal breakwater gate\" of a corrupt energy corporation, seen strictly from the side as a flat front facade. It faces the LEFT side of the image.\n- A huge, thick concrete breakwater wall with a closed steel gate in the middle\n- Anti-ship missile turrets crudely bolted all over it, missile pods pointing LEFT\n- Rust streaks, hazard-orange and black stripes, a small black-and-orange gear emblem\n- Colors: dirty concrete grey, rust brown, hazard orange",
+    "dmg": "- Large cracks and broken chunks in the concrete, exposed rebar\n- Two missile pods torn off, the rest bent and smoking",
+    "ruin": "- Broken concrete slabs, exposed rebar, the fallen steel gate and wrecked missile pods on the pile"
+   },
+   "base": {
+    "ko": "메인 시추 코어",
+    "thing": "drilling tower",
+    "desc": "the \"main drilling core\" of a corrupt energy corporation, seen strictly from the side. It faces the LEFT side of the image.\n- A gigantic drilling tower with a steel lattice derrick, thick pipes plunging down into the ground at its base\n- A red-hot pillar of fire blasting out of its top, glowing pipes\n- Colors: rust brown, hazard orange, dark steel, magma red",
+    "dmg": "- The derrick bent and broken in places, pipes burst and leaking fire and smoke\n- The fire pillar sputtering",
+    "ruin": "- Twisted derrick beams, burst glowing pipes and scorched machinery on the pile, small flames"
+   },
+   "barr": {
+    "ko": "드럼통 장벽",
+    "thing": "barricade",
+    "desc": "a low, wide \"oil drum barricade\" of a corrupt energy corporation:\n- A row of stacked rusty oil drums and concrete road barriers with hazard-orange stripes, a short chain-link fence segment\n- Colors: rust brown, hazard orange, concrete grey",
+    "dmg": "- Drums knocked over and dented, leaking black oil, the fence torn, a barrier cracked"
+   }
+  },
+  "3": {
+   "fort": {
+    "ko": "이단 심문소 철문",
+    "thing": "iron gate",
+    "desc": "the \"heretic inquisition iron gate\" of a corrupt holy kingdom, seen strictly from the side as a flat front facade. It faces the LEFT side of the image.\n- A massive, firmly closed iron gate covered with long sharp iron spikes, set in a dark stone gatehouse frame\n- The dried blood of the wrongly executed caked on the spikes and dripping down the gate, chains and torn crimson banners\n- Colors: black iron, dark grey stone, dried blood red, faded gold",
+    "dmg": "- The gate dented and cracked, several spikes broken off, the stone frame chipped with missing blocks\n- Chains snapped, banners torn shorter",
+    "ruin": "- The fallen spiked gate, broken stone blocks, snapped chains and a torn banner on the pile"
+   },
+   "base": {
+    "ko": "대성당 정문",
+    "thing": "cathedral gate",
+    "desc": "the \"great cathedral gate\", the most splendid yet rotten heart of a corrupt holy kingdom, seen strictly from the side as a flat front facade. It faces the LEFT side of the image.\n- A huge arched golden gate between two tall spires, a large stained-glass rose window above it, golden crosses and saint statues\n- Signs of rot: black stains and cracks spreading over the gold\n- Colors: radiant gold, white marble, stained-glass colors, rotten black",
+    "dmg": "- The golden gate dented and cracked, the rose window shattered, one spire broken at the top\n- Black rot spreading, thin dust",
+    "ruin": "- Broken golden gate doors, shards of stained glass, toppled saint statues and fallen crosses on the pile"
+   },
+   "barr": {
+    "ko": "성십자 방패 장벽",
+    "thing": "barricade",
+    "desc": "a low, wide \"holy cross shield wall\" of a corrupt holy kingdom:\n- A row of five large tower shields planted upright side by side, white and gold, each painted with a red cross\n- Iron spikes and wooden stakes between the shields, a rope tied across\n- Colors: white, gold, blood red, grey iron",
+    "dmg": "- Two shields cracked and tilted, one fallen forward, the crosses chipped, the rope cut, a few stakes broken"
+   }
+  },
+  "4": {
+   "fort": {
+    "ko": "박동하는 고기 벽",
+    "thing": "flesh wall",
+    "desc": "a \"pulsing flesh wall\" from a cosmic abyss, seen strictly from the side. It faces the LEFT side of the image.\n- A huge barricade of raw red-purple flesh that beats like a giant heart, thick veins all over it\n- Vein openings on its front (LEFT side) dripping venomous green liquid, bone spikes on the top\n- Colors: raw flesh red, dark purple, bioluminescent green venom, bone white",
+    "dmg": "- Torn flesh with gaping wounds, several veins burst and leaking venom, bone spikes broken\n- The wall sagging",
+    "ruin": "- A heap of torn, withered flesh, burst veins, broken bone spikes and puddles of venom"
+   },
+   "base": {
+    "ko": "우주적 고치",
+    "thing": "cocoon",
+    "desc": "the \"cosmic cocoon\" at the heart of a cosmic abyss, seen strictly from the side. Its front faces the LEFT side of the image.\n- A gigantic ominous chrysalis standing upright, its shell of overlapping dark violet chitin with glowing green cracks\n- Thousands of thin tentacles reaching up from its top into the sky\n- Colors: dark violet, chitin black, bioluminescent green, flesh red",
+    "dmg": "- Large cracks and broken chitin plates, some tentacles torn off and limp, green glow leaking\n- Thin smoke",
+    "ruin": "- Broken chitin shell pieces, limp severed tentacles and glowing green ooze on the pile"
+   },
+   "barr": {
+    "ko": "갑각 장벽",
+    "thing": "barricade",
+    "desc": "a low, wide \"carapace barricade\" from a cosmic abyss:\n- A row of large overlapping dark purple chitin plates growing out of raw flesh like a wall, with curved bone spikes between them\n- Thin glowing green veins on the plates\n- Colors: dark purple, bone white, bioluminescent green, flesh red",
+    "dmg": "- Two plates cracked in half and tilted, one fallen forward, several bone spikes broken, veins torn"
+   }
+  },
+  "5": {
+   "fort": {
+    "ko": "해상 차단 수문",
+    "thing": "floodgate",
+    "desc": "the \"sea blockade floodgate\" of a naval fortress, seen strictly from the side as a flat front facade. It faces the LEFT side of the image.\n- A massive, firmly closed steel floodgate with heavy rivets, brass fittings and gear wheels\n- On top: a huge electric harpoon launcher pointing LEFT, crackling with blue sparks\n- Colors: dark navy steel, corroded brass, rust, electric blue",
+    "dmg": "- Dented and buckled gate plates leaking water, rivets popped, the harpoon launcher bent\n- Sparks and steam",
+    "ruin": "- Buckled gate plates, broken gear wheels, the wrecked harpoon launcher and puddles of seawater on the pile"
+   },
+   "base": {
+    "ko": "중앙 통제 시추선",
+    "thing": "drilling core",
+    "desc": "the \"central control drilling core\" of a naval fortress, seen strictly from the side. It faces the LEFT side of the image.\n- A gigantic cylinder-shaped main core of riveted steel with brass portholes, pumping polluted sludge up from the deep sea\n- Thick pipes plunging down at its base, toxic green glow in the portholes, a control bridge on top\n- Colors: dark navy steel, corroded brass, rust, toxic green",
+    "dmg": "- Cracked hull with holes leaking toxic sludge, pipes burst, portholes shattered\n- Smoke and steam",
+    "ruin": "- Broken hull plates, burst pipes, shattered portholes and puddles of toxic sludge on the pile"
+   },
+   "barr": {
+    "ko": "닻사슬 장벽",
+    "thing": "barricade",
+    "desc": "a low, wide \"anchor chain barricade\" of a naval fortress:\n- A row of steel hatch plates and sandbags with heavy anchor chains strung between short bollards, two rusted spiked naval mines on stands\n- Colors: dark navy steel, rust, brass, sandbag khaki",
+    "dmg": "- Hatch plates knocked over, chains snapped, sandbags torn, one mine stand toppled"
+   }
+  },
+  "6": {
+   "fort": {
+    "ko": "화형의 소각로",
+    "thing": "incinerator",
+    "desc": "the \"incinerator of burning\" of a corrupt holy hospital, seen strictly from the side as a flat front facade. It faces the LEFT side of the image.\n- A huge round gear-shaped iron door of a corpse incinerator in a white marble and gold frame, the furnace glowing orange behind its grilles\n- Flamethrower nozzles on its front pointing LEFT, soot stains and dried blood\n- Colors: sterile white marble, hypocritical gold, black iron, furnace orange, dried blood",
+    "dmg": "- The gear door cracked with broken teeth, the marble frame chipped, nozzles bent and spitting weak fire\n- Black smoke",
+    "ruin": "- The fallen cracked gear door, broken marble blocks, bent nozzles and smoldering ashes on the pile"
+   },
+   "base": {
+    "ko": "성배의 성역",
+    "thing": "altar",
+    "desc": "the \"Sanctuary of the Grail\", an underground altar of a corrupt holy hospital, seen strictly from the side. It faces the LEFT side of the image.\n- A grand golden altar frame with angel ornaments, two tall glass tanks full of blood on its sides connected by transfusion tubes\n- An EMPTY space in the middle of the frame above the altar (where a floating boss will be)\n- Surgical lamps hanging from the top\n- Colors: hypocritical gold, sterile white, blood red, glass",
+    "dmg": "- The glass tanks cracked and leaking blood, angel ornaments broken, tubes torn\n- One surgical lamp hanging loose",
+    "ruin": "- Shattered glass tanks, broken golden ornaments, torn tubes and pools of blood on the pile"
+   },
+   "barr": {
+    "ko": "병상 장벽",
+    "thing": "barricade",
+    "desc": "a low, wide \"hospital bed barricade\" of a corrupt holy hospital:\n- Iron hospital beds and stretchers chained together side by side with folding surgical screens, bloodstained white sheets\n- Colors: sterile white, black iron, dried blood red, gold trim",
+    "dmg": "- Beds overturned and bent, screens torn, chains snapped, sheets ripped"
+   }
+  },
+  "7": {
+   "fort": {
+    "ko": "강철 참호 벙커",
+    "thing": "bunker",
+    "desc": "the \"steel trench bunker\" of an imperial artillery army, seen strictly from the side. It faces the LEFT side of the image.\n- A heavy, low concrete bunker bristling with anti-tank gun barrels and machine guns sticking out of its firing slits, all pointing LEFT\n- Sandbags piled around it, steel plates, a small black cannon emblem\n- Colors: ash grey concrete, gunmetal, mud brown, sickly yellow light from the slits",
+    "dmg": "- Big cracks and chunks blown off the concrete, exposed rebar, two barrels bent\n- Sandbags torn, black smoke",
+    "ruin": "- Broken concrete blocks, bent gun barrels, rebar and torn sandbags on the pile"
+   },
+   "base": {
+    "ko": "제국군 전방 사령탑",
+    "thing": "command tower",
+    "desc": "the \"imperial forward command tower\", seen strictly from the side. It faces the LEFT side of the image.\n- A tall concrete and steel lattice tower rising high, with many radio antennas and big loudspeakers on its top platform, a searchlight\n- A small black cannon emblem, barbed wire around its base\n- Colors: ash grey, gunmetal, sickly yellow lights",
+    "dmg": "- The lattice bent, several antennas and loudspeakers broken off and hanging, the searchlight shattered\n- Smoke",
+    "ruin": "- Twisted lattice beams, broken antennas, smashed loudspeakers and concrete chunks on the pile"
+   },
+   "barr": {
+    "ko": "철조망 장벽",
+    "thing": "barricade",
+    "desc": "a low, wide \"barbed wire barricade\" of a trench battlefield:\n- Wooden cheval-de-frise frames wrapped in barbed wire with a short wall of sandbags\n- Colors: dark wood, rusty wire, sandbag khaki, ash grey",
+    "dmg": "- Frames broken and tilted, wire cut and sagging, sandbags torn"
+   }
+  },
+  "8": {
+   "fort": {
+    "ko": "용광로 성문",
+    "thing": "castle gate",
+    "desc": "the \"boiling furnace castle gate\" of a frozen kingdom, seen strictly from the side as a flat front facade. It faces the LEFT side of the image.\n- A huge, firmly closed steel gate glowing red-hot, set in an icy stone gatehouse covered with snow and icicles\n- Furnace vents at the bottom of the gate breathing fire, a flame-crown emblem\n- Colors: red-hot steel, furnace red, frost blue stone, white snow",
+    "dmg": "- The gate cracked and partly cooled dark, vents broken, the stone frame chipped, icicles fallen\n- Steam and smoke",
+    "ruin": "- The fallen cracked gate, broken icy stone blocks, glowing embers and melted snow on the pile"
+   },
+   "base": {
+    "ko": "메인 화로석 제단",
+    "thing": "altar",
+    "desc": "the \"main furnace-stone altar\" of a frozen kingdom, seen strictly from the side. It faces the LEFT side of the image.\n- A huge red-hot furnace stone pulsing on a stepped stone altar, a royal golden throne on top of the altar\n- Steel braziers and chains around it, ice and snow everywhere else\n- Colors: furnace red glow, gold, dark stone, frost blue, white snow",
+    "dmg": "- The furnace stone cracked with its glow flickering, the throne broken, altar steps chipped\n- Steam and smoke",
+    "ruin": "- Shattered furnace stone shards dimly glowing, the broken throne and altar blocks on the pile"
+   },
+   "barr": {
+    "ko": "화로 방패 장벽",
+    "thing": "barricade",
+    "desc": "a low, wide \"furnace shield barricade\" of a frozen kingdom:\n- A row of ice-covered steel shields planted in the snow, each with a small glowing furnace stone in its center, wooden stakes between them\n- Colors: steel, frost blue, white snow, furnace red",
+    "dmg": "- Shields knocked over and bent, furnace stones cracked and dark, stakes broken"
+   }
+  },
+  "9": {
+   "fort": {
+    "ko": "불법 톨게이트",
+    "thing": "tollgate",
+    "desc": "the \"illegal tollgate\" of a corrupt construction company, seen strictly from the side. It faces the LEFT side of the image.\n- A heavy concrete barrier wall with a toll booth and a closed striped boom gate\n- Heavy machine guns mounted on top pointing LEFT, a small gold coin emblem\n- Colors: concrete grey, hazard yellow and black stripes, rust",
+    "dmg": "- Cracked concrete with holes, the boom gate snapped, the booth windows shattered, guns bent\n- Smoke",
+    "ruin": "- Broken concrete slabs, the snapped boom gate, a crushed booth and bent guns on the pile"
+   },
+   "base": {
+    "ko": "메인 크레인 타워",
+    "thing": "crane tower",
+    "desc": "the \"main crane tower\" of a corrupt construction company, seen strictly from the side. It faces the LEFT side of the image.\n- A sky-piercing giant tower crane with a tall steel lattice mast and a long jib, a glowing load core box at the base of the mast (its weak point)\n- Hazard-yellow paint, neon magenta warning lights\n- Colors: hazard yellow, steel grey, neon magenta, concrete",
+    "dmg": "- The mast bent, the jib cracked and drooping, the load core sparking\n- Smoke",
+    "ruin": "- The collapsed twisted mast and jib, the shattered load core and concrete chunks on the pile"
+   },
+   "barr": {
+    "ko": "공사 차단벽",
+    "thing": "barricade",
+    "desc": "a low, wide \"construction roadblock\":\n- A row of yellow-black plastic road barriers and concrete jersey barriers with traffic cones and rebar bundles\n- Colors: hazard yellow, black, concrete grey, orange cones",
+    "dmg": "- Barriers knocked over and cracked, cones crushed, rebar bent"
+   }
+  },
+  "10": {
+   "fort": {
+    "ko": "전파 차단 격벽",
+    "thing": "bulkhead",
+    "desc": "the \"signal blocking bulkhead\", the main security door of a cyberpunk broadcasting station, seen strictly from the side as a flat front facade. It faces the LEFT side of the image.\n- A massive, firmly closed black glossy security door with neon magenta light strips\n- Countless small laser sensors on it shooting thin red-pink laser beams to the LEFT\n- Colors: obsidian black, neon magenta, chrome, concrete grey",
+    "dmg": "- Cracked panels with holes, sparking wires, light strips flickering, sensors broken\n- Smoke",
+    "ruin": "- Broken black panels, sparking wires, smashed sensors and chrome debris on the pile"
+   },
+   "base": {
+    "ko": "타워 최상층 코어 룸",
+    "thing": "core room",
+    "desc": "the \"top-floor core room\" of a cyberpunk broadcasting tower, seen strictly from the side. It faces the LEFT side of the image.\n- A huge ring-shaped frame of server racks and broadcast consoles with glowing screens (abstract glow only, no readable text) and thick cables\n- An EMPTY space in the middle of the ring (where a floating boss will be)\n- Colors: obsidian black, neon magenta, chrome, concrete grey",
+    "dmg": "- Server racks cracked and sparking, screens shattered and glitching, cables torn\n- Smoke",
+    "ruin": "- Smashed server racks, shattered screens, torn cables and chrome debris on the pile"
+   },
+   "barr": {
+    "ko": "진압 차단벽",
+    "thing": "barricade",
+    "desc": "a low, wide \"riot control barricade\":\n- A row of black riot barriers with neon magenta light strips and glowing holographic warning tape (no text)\n- Colors: obsidian black, neon magenta, chrome",
+    "dmg": "- Barriers knocked over and cracked, light strips dark, the hologram tape glitching"
+   }
+  }
+ }
+}

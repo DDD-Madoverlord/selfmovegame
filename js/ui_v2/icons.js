@@ -87,7 +87,23 @@ const P = {
     injector: '<path d="M15 2.5l6.5 6.5-2 2-1-1-8 8-3.5 1 1-3.5 8-8-1-1z"/><path d="M2.5 21.5l3-3" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/>',
     hammer: '<rect x="2.5" y="3" width="13" height="7.5" rx="1.2"/><path d="M7.5 10.5h3.2v11H7.5z"/><path d="M15.5 5h3v3.5h-3z"/>',
     horn: '<path d="M2.5 9.5h4.5l9.5-6.5v18L7 14.5H2.5z"/><path d="M19 8a5.5 5.5 0 0 1 0 8" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>',
-    fire: '<path d="M12 1.5c1 4.2 6.5 6.3 6.5 12.5a6.5 6.5 0 0 1-13 0c0-3.3 2-5.4 3.2-6.4 0 2.2 1 3.4 2.1 3.4 0-3.2-1-6.4 1.2-9.5z"/>'
+    fire: '<path d="M12 1.5c1 4.2 6.5 6.3 6.5 12.5a6.5 6.5 0 0 1-13 0c0-3.3 2-5.4 3.2-6.4 0 2.2 1 3.4 2.1 3.4 0-3.2-1-6.4 1.2-9.5z"/>',
+
+    // ---- 휴대폰 배치 (Q-015 메인 시안 B · 전투 시안 A): 메뉴 줄, 능력치, 재화, 상태 ----
+    person: '<circle cx="12" cy="7" r="4"/><path d="M4 21a8 8 0 0 1 16 0z"/>',
+    flask: '<path d="M9 2h6v2h-1v5l6 10a2 2 0 0 1-1.7 3H5.7A2 2 0 0 1 4 19l6-10V4H9z"/>',
+    cart: '<path d="M3 4h2.5l2.2 10.5h10.3L20.5 8H6.4" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round"/><circle cx="9" cy="19" r="1.8"/><circle cx="17" cy="19" r="1.8"/>',
+    paw: '<circle cx="6.5" cy="10" r="2.2"/><circle cx="17.5" cy="10" r="2.2"/><circle cx="9.8" cy="5.8" r="2"/><circle cx="14.2" cy="5.8" r="2"/><path d="M12 11.5c3 0 6 3.8 6 6.8a2.4 2.4 0 0 1-3.4 2.1c-1-.4-1.8-.6-2.6-.6s-1.6.2-2.6.6A2.4 2.4 0 0 1 6 18.3c0-3 3-6.8 6-6.8z"/>',
+    map: '<path d="M3 6l6-2 6 2 6-2v14l-6 2-6-2-6 2z" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round"/><path d="M9 4v14M15 6v14" stroke="currentColor" stroke-width="2.2"/>',
+    clock: '<circle cx="12" cy="13" r="8" fill="none" stroke="currentColor" stroke-width="2.4"/><path d="M12 9v4l3 2M9 2h6" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/>',
+    bolt: '<path d="M13 2L4 14h6l-1 8 9-12h-6z"/>',
+    aim: '<circle cx="12" cy="12" r="7" fill="none" stroke="currentColor" stroke-width="2.2"/><path d="M12 2v5M12 17v5M2 12h5M17 12h5" stroke="currentColor" stroke-width="2.2"/>',
+    shard: '<path d="M8 2l9 5-3 15-9-6z"/>',
+    core: '<path d="M12 2l8.7 5v10L12 22l-8.7-5V7z"/><circle cx="12" cy="12" r="3.2" fill="rgba(0,0,0,.45)"/>',
+    swords: '<path d="M4 4l12 12M20 4L8 16M14 18l4 2M10 18l-4 2" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"/>',
+    chevron: '<path d="M9 6l6 6-6 6" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>',
+    down: '<path d="M6 9l6 6 6-6" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>',
+    close: '<path d="M6 6l12 12M18 6L6 18" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round"/>'
 };
 
 export function icon(name, size = 24) {

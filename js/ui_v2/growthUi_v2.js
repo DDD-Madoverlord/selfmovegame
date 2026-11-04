@@ -11,15 +11,17 @@ import { MODULES, MODULE_MAX_LEVEL, RESEARCH, gradeOf, OPTIONS } from '../engine
 import { sound } from '../engine_v2/audio/sound_v2.js';
 import { icon } from './icons.js';
 import { mountDispatch, tickDispatch, unmountDispatch, dispatchAct, showReturn } from './dispatchUi_v2.js';
+import { petsHtml, petAct } from './petsUi_v2.js';
 import { supportHtml } from './supportUi_v2.js';
 
 const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 
 /** 재화 칩 안쪽 HTML */
 export function resChipHtml() {
-    return `<span title="남은 별 (캐릭터 해금·전술 모듈·계정 연구)"><i>★</i><b>${progress.availableStars()}</b></span>`
-        + `<span title="파츠 조각 (등급 올리기)"><i>조각</i><b>${progress.shards}</b></span>`
-        + `<span title="스킬 코어 (스킬 강화)"><i>코어</i><b>${progress.cores}</b></span>`;
+    // em = 휴대폰 배치(Q-015)에서 글자 이름 대신 보이는 아이콘
+    return `<span title="남은 별 (캐릭터 해금·전술 모듈·계정 연구)" aria-label="별 ${progress.availableStars()}"><em>${icon('star', 15)}</em><i>★</i><b>${progress.availableStars()}</b></span>`
+        + `<span title="파츠 조각 (등급 올리기)" aria-label="조각 ${progress.shards}"><em>${icon('shard', 15)}</em><i>조각</i><b>${progress.shards}</b></span>`
+        + `<span title="스킬 코어 (스킬 강화)" aria-label="코어 ${progress.cores}"><em>${icon('core', 15)}</em><i>코어</i><b>${progress.cores}</b></span>`;
 }
 
 /** 등급 표시 태그 (커먼이면 빈 문자열) */
@@ -90,6 +92,7 @@ function act(name, d) {
     }
     if (name.startsWith('dsp')) return dispatchAct(name, d) ? render() : null;   // 파견 탭: 구역·캐릭터 고르기, 귀환 장면 닫기
     if (name === 'close') return closeGrowthPanel();
+    if (name === 'equipPet' || name === 'upPet') r = petAct(name, d);
     if (name === 'selectSupport') { progress.selectSupport(d.id || null); return render(); }
     if (name === 'randomSupport') { progress.randomSupport(); return render(); }
     if (name === 'supportAuto') { progress.setSupportAuto(!progress.supportAuto); return render(); }
@@ -106,14 +109,16 @@ function act(name, d) {
         }
     }
     render();
-    if (r) toast(r.success ? (name === 'dispatch' ? '파견 출발!' : '완료!') : r.reason, r.success);
+    if (r) toast(r.success ? (name === 'dispatch' ? (r.supportCleared ? '파견 출발! 협력 출격에서 빠졌습니다' : '파견 출발!') : '완료!') : r.reason, r.success);
 }
 
 function render(preserveScroll = true) {
     if (!panel) return;
     const scrollTop = preserveScroll ? (panel.querySelector('.v2-growth__body')?.scrollTop || 0) : 0;
-    const tabs = [['coop', '협력 출격'], ['modules', '전술 모듈'], ['dispatch', '파견'], ['research', '계정 연구']];
-    const body = tab === 'coop' ? supportHtml() : tab === 'dispatch' ? '' : tab === 'research' ? researchHtml() : modulesHtml();
+    const petUnlocked = progress.stage('1-1', 'normal').cleared || progress.pets.owned.some(id => progress.canUsePet(id));
+    const tabs = [['coop', '협력 출격'], ['modules', '전술 모듈'], ['dispatch', '파견'], ['research', '계정 연구'], ['pets', '펫']];
+    const body = tab === 'coop' ? supportHtml() : tab === 'dispatch' ? '' : tab === 'research' ? researchHtml() : tab === 'pets'
+        ? petUnlocked ? petsHtml() : '<p class="v2-growth__hint">노말 1-1을 클리어하면 펫이 열립니다.</p>' : modulesHtml();
     panel.innerHTML = `<div class="v2-growth__box v2-panel">
         <div class="v2-growth__head">
             <h2>작전 지원</h2>
@@ -121,7 +126,7 @@ function render(preserveScroll = true) {
             <div class="v2-chip v2-chip--dm">${icon('gem', 16)}<strong>${gameState.darkMatter.toLocaleString()}</strong><small>DM</small></div>
             <button class="v2-iconbtn" data-act="close" aria-label="닫기">✕</button>
         </div>
-        <nav class="v2-growth__tabs">${tabs.map(([id, label]) => `<button data-act="tab" data-tab="${id}" class="${tab === id ? 'is-on' : ''}">${label}</button>`).join('')}</nav>
+        <nav class="v2-growth__tabs">${tabs.map(([id, label]) => `<button data-act="tab" data-tab="${id}" class="${tab === id ? 'is-on' : ''}" ${id === 'pets' && !petUnlocked ? 'disabled title="노말 1-1 클리어 후 해금"' : ''}>${label}${id === 'pets' && !petUnlocked ? ' 🔒' : ''}</button>`).join('')}</nav>
         <div class="v2-growth__body${tab === 'dispatch' ? ' is-dispatch' : ''}">${body}</div>
     </div>`;
     if (tab === 'dispatch') mountDispatch(panel.querySelector('.v2-growth__body'));   // 파견 중 장면 (dispatchUi_v2.js)

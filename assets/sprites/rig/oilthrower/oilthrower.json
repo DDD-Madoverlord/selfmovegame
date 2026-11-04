@@ -1,0 +1,18 @@
+{
+  "frameWidth": 95,
+  "frameHeight": 96,
+  "anchorX": 51.9,
+  "res": 2.0,
+  "clips": {
+    "walk": {
+      "src": "assets/sprites/rig/oilthrower/oilthrower_walk.webp",
+      "frames": 16,
+      "duration": 0.7
+    },
+    "attack": {
+      "src": "assets/sprites/rig/oilthrower/oilthrower_attack.webp",
+      "frames": 14,
+      "duration": 0.8
+    }
+  }
+}

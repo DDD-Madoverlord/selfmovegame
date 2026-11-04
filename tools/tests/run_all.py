@@ -14,8 +14,10 @@ import sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from common import run_tests  # noqa: E402
 
-NAMES = ['test_menu_lab', 'test_battle', 'test_support', 'test_support_repeat', 'test_support_ui', 'test_flow', 'test_sound', 'test_stages', 'test_difficulty', 'test_growth', 'test_dispatch', 'test_bases', 'test_zone2', 'test_zone34', 'test_zone6', 'test_enemy_skills', 'test_elite', 'test_sets', 'test_kit',
-         'test_diver', 'test_saint', 'test_frost', 'test_doll', 'test_newchars2', 'test_app_update', 'test_firstplay', 'test_setui', 'test_qa_fixes', 'test_rig_page', 'test_vfx_variants', 'test_motion', 'test_support_expansion', 'test_support_basics', 'test_support_selection', 'test_support_menu']
+NAMES = ['test_menu_lab', 'test_battle', 'test_support', 'test_support_repeat', 'test_support_ui', 'test_flow', 'test_sound', 'test_stages', 'test_difficulty', 'test_growth', 'test_dispatch', 'test_bases', 'test_zone2', 'test_zone34', 'test_zone5', 'test_zone6', 'test_zone78', 'test_zone910', 'test_enemy_skills', 'test_elite', 'test_sets', 'test_kit',
+         'test_diver', 'test_saint', 'test_frost', 'test_doll', 'test_newchars2', 'test_app_update', 'test_firstplay', 'test_setui', 'test_grade_ui', 'test_set_perks', 'test_qa_fixes', 'test_rig_page', 'test_vfx_variants', 'test_motion',
+         'test_mobile_web', 'test_save_backup', 'test_analytics', 'test_content_schedule',
+         'test_shop', 'test_pets', 'test_offline_reward', 'test_tutorial', 'test_stage_unlock', 'test_support_expansion', 'test_support_basics', 'test_support_selection', 'test_support_menu', 'test_story_intro']
 
 
 def main():

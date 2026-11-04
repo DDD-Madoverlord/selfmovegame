@@ -1,7 +1,7 @@
 {
-  "frameWidth": 126,
-  "frameHeight": 103,
-  "anchorX": 48.6,
+  "frameWidth": 106,
+  "frameHeight": 106,
+  "anchorX": 43.7,
   "res": 2.0,
   "clips": {
     "walk": {

@@ -1,0 +1,145 @@
+{
+ "_about": "AI 생성 소리 설명서 (Stable Audio 3, 2026-11-04) — tools/audio/ai_gen.py가 읽음. prompt는 모델용 영어, desc는 사람용. sec: 만들 길이(초), polish: polish_audio.py 종류, init: 지금 소리를 바탕으로 한 후보도 만듦(길이·박자 유지), new: 지금 없는 새 이름(스킬이 남의 소리를 빌려 씀), now: 그때 지금 나는 소리(비교용), prompts: 후보마다 다른 설명(돌아가며), inits: 바탕으로 쓸 게임 소리 이름들(없으면 지금 소리), init_noise·n_init: 바탕 후보를 얼마나 바꿀지·몇 개, init_prompt: 바탕 후보에 쓸 설명(없으면 prompt — 1차 4번을 똑같이 다시 만들 때)",
+ "bgm_menu": {
+  "type": "bgm", "sec": 96, "desc": "메인 화면 — 제14 비밀 벙커(악당 지휘실)",
+  "prompt": "TrackType: Music, VocalType: Instrumental. A dark cinematic synthwave theme for a villain's secret underground bunker command room. Brooding analog synth pads, slow pulsing sub bass, cold mechanical ambience and distant machinery, a mysterious arpeggio that slowly builds menace. Steady loop-friendly groove, 90 BPM."
+ },
+ "bgm_battle": {
+  "type": "bgm", "sec": 96, "desc": "전투 — 괴물 군단이 앞으로 밀고 나감",
+  "prompt": "TrackType: Music, VocalType: Instrumental. An energetic action video game battle theme with a villainous edge. Driving industrial rock with heavy distorted guitars, punchy acoustic drums, aggressive synth bass and dark cinematic stabs, a relentless marching army pushing forward. Steady loop-friendly groove, 140 BPM."
+ },
+ "bgm_boss": {
+  "type": "bgm", "sec": 96, "desc": "보스전 — 거대한 적과 결전",
+  "prompt": "TrackType: Music, VocalType: Instrumental. An intense epic boss battle theme for an action video game. Dark hybrid orchestral music with pounding taiko drums, heavy metal guitar riffs, distorted synth bass, staccato strings and huge brass hits, dramatic and threatening. Steady loop-friendly groove, 150 BPM."
+ },
+ "diver_jet": {
+  "type": "sfx", "sec": 0.5, "polish": "shot", "init": true, "desc": "심연의 길잡이 — 물줄기 발사 (기본 공격)", "init_noise": 0.75, "n_init": 3,
+  "init_prompt": "TrackType: SFX. A short pressurized water jet squirt, a quick high-pressure spray burst with a bubbly splash tail. Punchy action game attack sound.",
+  "prompt": "TrackType: SFX. A short powerful water jet blast, pressurized water squirting out with a wet splashy spray and bubbles, punchy water gun attack."
+ },
+ "diver_anchor_throw": {
+  "type": "sfx", "sec": 0.6, "polish": "shot", "init": true, "desc": "심연의 길잡이 — 닻 던지기",
+  "prompt": "TrackType: SFX. A heavy iron anchor chain thrown hard, loud clanking chain links rattling and unspooling fast with a swinging whoosh."
+ },
+ "diver_anchor_hit": {
+  "type": "sfx", "sec": 0.6, "polish": "impact", "init": true, "desc": "심연의 길잡이 — 닻이 적을 침",
+  "prompt": "TrackType: SFX. A heavy iron anchor slamming into a body, deep metallic clang with a heavy thud and a wet splash."
+ },
+ "diver_surge": {
+  "type": "sfx", "sec": 1.2, "polish": "magic", "init": true, "desc": "심연의 길잡이 — 해일 (앞으로 밀려가는 물살)",
+  "prompt": "TrackType: SFX. A powerful ocean wave surge rushing forward and crashing, roaring water swell with a big splash."
+ },
+ "diver_hands": {
+  "type": "sfx", "sec": 1.6, "polish": "magic", "init": true, "desc": "심연의 길잡이 필살기 — 심연의 손 (바닥에서 거대한 손이 솟음)",
+  "prompt": "TrackType: SFX. Giant ghostly hands rising from the deep abyss, deep underwater rumble, eerie bubbling and a dark distant whale-like groan. Horror, ominous."
+ },
+ "saint_needle": {
+  "type": "sfx", "sec": 0.3, "polish": "shot", "init": true, "desc": "봉합 성녀 — 바늘 던지기 (기본 공격)",
+  "prompt": "TrackType: SFX. A tiny sharp surgical needle thrown, quick thin metallic whistle zip. Very short."
+ },
+ "saint_stitch": {
+  "type": "sfx", "sec": 0.35, "polish": "impact", "init": true, "desc": "봉합 성녀 — 바늘이 꽂힘 · 꿰맴", "prompts": ["TrackType: SFX. A quick sewing machine rattle stitching through cloth with a bright magical sparkle at the end. Very short.", "TrackType: SFX. A surgical stapler snapping shut with a sharp metallic click and a small wet squelch. Very short.", "TrackType: SFX. A thread zipped tight through fabric with a taut string twang and a tiny bell ping. Very short."],
+  "prompt": "TrackType: SFX. A quick sewing machine rattle stitching through cloth with a bright magical sparkle at the end. Very short."
+ },
+ "saint_seal": {
+  "type": "sfx", "sec": 1.3, "polish": "magic", "init": true, "desc": "봉합 성녀 — 생명 봉인 (성스러운 봉인 마법)",
+  "prompt": "TrackType: SFX. A holy sealing spell, sacred choir shimmer with a bright church bell chime and a warm magical glow swell."
+ },
+ "saint_revive": {
+  "type": "sfx", "sec": 1.8, "polish": "magic", "init": true, "desc": "봉합 성녀 필살기 — 억지 부활 (쓰러진 아군을 꿰매 되살림)",
+  "prompt": "TrackType: SFX. A dark holy resurrection, an ethereal choir swell rising with a single heavy heartbeat thump and sparkling chimes. Eerie and sacred."
+ },
+ "frost_fan": {
+  "type": "sfx", "sec": 0.4, "polish": "shot", "init": true, "desc": "서리의 무희 — 얼음 부채 휘두르기 (기본 공격)",
+  "prompt": "TrackType: SFX. A quick swish of an ice fan cutting the air, frosty whoosh with tiny ice crystal tinkles."
+ },
+ "frost_hit": {
+  "type": "sfx", "sec": 0.3, "polish": "impact", "init": true, "desc": "서리의 무희 — 얼음 조각 적중",
+  "prompt": "TrackType: SFX. A small ice shard impact, crisp crystalline crack. Very short."
+ },
+ "frost_freeze": {
+  "type": "sfx", "sec": 0.7, "polish": "magic", "init": true, "desc": "서리의 무희 — 적이 얼어붙음",
+  "prompt": "TrackType: SFX. An enemy freezing solid, fast ice crystallization crackle spreading with a frosty hiss."
+ },
+ "frost_shatter": {
+  "type": "sfx", "sec": 0.8, "polish": "impact", "init": true, "desc": "서리의 무희 — 언 적이 깨짐",
+  "prompt": "TrackType: SFX. A frozen ice block shattering into pieces, glassy ice break with scattering shards."
+ },
+ "frost_crescent": {
+  "type": "sfx", "sec": 0.8, "polish": "magic", "init": true, "desc": "서리의 무희 — 초승달 얼음 칼날",
+  "prompt": "TrackType: SFX. A large crescent ice blade slash flying forward, sharp whoosh with an icy metallic ring."
+ },
+ "frost_blizzard": {
+  "type": "sfx", "sec": 1.5, "polish": "magic", "init": true, "desc": "서리의 무희 — 눈보라",
+  "prompt": "TrackType: SFX. A fierce blizzard gust, howling icy wind blast with swirling snow and crackling frost."
+ },
+ "frost_eternal": {
+  "type": "sfx", "sec": 1.8, "polish": "magic", "init": true, "desc": "서리의 무희 필살기 — 영원한 안식 (화면이 얼어붙음)",
+  "prompt": "TrackType: SFX. A massive ice spell, a deep freezing boom as a glacier forms instantly, resonant crystal shimmer and cracking ice."
+ },
+ "doll_snip": {
+  "type": "sfx", "sec": 0.25, "polish": "impact", "init": true, "desc": "뒤틀린 인형사 — 가위 싹둑 (기본 공격)",
+  "prompt": "TrackType: SFX. Sharp metal scissors snip, a quick blade cut. Very short."
+ },
+ "doll_xcut": {
+  "type": "sfx", "sec": 0.7, "polish": "impact", "init": true, "desc": "뒤틀린 인형사 — X자 가위 베기",
+  "prompt": "TrackType: SFX. Two large scissor blades slashing in an X shape, a double metallic slice with a sharp ring."
+ },
+ "doll_summon": {
+  "type": "sfx", "sec": 0.6, "polish": "creature", "init": true, "desc": "뒤틀린 인형사 — 인형 소환",
+  "prompt": "TrackType: SFX. A creepy wooden puppet appearing, clattering wooden joints with a short eerie music box twinkle."
+ },
+ "doll_burst": {
+  "type": "sfx", "sec": 0.7, "polish": "creature", "init": true, "desc": "뒤틀린 인형사 — 인형 터짐",
+  "prompt": "TrackType: SFX. A cursed rag doll exploding, a wooden pop burst with cloth tearing and stuffing flying."
+ },
+ "doll_strings": {
+  "type": "sfx", "sec": 1.5, "polish": "magic", "init": true, "desc": "뒤틀린 인형사 필살기 — 인형 실 (적을 실로 묶어 조종)",
+  "prompt": "TrackType: SFX. Puppet strings pulled tight, taut wire twangs and creaking tension, an eerie dark music box tone underneath."
+ },
+ "result_lose": {
+  "type": "sfx", "sec": 1.6, "polish": "cue", "init": false, "desc": "패배 결과 화면 (10-24 맞는 후보 없음)",
+  "prompt": "TrackType: SFX. A short defeat stinger for a video game result screen, descending dark synth brass and a low boom, ominous and final."
+ },
+ "skill_use": {
+  "type": "sfx", "sec": 0.35, "polish": "ui", "init": false, "desc": "스킬 단추를 눌러 씀 (10-24 맞는 후보 없음)", "inits": ["ui_click"], "init_noise": 0.5, "n_init": 2,
+  "prompts": ["TrackType: SFX. A short dark sci-fi HUD command confirm, a low digital beep with a quick mechanical servo click and a brief electric energy hum, military tactical interface, serious villain tone, no impact.", "TrackType: SFX. A quick sci-fi weapon arming sound, a short low electronic power-up sweep with a mechanical lock click, dark and serious, no explosion."],
+  "prompt": "TrackType: SFX. A short dark sci-fi HUD command confirm, a low digital beep with a quick mechanical servo click and a brief electric energy hum, military tactical interface, serious villain tone, no impact."
+ },
+ "ult_cutin": {
+  "type": "sfx", "sec": 1.6, "polish": "cue", "init": true, "desc": "필살기 컷인 (10-24 맞는 후보 없음)",
+  "prompt": "TrackType: SFX. An ultimate attack cut-in for an action game, a dramatic rising energy whoosh that ends in a heavy cinematic impact hit."
+ },
+ "rampage_roar": {
+  "type": "sfx", "now": "chimera_phase2", "sec": 1.6, "polish": "creature", "init": false, "new": true, "desc": "변신·삼두 포효 (지금은 합성괴인 2단계 소리를 빌려 씀)",
+  "prompt": "TrackType: SFX. A monstrous three-headed beast transformation roar, layered deep growls and a piercing screech, huge and terrifying."
+ },
+ "kaiju_breath": {
+  "type": "sfx", "now": "mech_thrust", "sec": 2.6, "polish": "blast", "init": false, "new": true, "desc": "멸망의 숨결 · 용왕의 숨결 (지금은 거대로봇 분사 소리를 빌려 씀)",
+  "prompt": "TrackType: SFX. A huge flamethrower fire breath, a roaring jet of fire whooshing out with crackling flames and a deep burning rumble, no animal voice."
+ },
+ "arch_drill": {
+  "type": "sfx", "now": "chimera_slam", "sec": 1.4, "polish": "blast", "init": false, "new": true, "desc": "설계자 — 기초 파쇄 (드릴을 땅에 박아 지면이 터짐, 지금은 합성괴인 내려찍기 소리)",
+  "prompt": "TrackType: SFX. A dynamite explosion blasting through rock and concrete, a sharp detonation crack followed by a big boom and flying debris, powerful action game explosion."
+ },
+ "arch_scaffold": {
+  "type": "sfx", "now": "mech_fist_hit", "sec": 0.9, "polish": "impact", "init": false, "new": true, "desc": "설계자 — 강제 재건 (철골 바리케이드가 내려섬, 지금은 거대로봇 주먹 소리)",
+  "prompt": "TrackType: SFX. Steel scaffolding barricade slamming down into place, clanging metal beams and rattling bolts."
+ },
+ "arch_crane": {
+  "type": "sfx", "now": "base_blast", "sec": 1.1, "polish": "blast", "init": false, "new": true, "desc": "설계자 필살기 — 철거 명령 (크레인 철구가 내리침, 3번, 지금은 거점 폭발 소리)",
+  "prompt": "TrackType: SFX. A huge wrecking ball crashing down onto concrete, a massive heavy impact with crumbling debris."
+ },
+ "bc_burst": {
+  "type": "sfx", "now": "hero_wave", "sec": 0.8, "polish": "magic", "init": false, "new": true, "desc": "방송자 — 공명 파열 (소리굽쇠 음파 고리 3겹, 지금은 타락 히어로 검기 소리)",
+  "prompt": "TrackType: SFX. A deep pulsing sonic boom wave, a low vwoom bass pulse rippling outward like a shockwave from a giant subwoofer speaker, no metal, no cymbal."
+ },
+ "bc_dome": {
+  "type": "sfx", "now": "shield_on", "sec": 1.0, "polish": "magic", "init": false, "new": true, "desc": "방송자 — 정적의 장막 (분홍 반구, 안의 적 침묵, 지금은 실드 소리)",
+  "prompt": "TrackType: SFX. An energy dome forming, a muffled whoom that sucks the sound out of the room, with a high electrical hum fading away."
+ },
+ "bc_emergency": {
+  "type": "sfx", "sec": 1.6, "polish": "cue", "init": false, "new": true, "desc": "방송자 필살기 — 긴급 방송 (도시 스피커 장악, 지금은 소리 없음)",
+  "prompt": "TrackType: SFX. An emergency broadcast alarm blasting over city loudspeakers, a distorted siren tone with a heavy bass speaker boom and feedback."
+ }
+}

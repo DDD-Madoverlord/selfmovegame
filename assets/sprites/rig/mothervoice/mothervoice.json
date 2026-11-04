@@ -1,0 +1,23 @@
+{
+  "frameWidth": 268,
+  "frameHeight": 241,
+  "anchorX": 132.7,
+  "res": 1.5,
+  "clips": {
+    "walk": {
+      "src": "assets/sprites/rig/mothervoice/mothervoice_walk.webp",
+      "frames": 16,
+      "duration": 0.9
+    },
+    "attack": {
+      "src": "assets/sprites/rig/mothervoice/mothervoice_attack.webp",
+      "frames": 16,
+      "duration": 1
+    },
+    "laser": {
+      "src": "assets/sprites/rig/mothervoice/mothervoice_laser.webp",
+      "frames": 16,
+      "duration": 1
+    }
+  }
+}

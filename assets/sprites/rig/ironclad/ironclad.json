@@ -1,0 +1,28 @@
+{
+  "frameWidth": 272,
+  "frameHeight": 251,
+  "anchorX": 138.5,
+  "res": 1.5,
+  "clips": {
+    "walk": {
+      "src": "assets/sprites/rig/ironclad/ironclad_walk.webp",
+      "frames": 16,
+      "duration": 1.15
+    },
+    "attack": {
+      "src": "assets/sprites/rig/ironclad/ironclad_attack.webp",
+      "frames": 16,
+      "duration": 1.1
+    },
+    "cannon": {
+      "src": "assets/sprites/rig/ironclad/ironclad_cannon.webp",
+      "frames": 20,
+      "duration": 1.4
+    },
+    "barrage": {
+      "src": "assets/sprites/rig/ironclad/ironclad_barrage.webp",
+      "frames": 16,
+      "duration": 1.2
+    }
+  }
+}

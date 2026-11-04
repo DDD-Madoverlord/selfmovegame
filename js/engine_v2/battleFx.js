@@ -60,8 +60,14 @@ export class BattleFx {
         this.running = false;
         this.rafId = null;
         this.vfx = new VfxPlayer();
-        this.vfx.onSfx = name => sound.play(name);
+        this.vfx.onSfx = (name, x) => sound.play(name, { x: this.panX(x) });
         this.reset();
+    }
+
+    /** 화면 x(px) → 소리 좌우 -1(왼쪽) ~ 1(오른쪽) */
+    panX(x) {
+        const w = (this.canvas && this.canvas.width / (this.res || 1)) || 960;
+        return Number.isFinite(x) ? (x / w) * 2 - 1 : undefined;
     }
 
     /** 이펙트 좌표계 높이 (CSS px — 캔버스 픽셀은 해상도 배율만큼 더 큼, displayRes.js) */
@@ -89,13 +95,13 @@ export class BattleFx {
 
     /** o: { x, b, range, color, speed, h, mist?(꼬리 연기 색), sfx?(발사음, 기본 어둠 파동, null이면 소리 없음), onPass(x0, x1) } */
     launchWave(o) {
-        if (o.sfx !== null) sound.play(o.sfx || 'hero_wave');
+        if (o.sfx !== null) sound.play(o.sfx || 'hero_wave', { x: this.panX(o.x) });
         this.vfx.launchWave({ ...o, y: this.H - o.b, onMove: o.onPass });
     }
 
     /** from {x, bottom}, to() → {x, b}, onArrive(), sfx: 발사음 이름 (null이면 없음) */
     launchOrb(from, to, color, dur, onArrive, sfx = 'hero_orb') {
-        if (sfx) sound.play(sfx);
+        if (sfx) sound.play(sfx, { x: this.panX(from.x) });
         this.vfx.launchOrb({
             from: [from.x, this.H - from.bottom], to: () => { const t = to(); return [t.x, this.H - t.b]; },
             color, dur, onArrive
@@ -104,7 +110,7 @@ export class BattleFx {
 
     /** from {x, bottom}, to() → {x, b}, onArrive() */
     launchMissile(from, to, onArrive, opts = {}) {
-        sound.play('mech_missile_launch');
+        sound.play('mech_missile_launch', { x: this.panX(from.x) });
         this.vfx.launchMissile({
             from: [from.x, this.H - from.bottom], to: () => { const t = to(); return [t.x, this.H - t.b]; },
             onArrive, ...opts
@@ -113,7 +119,7 @@ export class BattleFx {
 
     /** 주사 바늘: from {x, bottom}, to() → {x, b}, onArrive(). o: { dur, color, sfx } */
     launchNeedle(from, to, onArrive, o = {}) {
-        if (o.sfx !== null) sound.play(o.sfx || 'saint_needle');
+        if (o.sfx !== null) sound.play(o.sfx || 'saint_needle', { x: this.panX(from.x) });
         this.vfx.launchNeedle({
             from: [from.x, this.H - from.bottom], to: () => { const t = to(); return [t.x, this.H - t.b]; },
             onArrive, ...o
@@ -182,7 +188,7 @@ export class BattleFx {
      * @param {Object} o { from: {x, b}, index(0~2 좌우 퍼짐), delay?(초), getTarget: () => {x, b} | null, onHit: (pos) => void }
      */
     launchDrone(o) {
-        sound.play('mech_drone_launch');
+        sound.play('mech_drone_launch', { x: this.panX(o.from.x) });
         const side = o.index - 1;   // -1, 0, 1 → 좌우로 퍼짐
         this.drones.push({
             x: o.from.x, b: o.from.b, state: 'launch', t: -(o.index * 0.08 + (o.delay || 0)),

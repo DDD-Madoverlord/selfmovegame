@@ -19,6 +19,11 @@ tools/ai/_runs/
 
 # 파츠 스펙 표 시험 출력 (tools/data/export_parts.mjs 기본 폴더, 정식 출력은 MD/)
 tools/data/_out/
+tools/video/_out/
+tools/mockups/_out/
 
 # Gemini API 키 (공개 저장소라 절대 올리지 않음)
 .env
+
+# 외부 라이브러리(Sonniss GDC) 효과음 — 라이선스상 파일을 퍼뜨릴 수 없어 저장소에 넣지 않음 (tools/audio/build_ext.py로 다시 만듦, D-084)
+assets/audio/sfx_ext/

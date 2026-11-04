@@ -1,0 +1,18 @@
+{
+  "frameWidth": 84,
+  "frameHeight": 76,
+  "anchorX": 29.1,
+  "res": 2.0,
+  "clips": {
+    "walk": {
+      "src": "assets/sprites/rig/bloodbagdrone/bloodbagdrone_walk.webp",
+      "frames": 16,
+      "duration": 1.2
+    },
+    "attack": {
+      "src": "assets/sprites/rig/bloodbagdrone/bloodbagdrone_attack.webp",
+      "frames": 12,
+      "duration": 0.8
+    }
+  }
+}

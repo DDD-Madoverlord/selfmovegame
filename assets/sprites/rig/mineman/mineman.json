@@ -1,0 +1,18 @@
+{
+  "frameWidth": 100,
+  "frameHeight": 98,
+  "anchorX": 63.6,
+  "res": 2.0,
+  "clips": {
+    "walk": {
+      "src": "assets/sprites/rig/mineman/mineman_walk.webp",
+      "frames": 16,
+      "duration": 0.7
+    },
+    "attack": {
+      "src": "assets/sprites/rig/mineman/mineman_attack.webp",
+      "frames": 14,
+      "duration": 0.8
+    }
+  }
+}

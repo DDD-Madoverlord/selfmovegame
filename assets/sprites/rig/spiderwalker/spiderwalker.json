@@ -1,0 +1,18 @@
+{
+  "frameWidth": 167,
+  "frameHeight": 136,
+  "anchorX": 71.5,
+  "res": 2.0,
+  "clips": {
+    "walk": {
+      "src": "assets/sprites/rig/spiderwalker/spiderwalker_walk.webp",
+      "frames": 16,
+      "duration": 1
+    },
+    "attack": {
+      "src": "assets/sprites/rig/spiderwalker/spiderwalker_attack.webp",
+      "frames": 14,
+      "duration": 1
+    }
+  }
+}

@@ -1,0 +1,23 @@
+{
+  "frameWidth": 282,
+  "frameHeight": 261,
+  "anchorX": 143.3,
+  "res": 1.5,
+  "clips": {
+    "walk": {
+      "src": "assets/sprites/rig/panopticon/panopticon_walk.webp",
+      "frames": 16,
+      "duration": 1
+    },
+    "attack": {
+      "src": "assets/sprites/rig/panopticon/panopticon_attack.webp",
+      "frames": 14,
+      "duration": 0.9
+    },
+    "barrage": {
+      "src": "assets/sprites/rig/panopticon/panopticon_barrage.webp",
+      "frames": 16,
+      "duration": 1
+    }
+  }
+}

@@ -7,10 +7,13 @@
 import { RIG_CHARACTERS } from '../engine_v2/rig/characters.js';
 import { loadRigAssets } from '../engine_v2/rig/rigAvatar.js';
 import { sound, SFX } from '../engine_v2/audio/sound_v2.js';
-import { BASE_IMAGES } from '../engine_v2/bases_v2.js';
+import { baseImagesFor } from '../engine_v2/bases_v2.js';
+import { CHAPTERS } from '../engine_v2/stages_v2.js';
 
 const IMAGES = ['assets/sprites/rig/kaiju/baby_walk.png', 'assets/sprites/rig/minion/minion_walk.webp', 'assets/sprites/rig/minion/minion_attack.webp', 'assets/sprites/enemy/goblin_walk_sheet.png', 'assets/sprites/stage/bg/hall.webp', 'assets/sprites/stage/bg/hall_alarm.webp', 'assets/sprites/stage/bg/machinery.webp', 'assets/sprites/stage/bg/floor.webp', 'assets/sprites/stage/bg/hangar.webp',
-    'assets/sprites/stage/bg2/dump.webp', 'assets/sprites/stage/bg2/dump_fire.webp', 'assets/sprites/stage/bg2/shanty.webp', 'assets/sprites/stage/bg2/ground.webp', ...BASE_IMAGES];
+    'assets/sprites/stage/st1/far.webp', 'assets/sprites/stage/st1/far_boss.webp', 'assets/sprites/stage/st1/mid.webp', 'assets/sprites/stage/st1/floor.webp',
+    'assets/sprites/stage/st2/far.webp', 'assets/sprites/stage/st2/far_boss.webp', 'assets/sprites/stage/st2/mid.webp', 'assets/sprites/stage/st2/floor.webp',
+    ...baseImagesFor(CHAPTERS.flatMap(ch => Object.values(ch.art || {})).concat(['bunker', 'tower', 'barricade']))];   // 지금 구역들이 쓰는 거점 그림 (+ 기본 그림)
 const MIN_SHOW_MS = 700;   // 너무 빨리 깜빡이지 않게
 
 function loadImage(src) {

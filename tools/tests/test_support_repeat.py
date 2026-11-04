@@ -47,6 +47,8 @@ def run(ctx):
 
     # 클래스 이름이 아닌 실제 장착 팔로 근접/원거리 여부를 결정한다.
     for char, main in (('kaiju', 'mech'), ('chimera', 'mech'), ('doll', 'mech'), ('mech', 'hero')):
+        if char == 'mech':   # 앞 반복(주인공 로봇·미사일 팔)이 출격 때 저장(튜토리얼)되어 마지막 장착이 됨 → 근접 확인은 기본 주먹 팔로
+            g.js("progress.loadouts.mech = { ...progress.loadouts.mech, arm: 'arm_red_robot' };")
         setup(g, char, main=main, enemies=1)
         st = g.js("""const e = b.enemies[0]; e.x = b.frontX() + 480; e.dom.style.left = e.x + 'px'; e.boss = true;
             b.callSupport(); const a = b.support.active; const near = b.supportInRange(a, e), x = a.x;

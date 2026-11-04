@@ -1,0 +1,18 @@
+{
+  "frameWidth": 163,
+  "frameHeight": 132,
+  "anchorX": 98.7,
+  "res": 2.0,
+  "clips": {
+    "walk": {
+      "src": "assets/sprites/rig/welderwalker/welderwalker_walk.webp",
+      "frames": 16,
+      "duration": 1
+    },
+    "attack": {
+      "src": "assets/sprites/rig/welderwalker/welderwalker_attack.webp",
+      "frames": 14,
+      "duration": 0.9
+    }
+  }
+}

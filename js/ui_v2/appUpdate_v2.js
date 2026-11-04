@@ -2,6 +2,8 @@
    PROJECT: MAD OVERLORD // 앱 업데이트 확인 (D-074, NAS D-081)
    Android 앱(Capacitor)에서만: 업데이트 정보(JSON)를 읽어 지금 버전(version_v2.js)보다 새것이면
    "새 버전" 창 → [업데이트] → 앱 안에서 APK를 받고(진행 막대) Android 설치 화면을 연다 (네이티브 플러그인 AppUpdate).
+   - 설치 전 확인: 체크섬·패키지·서명·빌드 번호 (네이티브 플러그인).
+   - 플레이판(AppUpdate 플러그인 없음)은 확인하지 않음 — 구글 플레이에서 업데이트.
    - 어디서 읽나: window.madOverlordUpdateFeed (app/update.local.json의 feed를 build_www.py가 넣음 — NAS의 latest.json),
      없으면 GitHub 최신 릴리스. 앱 안에서는 네이티브(AppUpdate.fetchText)로 읽어 CORS에 걸리지 않음.
    - NAS 모양 (app/release.py가 씀): { version, build, name, notes, required, file(latest.json 기준 상대 주소)|url, size, sha256 }
@@ -37,7 +39,7 @@ export function isNewer(latest, version = VERSION, build = BUILD) {
     return d > 0 || (d === 0 && (latest.build || 0) > build);
 }
 
-/** 업데이트 정보 JSON → { version, build, name, notes, url, fileName, size, required } 또는 null. feed = 그 JSON의 주소 */
+/** 업데이트 정보 JSON → { version, build, name, notes, url, fileName, size, sha256, required } 또는 null. feed = 그 JSON의 주소 */
 export function parseFeed(r, feed) {
     if (!r || typeof r !== 'object') return null;
     if (r.tag_name) {   // GitHub 최신 릴리스
@@ -65,6 +67,7 @@ export function parseFeed(r, feed) {
         url,
         fileName: url.split('/').pop().split('?')[0],
         size: r.size || 0,
+        sha256: r.sha256,
         required: !!r.required
     };
 }
@@ -77,7 +80,7 @@ async function readText(url, headers) {
             const r = await plugin.fetchText({ url, timeout: TIMEOUT_MS, headers });
             return r.status >= 200 && r.status < 300 ? r.text : null;
         } catch {
-            return null;   // 옛 앱(fetchText 없음)이면 아래 fetch로
+            return null;
         }
     }
     const ctl = new AbortController();
@@ -94,6 +97,7 @@ async function readText(url, headers) {
 
 /** 최신 릴리스 { version, build, name, notes, url, size, required } 또는 null (정보 없음·인터넷 없음) */
 export async function fetchLatest() {
+    if (isApp() && !window.Capacitor?.Plugins?.AppUpdate) return null;
     const feed = window.madOverlordUpdateFeed || `https://api.github.com/repos/${RELEASE_REPO}/releases/latest`;
     const headers = /api\.github\.com/.test(feed) ? { Accept: 'application/vnd.github+json' } : {};
     const text = await readText(`${feed}${feed.includes('?') ? '&' : '?'}t=${Date.now()}`, headers);   // 캐시를 거치지 않게
@@ -107,10 +111,14 @@ export async function fetchLatest() {
 
 /**
  * 새 버전 확인. silent면 새 버전이 있을 때만 창을 띄움 (앱 시작 때),
- * 아니면 "최신 버전" / "확인할 수 없음"도 알려 줌 (설정 창 버튼). 돌려주는 값: 'update' | 'latest' | 'offline' | 'web'
+ * 아니면 "최신 버전" / "확인할 수 없음"도 알려 줌 (설정 창 버튼). 돌려주는 값: 'update' | 'latest' | 'offline' | 'web' | 'play'
  */
 export async function checkForUpdate({ silent = true, onStatus } = {}) {
     if (!isApp()) return 'web';
+    if (!window.Capacitor?.Plugins?.AppUpdate) {
+        if (!silent) onStatus?.('구글 플레이에서 업데이트됩니다');
+        return 'play';
+    }
     onStatus?.('확인 중…');
     const latest = await fetchLatest();
     if (!latest) {
@@ -160,12 +168,6 @@ function showUpdateDialog(info) {
         sound.play('ui_click');
         go.disabled = true;
         const plugin = window.Capacitor?.Plugins?.AppUpdate;
-        if (!plugin) {   // 플러그인이 없는 옛 앱: 브라우저로 받기
-            window.open(info.url, '_blank');
-            status.textContent = '브라우저에서 내려받은 뒤 파일을 눌러 설치하세요.';
-            go.disabled = false;
-            return;
-        }
         bar.hidden = false;
         status.textContent = '내려받는 중…';
         const sub = await plugin.addListener('progress', p => {
@@ -174,7 +176,7 @@ function showUpdateDialog(info) {
             status.textContent = `내려받는 중… ${Math.round(k * 100)}% (${mb(p.done)} / ${mb(p.total)})`;
         });
         try {
-            const r = await plugin.download({ url: info.url, fileName: info.fileName || `MadOverlord-${info.version}.apk` });
+            const r = await plugin.download({ url: info.url, fileName: info.fileName || `MadOverlord-${info.version}.apk`, sha256: info.sha256 });
             if (r.status === 'needPermission') {
                 status.textContent = '설정에서 "이 출처 허용"을 켠 뒤 돌아와 [업데이트]를 다시 누르세요.';
             } else {

@@ -1,0 +1,23 @@
+{
+  "frameWidth": 276,
+  "frameHeight": 237,
+  "anchorX": 121.0,
+  "res": 1.5,
+  "clips": {
+    "walk": {
+      "src": "assets/sprites/rig/wmdalpha/wmdalpha_walk.webp",
+      "frames": 16,
+      "duration": 1.1
+    },
+    "attack": {
+      "src": "assets/sprites/rig/wmdalpha/wmdalpha_attack.webp",
+      "frames": 16,
+      "duration": 1.1
+    },
+    "laser": {
+      "src": "assets/sprites/rig/wmdalpha/wmdalpha_laser.webp",
+      "frames": 20,
+      "duration": 1.6
+    }
+  }
+}

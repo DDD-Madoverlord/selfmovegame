@@ -18,6 +18,7 @@
 import glob
 import json
 import os
+import pathlib
 import subprocess
 import sys
 import time
@@ -55,10 +56,25 @@ BUILDS = {
 # hero_a 타락 기사, hero_b 그림자 마도사, chimera_a 광폭 실험체, chimera_b 조직 사령관
 BUILDS.update({f'{c}_{v}': tuple(f'{s}_{c}_{v}' for s in ('head', 'body', 'arm', 'leg'))
                for c in ('mech', 'kaiju', 'hero', 'chimera') for v in ('a', 'b')})
-ZONES = {1: ['1-1', '1-2', '1-3', '1-4', '1-5', '1-B'], 2: ['2-1', '2-2', '2-3', '2-4', '2-5', '2-B'],
-         3: ['3-1', '3-2', '3-3', '3-4', '3-5', '3-6', '3-B'], 4: ['4-1', '4-2', '4-3', '4-4', '4-5', '4-6', '4-B'],   # 구역 3·4 (D-056)
-         6: ['6-1', '6-2', '6-3', '6-4', '6-5', '6-6', '6-B']}   # 구역 6 (D-078, 구역 5 전)
+ZONES = {z: [f'{z}-{i}' for i in range(1, 11)] + [f'{z}-B'] for z in range(1, 11)}   # 새 기획 10구역 × 11판 (D-086)
 STAGE_IDS = ZONES[1]   # 스테이지를 안 고르면 구역 1
+# zones 명령의 구역별 측정 계획 (D-086, Q-013 임의 기준): 그 구역에 올 때쯤의 성장 단계 · 재는 조합
+# 조합은 가장 센 레이저 로봇 + 그 구역 주인공(새 기획 스테이지 N = 캐릭터 N) 세트. 노말 강화 한도는 Lv5.
+PLAN = {
+    1: (1, [], ['mech_laser', 'mech_free', 'mech_a']),
+    2: (3, [], ['mech_laser', 'kaiju', 'kaiju_a']),
+    3: (5, [], ['mech_laser', 'hero', 'hero_a']),
+    4: (5, [], ['mech_laser', 'chimera_free', 'chimera_a']),
+    5: (5, ['--grade=rare', '--skill=2'], ['mech_laser', 'diver_up']),
+    6: (5, ['--grade=rare', '--skill=3'], ['mech_laser', 'saint_up']),
+    7: (5, ['--grade=unique', '--skill=3', '--opts=siege,swift,siege,swift'], ['mech_laser', 'doll_up']),
+    8: (5, ['--grade=unique', '--skill=4', '--opts=siege,swift,siege,swift,siege,swift,siege,swift'], ['mech_laser', 'frost_up']),
+    9: (5, ['--grade=legendary', '--skill=4', '--opts=siege,swift,siege,swift,siege,swift,siege,swift'], ['mech_laser', 'architect_up']),
+    10: (5, ['--grade=legendary', '--skill=5', '--opts=siege,swift,siege,swift,siege,swift,siege,swift', '--mods=orbital'],
+         ['mech_laser', 'broadcaster_up']),
+}
+# 같은 구역을 다른 레벨로도 (구역 2는 Lv3 → Lv5로 크는 구역)
+PLAN_EXTRA = {2: (5, [], ['mech_laser', 'kaiju_a'])}
 MARK = '<!-- 아래는 손으로 쓰는 부분: report가 지우지 않음 -->'
 LIMIT = 400   # 안전장치(게임 시간, 초). 실제 패배는 스테이지 제한 시간(TIME OVER) — 나이트메어 제한 시간이 300초를 넘어 400으로
 
@@ -66,6 +82,7 @@ LIMIT = 400   # 안전장치(게임 시간, 초). 실제 패배는 스테이지 
 DIFFS = ['normal', 'hard', 'hell', 'nightmare']   # js/engine_v2/difficulty_v2.js 순서
 
 
+TRACE = '--trace' in sys.argv   # 받은 피해 출처 기록 (player.js dmgTrace)
 GEAR = {}   # --grade·--opts·--skill·--mods·--tag (명령줄에서 채움)
 
 
@@ -136,7 +153,7 @@ def _sim(build, level, speed, results, stages, diff='normal'):
                 g.js(f"let seed = {int(GEAR['seed'])}; Math.random = () => ((seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0) / 4294967296);")
             g.js("window.madOverlordGameV2.switchScreen('battle');")
             g.wait(300)
-            g.js(f"b.setAutoSkills(true); gameTime.speed = {speed};")
+            g.js(f"b.setAutoSkills(true); gameTime.speed = {speed};" + (" b.dmgTrace = {};" if TRACE else ''))
             t0 = time.time()
             res = None
             while time.time() - t0 < LIMIT / speed + 30:
@@ -156,6 +173,9 @@ def _sim(build, level, speed, results, stages, diff='normal'):
                             'stars': sum(bool(f) for f in res['flags']), 'dist': round(res['dist']), 'kills': res['kills'],
                             'supportCalls': res['supportCalls'], 'supportDamage': res['supportDamage'],
                             'timeout': not res['done']})
+            if TRACE:   # 받은 피해 출처 (적 종류 · 코드 자리), 최대 내구도 배수로
+                results[-1]['trace'] = g.js("""const mhp = b.maxPlayerHp, trAll = Object.entries(b.dmgTrace || {}).sort((a, c) => c[1] - a[1]);
+                    return { total: +(trAll.reduce((s, x) => s + x[1], 0) / mhp).toFixed(2), top: trAll.slice(0, 8).map(([k, v]) => [k, +(v / mhp).toFixed(2)]) };""")
             print(build, level, diff, results[-1], flush=True)
             g.js("b.stopBattle(); window.madOverlordGameV2.switchScreen('menu');")
             g.wait(300)
@@ -165,45 +185,73 @@ def _sim(build, level, speed, results, stages, diff='normal'):
     save(build, level, results, errors, diff)
 
 
-def batch(specs, parallel=2, limit_sec=1200, stages=None, diff='normal'):
-    """specs: ['hero:1', ...] — 동시 parallel개, 각 limit_sec초 제한. 끝나면 표 작성"""
-    queue = [s.split(':') for s in specs]
+def batch(specs, parallel=2, limit_sec=1200, stages=None, diff='normal', jobs=None):
+    """specs: ['hero:1', ...] — 동시 parallel개, 각 limit_sec초 제한. 끝나면 표 작성.
+    jobs: [(조합, 레벨, 추가 인자, 태그)] — zones 명령이 구역마다 성장 설정·스테이지를 붙여 넘김"""
+    queue = jobs or [(b, lv, [f"--stages={','.join(stages)}"] if stages else [], '') for b, lv in (s.split(':') for s in specs)]
     running = []
     here = os.path.abspath(__file__)
     while queue or running:
         while queue and len(running) < parallel:
-            b, lv = queue.pop(0)
-            log = open(os.path.join(OUT, f'sim_{b}_{lv}.log'), 'w', encoding='utf-8')
-            cmd = [sys.executable, here, b, lv, '3'] + ([f"--stages={','.join(stages)}"] if stages else []) + [f'--diff={diff}']
+            b, lv, extra, tag = queue.pop(0)
+            log = open(os.path.join(OUT, f'sim_{b}_{lv}{"_" + tag if tag else ""}.log'), 'w', encoding='utf-8')
+            cmd = [sys.executable, here, b, str(lv), '3'] + extra + [f'--diff={diff}'] + ([f'--tag={tag}'] if tag else [])
             proc = subprocess.Popen(cmd, stdout=log, stderr=subprocess.STDOUT,
                                     env={**os.environ, 'PYTHONIOENCODING': 'utf-8'})
-            running.append((proc, b, lv, time.time(), log))
-            print(f'시작 {b} Lv{lv}', flush=True)
+            running.append((proc, b, lv, tag, time.time(), log))
+            print(f'시작 {b} Lv{lv} {tag}', flush=True)
         for item in running[:]:
-            proc, b, lv, t0, log = item
+            proc, b, lv, tag, t0, log = item
             if proc.poll() is not None or time.time() - t0 > limit_sec:
                 if proc.poll() is None:
                     proc.kill()
+                    GEAR['tag'] = tag
                     save(b, int(lv), [], [f'시간 제한 {limit_sec}초 초과로 중단'], diff)
                 log.close()
                 running.remove(item)
-                print(f'끝 {b} Lv{lv} (코드 {proc.poll()})', flush=True)
+                print(f'끝 {b} Lv{lv} {tag} (코드 {proc.poll()})', flush=True)
         time.sleep(2)
     report()
 
 
-LIMITS = {1: '1-1 150/100, 1-2 180/110, 1-3 180/110, 1-4 200/120, 1-5 230/140, 1-B 225/150',
-          2: '2-1 200/130, 2-2 210/135, 2-3 220/140, 2-4 230/145, 2-5 240/150, 2-B 240/160',
-          3: '3-1 210/135, 3-2 220/140, 3-3 230/145, 3-4 235/150, 3-5 240/155, 3-6 250/160, 3-B 270/185',
-          4: '4-1 220/140, 4-2 225/145, 4-3 230/150, 4-4 240/155, 4-5 245/160, 4-6 255/165, 4-B 260/175',
-          6: '6-1 225/145, 6-2 230/150, 6-3 240/155, 6-4 245/160, 6-5 250/165, 6-6 260/170, 6-B 275/190'}
+def zone_jobs(zones, builds=None):
+    """zones 명령: PLAN의 구역별 성장 설정으로 (조합 × 구역) 작업 목록. 결과 파일 태그 z<구역>"""
+    jobs = []
+    for z in zones:
+        for level, extra, names in [PLAN[z]] + ([PLAN_EXTRA[z]] if z in PLAN_EXTRA else []):
+            for b in ([n for n in names if n in builds] if builds else names):
+                jobs.append((b, level, extra + [f"--stages={','.join(ZONES[z])}"], f'z{z}'))
+    return jobs
+
+
+def stage_limits():
+    """스테이지별 (제한 시간, 별 목표 시간) — stages_v2.js에서 바로 읽음 (node)"""
+    src = ("const m = await import(process.argv[1]);"
+           "console.log(JSON.stringify(Object.fromEntries(m.CHAPTERS.flatMap(c => c.stages).map(s => [s.id, [s.timeLimit, s.starTime]]))));")
+    try:
+        url = pathlib.Path(ROOT, 'js', 'engine_v2', 'stages_v2.js').resolve().as_uri()
+        out = subprocess.run(['node', '--input-type=module', '-e', src, url],
+                             capture_output=True, text=True, timeout=30).stdout
+        return json.loads(out)
+    except Exception:
+        return {}
+
+
+def gear_label(d):
+    g = d.get('gear') or {}
+    bits = [g['grade']] if g.get('grade') else []
+    bits += [f"스킬{g['skill']}"] if g.get('skill') else []
+    bits += [f"옵션{len(g['opts'])}"] if g.get('opts') else []
+    bits += g.get('mods') or []
+    return f" ({' · '.join(bits)})" if bits else ''
 
 
 def report():
     data = [json.load(open(p, encoding='utf-8')) for p in sorted(glob.glob(os.path.join(OUT, 'balance_*.json')))]
-    data = [d for d in data if d.get('difficulty', 'normal') == 'normal' and not d.get('gear')]   # 자동 표는 노말·성장 설정 없음만 (나머지는 밸런스_기록 "난이도"에 손으로)
+    data = [d for d in data if d.get('difficulty', 'normal') == 'normal']   # 자동 표는 노말만 (다른 난이도는 밸런스_기록 "난이도"에 손으로)
+    limits = stage_limits()
     lines = ['# 밸런스 기록', '',
-             '`python tools/tests/balance_sim.py <조합> <레벨>`로 자동 전투(자동 스킬, 실제 게임 루프)한 결과.',
+             '`python tools/tests/balance_sim.py zones 1,2,…` (구역별 성장 단계는 balance_sim.py PLAN) 또는 `<조합> <레벨>`로 자동 전투(자동 스킬, 실제 게임 루프)한 결과.',
              '✅ 승리 / ⌛ 제한 시간 초과 패배 / ⚠ 측정 중단. 칸: 걸린 시간 · 별 · 과부하(내구도 0 → 4초 정지) 횟수.', '',
              f"측정: {time.strftime('%Y-%m-%d %H:%M')}"]
     for zone, ids in ZONES.items():
@@ -223,10 +271,11 @@ def report():
                 cells.append(f"{mark} {r['time']}s · ★{r['stars']}{over}")
             if d.get('errors') and '—' in cells:
                 cells[cells.index('—')] = '⚠ ' + d['errors'][0][:40]
-            rows.append((f"{d['build']} Lv{d['level']}", cells))
+            rows.append((f"{d['build']} Lv{d['level']}{gear_label(d)}", cells))
         if not rows:
             continue
-        lines += ['', f'## 구역 {zone}', f'제한 시간·별 목표 시간(초): {LIMITS[zone]}', '',
+        lim = ', '.join(f'{sid} {limits[sid][0]}/{limits[sid][1]}' for sid in ids if sid in limits)
+        lines += ['', f'## 구역 {zone}', f'제한 시간·별 목표 시간(초): {lim}', '',
                   '| 조합 | ' + ' | '.join(ids) + ' |', '|---|' + '---|' * len(ids)]
         lines += [f'| {name} | ' + ' | '.join(cells) + ' |' for name, cells in rows]
     out = os.path.join(ROOT, 'MD', '밸런스_기록.md')
@@ -243,6 +292,11 @@ def report():
 if __name__ == '__main__':
     if sys.argv[1] == 'report':
         report()
+    elif sys.argv[1] == 'zones':   # zones 1,2,3 [--builds=mech_laser,…] [--parallel=3]
+        zs = [int(z) for z in sys.argv[2].split(',')]
+        bl = next((a.split('=')[1].split(',') for a in sys.argv[3:] if a.startswith('--builds=')), None)
+        par = next((int(a.split('=')[1]) for a in sys.argv[3:] if a.startswith('--parallel=')), 2)
+        batch([], parallel=par, limit_sec=2100, jobs=zone_jobs(zs, bl))
     elif sys.argv[1] == 'batch':
         args = [a for a in sys.argv[2:] if not a.startswith('--parallel=')]
         par = next((int(a.split('=')[1]) for a in sys.argv[2:] if a.startswith('--parallel=')), 2)

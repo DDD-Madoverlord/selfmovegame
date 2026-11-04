@@ -200,9 +200,12 @@ export function rigConfigFor(partsObj, fallback = null) {
         if (part && part.rigUpgrade && characterOfPart(part) === character) upgrades[slot] = true;
     }
     if (character !== 'mech') return { character, filters, variants, upgrades };
-    const type = partsObj.arm && partsObj.arm.attackType;
-    const arm = partsObj.arm?.rigArm || (CANNON_ATTACKS.has(type) ? 'cannon' : 'fist');   // 2차 세트 팔은 rigArm으로 정함 (D-071)
-    return { character, arm, filters, variants, upgrades };
+    return { character, arm: mechArmOf(partsObj.arm), filters, variants, upgrades };
+}
+
+/** 거대로봇 팔 파츠 → 'cannon'|'fist' (2차 세트 팔은 rigArm으로 정함, D-071) — 전투 리그와 연구소 카드 그림(lab_v2.js)이 같이 씀 */
+export function mechArmOf(arm) {
+    return arm?.rigArm || (CANNON_ATTACKS.has(arm?.attackType) ? 'cannon' : 'fist');
 }
 
 // 거대로봇: 원거리 공격 팔은 캐논 팔 그림 (레일건 = A 세트 포격 사령부)
@@ -213,7 +216,11 @@ const CANNON_ATTACKS = new Set(['laser', 'missile', 'rail']);
 // 거대로봇 무기 팔은 A(레일건)가 캐논 팔 armR_cannon_a, B(파일벙커)가 주먹 팔 armR_fist_b만 있음
 // 합성괴인 'dragon' = 세트 밖 추가 머리 화룡 머리 (head_dragon, tools/rig/cut_chimera_dragon.py, D-054)
 // 2차 세트 (D-071): 거대괴수·합성괴인·거대로봇·타락 히어로 u·c·d·v·w·l·m (tools/rig/cut_<캐릭터>_sets.py u c d v w l m — 로봇 무기 팔은 세트 rigArm 쪽만 있음)
-export const RIG_SET_ART = { kaiju: ['a', 'b', 'u', 'c', 'd', 'v', 'w', 'l', 'm'], mech: ['a', 'b', 'u', 'c', 'd', 'v', 'w', 'l', 'm'], hero: ['a', 'b', 'u', 'c', 'd', 'v', 'w', 'l', 'm'], chimera: ['a', 'b', 'dragon', 'u', 'c', 'd', 'v', 'w', 'l', 'm'] };
+export const RIG_SET_ART = { kaiju: ['a', 'b', 'u', 'c', 'd', 'v', 'w', 'l', 'm'], mech: ['a', 'b', 'u', 'c', 'd', 'v', 'w', 'l', 'm'], hero: ['a', 'b', 'u', 'c', 'd', 'v', 'w', 'l', 'm'], chimera: ['a', 'b', 'dragon', 'u', 'c', 'd', 'v', 'w', 'l', 'm'],
+    // 새 캐릭터 세트 그림 (tools/rig/cut_newchar_sets.py, 2026-10-25~) — 그림이 생긴 세트 글자만
+    diver: ['a', 'b', 'u', 'c', 'd', 'v', 'w', 'l', 'm'], doll: ['a', 'b', 'u', 'c', 'd', 'v', 'w', 'l', 'm'],
+    saint: ['a', 'b', 'u', 'c', 'd', 'v', 'w', 'l', 'm'], frost: ['a', 'b', 'u', 'c', 'd', 'v', 'w', 'l', 'm'],
+    architect: ['a', 'b', 'u', 'c', 'd', 'v', 'w', 'l', 'm'], broadcaster: ['a', 'b', 'u', 'c', 'd', 'v', 'w', 'l', 'm'] };
 export const SET_TINT = {
     mech: { a: 'sepia(0.35) hue-rotate(-50deg) saturate(1.5) brightness(1.05)', b: 'hue-rotate(-95deg) saturate(1.35) brightness(1.1)' },
     kaiju: { a: 'sepia(0.3) saturate(0.8) brightness(1.15)', b: 'hue-rotate(25deg) saturate(1.6)' },
@@ -234,7 +241,8 @@ export function variantsFor(partsObj, character) {
 /** 연구소 카드 그림: 세트 그림이 있으면 그 파일, 없으면 기본 그림 + 세트 색 { file, filter } */
 export function variantThumb(character, file, variant) {
     if (!variant) return { file, filter: null };
-    if ((RIG_SET_ART[character] || []).includes(variant)) return { file: file.replace(/\.png$/, `_${variant}.png`), filter: null };
+    // 새 캐릭터 세트 파츠는 강화 카드 그림(<부위>_up.png)을 고르지만 세트 그림은 <부위>_<글자>.png 하나
+    if ((RIG_SET_ART[character] || []).includes(variant)) return { file: file.replace(/(_up)?\.png$/, `_${variant}.png`), filter: null };
     return { file, filter: (SET_TINT[character] || {})[variant] || null };
 }
 
@@ -281,7 +289,9 @@ export function variantAlias(character, layout, variants) {
     const tint = {};
     for (const [slot, v] of Object.entries(variants || {})) {
         for (const key of slots[slot] || []) {
-            if (layout.parts[`${key}_${v}`]) alias[key] = `${key}_${v}`;
+            // 새 캐릭터 세트 파츠는 강화 뼈 그림(<부위>_up)을 쓰므로 세트 그림 <부위>_<글자>(tools/rig/cut_newchar_sets.py)로 바꿈
+            const set = [`${key}_${v}`, `${key.replace(/_up$/, '')}_${v}`].find(k => layout.parts[k]);
+            if (set) alias[key] = set;
             else if (SET_TINT[character] && SET_TINT[character][v]) tint[key] = SET_TINT[character][v];
         }
     }
@@ -626,7 +636,12 @@ export class RigAvatar {
 
     /** 캔버스 픽셀 크기 = 표시 크기(opts) × 해상도 배율 (displayRes.js). 표시 크기는 CSS·인라인 스타일이 정함 */
     _fitRes() {
-        const res = displayRes();
+        // opts.fitCss: 화면에 opts보다 크게 보이면(휴대폰 배치 메인 캐릭터, Q-015) 그만큼 더 촘촘히 — 최대 3배
+        const shown = this.opts.fitCss && this.canvas.clientWidth > this.opts.width ? this.canvas.clientWidth / this.opts.width : 1;
+        let res = shown > 1 ? Math.min(3, Math.round(displayRes() * shown * 4) / 4) : displayRes();
+        // 휴대폰 배치: 연구소·선택창은 게임 판 배율 없이 실제 크기로 펼침(ui_v2_mobile.css) → 화면 위 크기 × 기기 배율로 잼 (최대 3배)
+        const onScreen = this.opts.fitCss && document.body.classList.contains('v2-mobile') ? this.canvas.getBoundingClientRect().width : 0;
+        if (onScreen > 0 && displayRes() > 1) res = Math.max(res, Math.min(3, Math.round(onScreen * (window.devicePixelRatio || 1) / this.opts.width * 4) / 4));
         const w = Math.round(this.opts.width * res), h = Math.round(this.opts.height * res);
         if (this.canvas.width !== w || this.canvas.height !== h) {
             this.canvas.width = w;

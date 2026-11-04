@@ -47,7 +47,11 @@ export const EnemyMethods = {
         const x = opts.x ?? (building ? building.x - 30 : (window.innerWidth > 1000 ? 980 : 700));
         const type = typeId || pickType(this.stage.enemy.mix);
         const elite = opts.elite ?? Math.random() < (this.stage.elite || 0);
-        return spawnEnemy(this, type, { x, elite });
+        const first = spawnEnemy(this, type, { x, elite });
+        // 대열 (새 기획 구역 1 진압 방패병 3열 횡대): 소환 주기로 나올 때만 같은 종류가 뒤에 squad.gap 간격으로 함께 (보통 병사)
+        const squad = !typeId && ENEMY_TYPES[type]?.squad;
+        if (squad) for (let i = 1; i < squad.n; i++) spawnEnemy(this, type, { x: x + i * squad.gap, elite: false });
+        return first;
     },
 
     /** 소환 주기마다 적 하나 (최대 수까지). EMP 포격 뒤에는 잠시 소환 중단 */
@@ -77,7 +81,11 @@ export const EnemyMethods = {
                 return;   // 기절: 이동/공격 없음
             }
             if (this.kitEnemyHeld(enemy, dt)) return;   // 공포: 뒤로 물러남 (battle/kit.js)
-            if (!enemy.isBuilding && !enemy.isBarricade) updateEnemy(this, enemy, dt, frontX);   // 이동·공격·종류별 능력
+            if (!enemy.isBuilding && !enemy.isBarricade) {   // 이동·공격·종류별 능력
+                this.dmgSrcType = enemy.type;   // 밸런스 진단용 (player.js dmgTrace)
+                updateEnemy(this, enemy, dt, frontX);
+                this.dmgSrcType = null;
+            }
             this.kitWallHold(enemy);   // 강철 방벽 앞에서 멈춤 (battle/kit.js)
         });
         this.tickBaseDefense(dt, frontX);
@@ -156,7 +164,8 @@ export const EnemyMethods = {
             if (e.x - frontX > d.range || e.defCd < d.every) return;
             e.defCd = 0;
             const s = e.size || { w: 100, h: 200 };
-            const from = { x: e.x + s.w * 0.45, bottom: FOOT_B + Math.min(s.h, 280) * 0.85 };
+            const muzzle = baseArt(e.art)?.muzzle;   // 그림에 포구가 있으면 거기서 (새 기획 거점 — 보안 게이트 포탑 등)
+            const from = muzzle ? { x: e.x + muzzle[0], bottom: muzzle[1] } : { x: e.x + s.w * 0.45, bottom: FOOT_B + Math.min(s.h, 280) * 0.85 };
             const tx = this.monsterX + 60;
             if (!e.defShown) {   // 처음 쏠 때 한 번 무엇인지 표시
                 e.defShown = true;
@@ -168,7 +177,8 @@ export const EnemyMethods = {
                 if (d.hitFx) this.fx.play(ZONE_VFX[d.hitFx], tx, d.puddle ? FOOT_B + 10 : 120);
                 const k = this.rangedMul();   // 자기장 방벽: 원거리 피해·효과 절반
                 this.damagePlayer(d.dmg * this.stage.enemy.dps * k, 0, null, e);
-                if (d.puddle) this.addPuddle(tx - d.puddle.width / 2, d.puddle.width, d.puddle.sec * k);
+                if (d.puddle) this.addPuddle(tx - d.puddle.width / 2, d.puddle.width, d.puddle.sec * k,
+                    d.puddle.fire ? { fire: d.puddle.fire * this.stage.enemy.dps } : {});   // 새 기획 구역 6 소각로: 불 장판
             };
             if (d.puddle) this.fx.launchOrb(from, () => ({ x: tx, b: FOOT_B + 6 }), d.color, 0.5, onArrive, null);
             else this.fx.launchNeedle(from, () => ({ x: tx, b: 120 }), onArrive, { color: d.color, dur: 0.3, sfx: null });
@@ -193,7 +203,12 @@ export const EnemyMethods = {
             if (react && !react.dot) this.kitWake(enemy);   // 잠든 적은 맞으면 깸
             if (gear?.healBlock) enemy.healBlockUntil = this.stats.time + gear.healBlock;   // 치유 방해 옵션
         }
-        if (enemy.armor && damage > 0) damage *= 1 - enemy.armor * (1 - modified.pierce);
+        if (this.pWeakT > 0 && damage > 0) damage *= 1 - (this.pWeakCut || 0);   // 소음 (새 기획 구역 10 스피커 드론): 공격력 감소
+        if (enemy.invulnerable && damage > 0) {   // 폐자재 더미·세뇌 안테나가 서 있는 동안 보스 무적 (새 기획 구역 9·10)
+            damage = 0;
+            if (this.stats.time - (enemy.invulPopAt ?? -Infinity) >= 0.8) { enemy.invulPopAt = this.stats.time; this.createDamagePopup(enemy.x, 200, '🛡 무적', false); }
+        }
+        if (enemy.armor && damage > 0) damage *= 1 - enemy.armor * (1 - modified.pierce);   // 방패병·보스: 받는 피해 감소 (인형사 가위·협력 인형사 표식은 일부 무시)
         if (enemy.barrierT > 0 && damage > 0) damage *= 1 - enemy.t.barrier.cut;
         if (enemy.blessMul < 1 && damage > 0) damage *= enemy.blessMul;              // 구역 6 축복 (성수대·헌금 기사)
         if (enemy.hidden && damage > 0) damage *= 1 - enemy.t.stealth.cut;          // 그림자 집행자 은신
@@ -216,8 +231,9 @@ export const EnemyMethods = {
                 this.updateEnemyFilter(enemy);
             }
         }
-        if (!supportSource && enemy.affixes?.includes('thorns') && !purified && react && !react.dot && damage > 0) {
-            const thorns = ELITE_AFFIXES.thorns;
+        const typeThorns = enemy.t && enemy.t.thorns;   // 새 기획 구역 8 화로 방패병: 종류 자체가 근접 화상 반사
+        if (!supportSource && ((enemy.affixes?.includes('thorns') && !purified) || typeThorns) && react && !react.dot && damage > 0) {   // 협력 공격은 반사 안 받음
+            const thorns = enemy.affixes?.includes('thorns') && !purified ? ELITE_AFFIXES.thorns : typeThorns;
             const cut = 1 - (this.gear?.reflectCut || 0);   // 반사 차단 옵션
             this.damagePlayer(Math.min(damage * thorns.reflect, this.maxPlayerHp * thorns.cap) * cut, 0);
             if (this.stats.time - (enemy.thornsFxAt ?? -Infinity) >= 0.3) {
@@ -249,15 +265,19 @@ export const EnemyMethods = {
             this.updateHud();
         }
 
-        if (enemy.hp <= 0) {
-            if (!this.enemies.includes(enemy)) return;   // 같은 프레임에 두 번 처리되지 않게
-            if (!enemy.isBuilding && !enemy.isBarricade) this.fx.play(BATTLE_VFX.enemyDefeat, enemy.x + 38, FOOT_B, { scale: enemy.boss ? 1.8 : 1 });
-            // 거점 건물은 파괴 연출이 무너뜨린 뒤 치움, 적은 뒤로 넘어지며 사라짐 (Q4)
-            if (enemy.dom && !enemy.isBuilding) this.enemyFall(enemy);
-            this.enemies = this.enemies.filter(e => e.id !== enemy.id);
-            if (enemy.isBuilding) this.onBaseDestroyed(enemy);
-            else this.onEnemyKilled(enemy);
-        }
+        if (enemy.hp <= 0) this.defeatEnemy(enemy);
+    },
+
+    /** 체력 0 이하가 된 적·거점 치우기. 체력을 직접 깎는 기본 파츠 지속 피해(player.js 저주·포자·진동)도 이걸 부름 —
+     *  dealDamageToEnemy는 이미 0 이하인 적을 받지 않으므로(협력 모드, 30a7ddf) 거기에 0 피해를 넘기면 적이 안 치워져 무적처럼 남음 (11-02 QA) */
+    defeatEnemy(enemy) {
+        if (!this.enemies.includes(enemy)) return;   // 같은 프레임에 두 번 처리되지 않게
+        if (!enemy.isBuilding && !enemy.isBarricade) this.fx.play(BATTLE_VFX.enemyDefeat, enemy.x + 38, FOOT_B, { scale: enemy.boss ? 1.8 : 1 });
+        // 거점 건물은 파괴 연출이 무너뜨린 뒤 치움, 적은 뒤로 넘어지며 사라짐 (Q4)
+        if (enemy.dom && !enemy.isBuilding) this.enemyFall(enemy);
+        this.enemies = this.enemies.filter(e => e.id !== enemy.id);
+        if (enemy.isBuilding) this.onBaseDestroyed(enemy);
+        else this.onEnemyKilled(enemy);
     },
 
     /** 거점 파괴: 요새 = 별 1·보상·잔해 / 최종 기지 = 별 2·보상 → 남은 적 패주 → 승리 연출 → 결과 */
@@ -361,8 +381,10 @@ export const EnemyMethods = {
         const x = Math.min(this.boss.x + 50, 1150);
         this.director.flash('#a0102a', 600, 0.45);
         this.crimsonPulse(1.4);
-        this.fx.play(ZONE_VFX.abyssGate, x + 38, FOOT_B + 40);
-        this.spawnMinion(k.unit, { x, elite: true });
+        for (let i = 0; i < (k.n || 1); i++) {   // 새 기획 구역 3: 악마기사 2기를 고기 방패로
+            this.fx.play(ZONE_VFX.abyssGate, x - i * 60 + 38, FOOT_B + 40);
+            this.spawnMinion(k.unit, { x: x - i * 60, elite: true });
+        }
     },
 
     /** 배경을 잠깐 진홍빛으로 (ui_v2.css .v2-crimson) */
@@ -384,13 +406,13 @@ export const EnemyMethods = {
                 this.blessTimer = FONT.every;
             }
             this.fx.play(BATTLE_VFX.baseBlast, a.x, a.b, { scale: 0.8 });
-            sound.play('base_blast', { rate: 1.3, vol: 0.7 });
+            sound.play('base_blast', { rate: 1.3, vol: 0.7, x: this.fx.panX(a.x) });
             gameState.addDarkMatter(Math.round(this.stage.reward.kill * 0.5));
             this.updateHud();
             return;
         }
         this.stats.kills += 1;
-        sound.play('enemy_die');
+        sound.play('enemy_die', { x: this.fx.panX(aimOf(enemy).x) });
         this.onGrowthKill(enemy);   // 스킬 코어 · 핏빛 달 변이 (growth.js)
         this.onSetKill(enemy);      // 레어 세트 4부위 효과 (sets.js — 독안개 산성 옮기기)
         this.kitOnKill(enemy);      // 2차 패시브·세트 효과 (kit.js)
@@ -402,6 +424,11 @@ export const EnemyMethods = {
             const w = toxic.width * (this.mutator?.toxicWidth || 1), sec = toxic.sec * (this.mutator?.toxicMul || 1);   // 맹독 변이
             this.addPuddle(enemy.x + 38 - w / 2, w, sec);
             this.fx.play(ELITE_VFX.toxicCloud, enemy.x + 38, FOOT_B + 10);
+        }
+        const acid = enemy.t && enemy.t.deathAcid;   // 광폭화 융합수 (새 기획 구역 4): 쓰러지면 산성 혈액 웅덩이
+        if (acid && !this.finalBaseDestroyed) {
+            this.addPuddle(enemy.x + 38 - acid.width / 2, acid.width, acid.sec);
+            this.fx.play(ZONE_VFX.gooSplat, enemy.x + 38, FOOT_B + 30, { scale: 1.3 });
         }
         if (enemy.affixes?.includes('volatile') && !purified) {
             const volatile = ELITE_AFFIXES.volatile;
@@ -590,6 +617,7 @@ export const EnemyMethods = {
         const name = boss && ENEMY_TYPES[boss.unit].name;
         if (boss && !boss.afterBase) this.director.bossCard(boss.unit, ENEMY_TYPES[boss.unit], '최종 기지를 지키고 있다 — 기지를 부수면 승리');
         else this.director.warning('final', boss ? `최종 기지를 부수면 ${name}이(가) 나타난다` : null);
+        coach('battle_final', '#battle-distance-v2');   // 처음 한 번: 최종 기지 = 승리 조건
         sound.playBgm('boss', 0.8);
         // 보스전: 기지 앞에 보스 (구역 3은 기지를 부순 뒤 — openBossGate)
         if (boss && !boss.afterBase) this.boss = this.spawnMinion(boss.unit, { x: base.x - 70, elite: false });
@@ -648,7 +676,7 @@ export const EnemyMethods = {
             const a = aimOf(e);
             this.fx.play(BATTLE_VFX.baseBlast, a.x, a.b + 20, { scale: 1.1 });
             this.director.shake(5, 300);
-            sound.play('base_blast');
+            sound.play('base_blast', { x: this.fx.panX(a.x) });
         });
     },
 
@@ -705,15 +733,16 @@ export const EnemyMethods = {
     },
 
     /** 늪 장판 (오물 투척병): 바닥에 sec초 — 주인공이 밟으면 PUDDLE_STICK초 감속 (걷는 동안은 바닥과 함께 흘러 금방 지나가므로) */
-    addPuddle(x, w, sec) {
+    addPuddle(x, w, sec, opts = {}) {
         if (!this.domEnemies) return;
         const el = document.createElement('div');
-        el.className = 'v2-puddle';
+        el.className = `v2-puddle${opts.fire ? ` v2-puddle--${opts.kind || 'fire'}` : opts.mine ? ' v2-puddle--mine' : ''}`;   // fire(네이팜·간헐천) · holy(오염된 성수) · mine(지뢰)
         el.style.left = `${x}px`;
         el.style.width = `${w}px`;
         this.domEnemies.appendChild(el);
-        this.hazards.push({ x, w, t: sec, dom: el });
-        sound.play('kaiju_spore', { rate: 0.6, vol: 0.5 });
+        // fire: 불 장판 (새 기획 구역 1 네이팜) — 감속 대신 위에 있는 동안 초당 fire 피해
+        this.hazards.push({ x, w, t: sec, dom: el, fire: opts.fire || 0, mine: opts.mine || null });
+        if (!opts.fire && !opts.mine) sound.play('kaiju_spore', { rate: 0.6, vol: 0.5 });
     },
 
     tickHazards(dt) {
@@ -726,7 +755,19 @@ export const EnemyMethods = {
                 setTimeout(() => h.dom.remove(), 400);
                 return false;
             }
-            if (h.x < footR && h.x + h.w > footL && !this.kitFlag('ignoreHazard')) this.applyPlayerSlow(PUDDLE_STICK, true);   // 밟으면 끈적한 오물이 묻어 잠시 감속 (2차 장판 무시 패시브는 빼고)
+            if (h.mine && h.x < footR && h.x + h.w > footL) {   // 지뢰 (새 기획 구역 7): 밟으면 한 번 터짐 → 피해 + 기절
+                this.fx.play(ZONE_VFX.rocketBlast, h.x + h.w / 2, FOOT_B + 10);
+                this.director.shake(8, 350);
+                this.damagePlayer(h.mine.dmg, 0);
+                this.applyPlayerStun(h.mine.stun, '지뢰!');
+                h.dom.remove();
+                return false;
+            }
+            if (h.mine) return true;
+            if (h.x < footR && h.x + h.w > footL && !this.kitFlag('ignoreHazard')) {
+                if (h.fire) this.damagePlayer(h.fire * dt, dt);           // 네이팜: 밟고 있는 동안 불 피해
+                else this.applyPlayerSlow(PUDDLE_STICK, true);   // 밟으면 끈적한 오물이 묻어 잠시 감속 (2차 장판 무시 패시브는 빼고)
+            }
             return true;
         });
     },
@@ -744,6 +785,13 @@ export const EnemyMethods = {
     tickArtillery(dt) {
         this.tickGas(dt);
         this.tickKnights(dt);
+        this.tickOrbital(dt);
+        this.tickContainers(dt);
+        this.tickGeysers(dt);
+        this.tickDonors(dt);
+        this.tickFlares(dt);
+        this.tickAltars(dt);
+        this.tickBossShields(dt);
         const art = this.stage.boss && this.stage.boss.artillery;
         const base = this.enemies.find(e => e.isBuilding && e.isFinal);
         if (!art || !base) return;
@@ -769,6 +817,228 @@ export const EnemyMethods = {
             });
             this.enemies = this.enemies.filter(e => e.isBuilding || e.boss);
             this.spawnSilence = art.silence;
+        }
+    },
+
+    // ---- 새 기획 구역 1 보스전: 궤도 폭격 (stage.boss.orbital) — every초마다 경보 → 바닥 n곳에 붉은 원(하나는 주인공 자리)
+    //      → warn초 뒤 하늘에서 빛기둥: 원 안의 주인공·적(보스 빼고) 모두 피해 (적 병사는 최대 체력 enemyDmg 비율) ----
+    tickOrbital(dt) {
+        const o = this.stage.boss && this.stage.boss.orbital;
+        if (!o || this.finalBaseDestroyed) return;
+        this.orbitalTimer = (this.orbitalTimer || 0) + dt;
+        if (this.orbitalTimer < o.every) return;
+        this.orbitalTimer = 0;
+        const px = this.monsterX + 35;
+        const xs = [px];
+        for (let i = 1; i < o.n; i++) xs.push(px + 120 + Math.random() * 420);
+        this.director.alarm('궤도 폭격', `${o.warn.toFixed(0)}초 뒤 천장 해치에서 폭격 — 붉은 원을 조심`, o.warn);
+        sound.play('warning', { vol: 0.55, rate: 1.0 });
+        xs.forEach((x, i) => this.fx.play(BATTLE_VFX.smiteWarn, x, FOOT_B, { scale: o.radius / 70,
+            ...(i === 0 ? { follow: () => [x, FOOT_B] } : {}) }));
+        this.schedule(o.warn, () => {
+            if (!this.isActive || this.finalBaseDestroyed) return;
+            const hitX = this.monsterX + 35;
+            xs.forEach((x, i) => this.schedule(i * 0.12, () => {
+                if (!this.isActive) return;
+                this.fx.play(ZONE_VFX.orbitalStrike, x, FOOT_B);
+                this.director.shake(10, 420);
+                if (Math.abs(hitX - x) <= o.radius) this.damagePlayer(this.maxPlayerHp * o.dmg, 0);
+                this.enemies.filter(e => !e.isBuilding && !e.isBarricade && !e.boss && Math.abs(e.x + 38 - x) <= o.radius)
+                    .forEach(e => this.dealDamageToEnemy(e, e.maxHp * (o.enemyDmg ?? 0.5), false, { dot: true }));
+            }));
+            this.director.flash('#ff6040', 320, 0.5);
+        });
+    },
+
+    // ---- 새 기획 구역 2 보스전: 폐기물 컨테이너 투하 (stage.boss.containers) — every초마다 경보 → 바닥 n곳에 그림자(하나는 주인공 앞)
+    //      → warn초 뒤 쿵: 그 자리 주인공은 피해 + 기절, 떨어진 컨테이너는 sec초 동안 바리케이드(부숴야 지나감) ----
+    tickContainers(dt) {
+        const c = this.stage.boss && this.stage.boss.containers;
+        // 보스(최종 기지)가 나온 뒤부터 — 처음부터 떨어지면 중간 요새 앞에서 장벽만 부수다 시간이 끝남 (밸런스 1차 D-087)
+        if (!c || !this.finalBaseSpawned || this.finalBaseDestroyed) return;
+        this.containerTimer = (this.containerTimer || 0) + dt;
+        this.enemies.filter(e => e.isBarricade && e.expireAt != null && this.stats.time >= e.expireAt).forEach(e => {
+            this.fx.play(BATTLE_VFX.knockDust, e.x + e.size.w / 2, FOOT_B);
+            e.dom.remove();
+            this.enemies = this.enemies.filter(o => o !== e);
+        });
+        if (this.containerTimer < c.every) return;
+        this.containerTimer = 0;
+        const px = this.monsterX + 35;
+        const xs = [px + 40];   // 하나는 주인공 자리 바로 앞 (맞으면 기절 + 앞을 막음)
+        for (let i = 1; i < c.n; i++) xs.push(px + 220 + Math.random() * 380);
+        this.director.alarm('컨테이너 투하', `${c.warn.toFixed(0)}초 뒤 크레인이 폐기물 컨테이너를 떨어뜨린다 — 그림자를 조심`, c.warn);
+        sound.play('warning', { vol: 0.5, rate: 0.9 });
+        xs.forEach(x => this.fx.play(ZONE_VFX.containerWarn, x, FOOT_B));
+        this.schedule(c.warn, () => {
+            if (!this.isActive || this.finalBaseDestroyed) return;
+            xs.forEach((x, i) => this.schedule(i * 0.15, () => {
+                if (!this.isActive) return;
+                this.fx.play(ZONE_VFX.containerSlam, x, FOOT_B);
+                this.director.shake(9, 380);
+                const hx = this.monsterX + 35;
+                if (Math.abs(hx - x) <= c.radius) {
+                    this.damagePlayer(this.maxPlayerHp * c.dmg, 0);
+                    this.applyPlayerStun(c.stun, '컨테이너에 깔림!');
+                }
+                const w = baseSize(this.stage.art.barricade, 'mid').w || 120;
+                const bar = this.spawnBarricade(x - w / 2, c.hp * this.stage.enemy.hp, '📦 폐기물 컨테이너!');
+                if (bar) bar.expireAt = this.stats.time + c.sec;
+            }));
+        });
+    },
+
+    // ---- 새 기획 구역 5 보스전: 오염된 해저 화산 (stage.boss.geysers) — every초마다 경보 → 바닥 n곳(하나는 주인공 자리)에 주황 빛
+    //      → warn초 뒤 맹독 간헐천: sec초 동안 남는 불 장판 (위에 있으면 초당 최대 내구도 dps 비율) ----
+    tickGeysers(dt) {
+        const g = this.stage.boss && this.stage.boss.geysers;
+        if (!g || this.finalBaseDestroyed) return;
+        this.geyserTimer = (this.geyserTimer || 0) + dt;
+        if (this.geyserTimer < g.every) return;
+        this.geyserTimer = 0;
+        const px = this.monsterX + 60;
+        const xs = [px];
+        for (let i = 1; i < g.n; i++) xs.push(px + 160 + Math.random() * 380);
+        this.director.alarm('해저 화산', `${g.warn.toFixed(0)}초 뒤 철망 아래에서 맹독 간헐천이 치솟는다`, g.warn);
+        sound.play('warning', { vol: 0.5, rate: 0.85 });
+        xs.forEach(x => this.fx.play(ZONE_VFX.quakeWarn, x, FOOT_B));
+        this.schedule(g.warn, () => {
+            if (!this.isActive || this.finalBaseDestroyed) return;
+            xs.forEach((x, i) => this.schedule(i * 0.1, () => {
+                if (!this.isActive) return;
+                this.fx.play(ZONE_VFX.geyserBurst, x, FOOT_B);
+                this.addPuddle(x - g.width / 2, g.width, g.sec, { fire: this.maxPlayerHp * g.dps });
+            }));
+            this.director.flash('#ff8a30', 300, 0.35);
+        });
+    },
+
+    // ---- 새 기획 구역 6 보스전: 강제 헌혈 (stage.boss.donors) — every초마다 경보 → 주인공 앞에 실험체 n명이 나타나 심장으로 걸어감
+    //      (enemies_v2.js tickDonor — 닿으면 보스 회복 + 피의 방어막, 그 전에 부숴야 함) ----
+    tickDonors(dt) {
+        const d = this.stage.boss && this.stage.boss.donors;
+        if (!d || !this.boss || this.finalBaseDestroyed) return;
+        this.donorTimer = (this.donorTimer || 0) + dt;
+        if (this.donorTimer < d.every) return;
+        this.donorTimer = 0;
+        this.director.alarm('강제 헌혈', `${d.warn.toFixed(0)}초 뒤 실험체 ${d.n}명이 심장으로 끌려간다 — 닿기 전에 부숴라`, d.warn);
+        this.director.flash('#a0102a', 400, 0.35);
+        this.schedule(d.warn, () => {
+            if (!this.isActive || !this.boss) return;
+            for (let i = 0; i < d.n; i++) {
+                const x = this.frontX() + 40 + i * 60;
+                this.fx.play(ZONE_VFX.bloodPulse, x + 38, FOOT_B + 30, { scale: 0.4 });
+                this.spawnMinion('pauper', { x, elite: false });
+            }
+        });
+    },
+
+    // ---- 새 기획 구역 7 보스전: 조명탄 (stage.boss.flares) — every초마다 보스가 조명탄을 쏘아 올림(하늘에 뜬 적 'flare')
+    //      → fuse초 안에 부수면 끝, 못 부수면 전장 전체 융단 포격 (최대 내구도 dmg) ----
+    tickFlares(dt) {
+        const f = this.stage.boss && this.stage.boss.flares;
+        if (!f || !this.boss || this.finalBaseDestroyed) return;
+        const live = this.enemies.find(e => e.type === 'flare');
+        if (live && this.stats.time >= live.fuseAt) {
+            live.dom.remove();
+            this.enemies = this.enemies.filter(e => e !== live);
+            this.director.flash('#ff3020', 500, 0.6);
+            this.director.shake(16, 800);
+            for (let i = 0; i < 6; i++) this.schedule(i * 0.09, () => this.isActive && this.fx.play(ZONE_VFX.orbitalStrike, this.monsterX - 120 + i * 140, FOOT_B));
+            this.damagePlayer(this.maxPlayerHp * f.dmg, 0);
+            this.createDamagePopup(this.monsterX + 20, 240, '💥 융단 포격!', false);
+            return;
+        }
+        if (live) return;
+        this.flareTimer = (this.flareTimer || 0) + dt;
+        if (this.flareTimer < f.every) return;
+        this.flareTimer = 0;
+        const x = Math.min(this.frontX() + 200, this.boss.x - 60);
+        const fl = spawnEnemy(this, 'flare', { x, elite: false });
+        fl.hp = fl.maxHp = Math.round(f.hp * this.stage.enemy.hp);
+        fl.fuseAt = this.stats.time + f.fuse;
+        this.director.alarm('조명탄', `${f.fuse}초 안에 조명탄을 부숴라 — 못 부수면 융단 포격`, f.fuse);
+        sound.play('warning', { vol: 0.6, rate: 0.8 });
+    },
+
+    // ---- 새 기획 구역 8 보스전: 탐욕의 제단 (stage.boss.altars) — every초마다 국왕 앞에 제단 n개(바리케이드처럼 부숴야 지나감)
+    //      → 서 있는 동안 주인공 열파동 지속 피해 + 국왕 공격력 ×rage, 모두 부수면 국왕 stun초 기절 ----
+    tickAltars(dt) {
+        const a = this.stage.boss && this.stage.boss.altars;
+        if (!a || !this.boss || this.finalBaseDestroyed) return;
+        const live = this.enemies.filter(e => e.isAltar);
+        if (live.length) {
+            this.damagePlayer(this.maxPlayerHp * a.heat * dt, dt);
+            this.altarHeatFx = (this.altarHeatFx || 0) + dt;
+            if (this.altarHeatFx >= 0.6) { this.altarHeatFx = 0; this.fx.play(ZONE_VFX.napalmBurst, this.monsterX + 60, FOOT_B + 10, { scale: 0.5 }); }
+            return;
+        }
+        if (this.altarsUp) {   // 방금 모두 부숨 → 국왕 기절, 공격력 원래대로
+            this.altarsUp = false;
+            this.boss.dps /= a.rage;
+            this.boss.stunT = Math.max(this.boss.stunT || 0, a.stun);
+            this.updateEnemyFilter(this.boss);
+            this.director.stamp('제단 붕괴', `${this.boss.t.name} — 기절`, 'is-gold', 1400);
+        }
+        this.altarTimer = (this.altarTimer || 0) + dt;
+        if (this.altarTimer < a.every) return;
+        this.altarTimer = 0;
+        this.altarsUp = true;
+        this.boss.dps *= a.rage;
+        this.director.alarm('탐욕의 제단', `화로석 제단 ${a.n}개 — 모두 부수면 국왕이 기절한다`, 2);
+        for (let i = 0; i < a.n; i++) {
+            const x = Math.min(this.frontX() + 120 + i * 90, this.boss.x - 40);
+            const bar = this.spawnBarricade(x, a.hp * this.stage.enemy.hp, i ? '' : '🔥 탐욕의 제단!');
+            if (bar) {
+                bar.isAltar = true;
+                bar.dom.classList.add('v2-altar');
+                this.fx.play(ZONE_VFX.napalmBurst, x + bar.size.w / 2, FOOT_B + 20);
+            }
+        }
+    },
+
+    // ---- 새 기획 구역 9·10 보스전: 폐자재 더미 (stage.boss.scrap) · 세뇌 증폭 안테나 (stage.boss.antennas)
+    //      every초마다 보스 앞에 n개(바리케이드처럼 부숴야 지나감) → 서 있는 동안 보스 무적, fuse초 안에 모두 못 부수면 폭발 (최대 내구도 dmg) ----
+    tickBossShields(dt) {
+        const boss = this.stage.boss;
+        const key = boss && (boss.scrap ? 'scrap' : boss.antennas ? 'antennas' : null);
+        if (!key || !this.boss || this.finalBaseDestroyed) return;
+        const c = boss[key];
+        const TXT = key === 'scrap'
+            ? { alarm: '폐자재 더미', sub: `${c.fuse}초 안에 폐자재 더미 ${c.n}개를 모두 부숴라 — 그동안 보스 무적`, label: '🧱 초고밀도 폐자재!', boom: '💥 폐자재 폭발!' }
+            : { alarm: '세뇌 방송국 가동', sub: `${c.fuse}초 안에 안테나 ${c.n}개를 모두 부숴라 — 그동안 보스 무적`, label: '📡 세뇌 증폭 안테나!', boom: '🔊 소음 파동!' };
+        const live = this.enemies.filter(e => e.isBossShield);
+        if (live.length) {
+            if (this.stats.time < this.shieldFuseAt) return;
+            live.forEach(e => { e.dom.remove(); this.fx.play(ZONE_VFX.rocketBlast, e.x + e.size.w / 2, FOOT_B + 20); });
+            this.enemies = this.enemies.filter(e => !e.isBossShield);
+            this.boss.invulnerable = false;
+            this.updateEnemyFilter(this.boss);
+            this.director.flash(key === 'scrap' ? '#ffa030' : '#ff40c0', 500, 0.6);
+            this.director.shake(16, 800);
+            this.damagePlayer(this.maxPlayerHp * c.dmg, 0);
+            this.createDamagePopup(this.monsterX + 20, 240, TXT.boom, false);
+            return;
+        }
+        if (this.boss.invulnerable) {   // 제때 모두 부숨 → 무적 풀림
+            this.boss.invulnerable = false;
+            this.boss.dom?.classList.remove('is-invulnerable');
+            this.director.stamp('무적 해제', `${this.boss.t.name}`, 'is-gold', 1200);
+        }
+        this.bossShieldTimer = (this.bossShieldTimer || 0) + dt;
+        if (this.bossShieldTimer < c.every) return;
+        this.bossShieldTimer = 0;
+        this.shieldFuseAt = this.stats.time + c.fuse;
+        this.boss.invulnerable = true;
+        this.boss.dom?.classList.add('is-invulnerable');
+        this.director.alarm(TXT.alarm, TXT.sub, Math.min(c.fuse, 3));
+        for (let i = 0; i < c.n; i++) {
+            const x = Math.min(this.frontX() + 110 + i * 80, this.boss.x - 40);
+            const bar = this.spawnBarricade(x, c.hp * this.stage.enemy.hp, i ? '' : TXT.label);
+            if (bar) {
+                bar.isBossShield = true;
+                bar.dom.classList.add(key === 'scrap' ? 'v2-scrapheap' : 'v2-antenna');
+            }
         }
     },
 

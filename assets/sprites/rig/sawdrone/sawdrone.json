@@ -1,0 +1,18 @@
+{
+  "frameWidth": 118,
+  "frameHeight": 76,
+  "anchorX": 29.1,
+  "res": 2.0,
+  "clips": {
+    "walk": {
+      "src": "assets/sprites/rig/sawdrone/sawdrone_walk.webp",
+      "frames": 12,
+      "duration": 0.8
+    },
+    "attack": {
+      "src": "assets/sprites/rig/sawdrone/sawdrone_attack.webp",
+      "frames": 12,
+      "duration": 0.7
+    }
+  }
+}

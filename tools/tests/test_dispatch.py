@@ -1,7 +1,6 @@
 """파견 화면 (D-070, js/ui_v2/dispatchUi_v2.js): 파견 중 장면(배경 흐름·캐릭터 걷기·적과 맞붙음) · 남은 시간·단계·보상·기록 · 새 파견 · 귀환 장면"""
 
-ALL = ("['1-1','1-2','1-3','1-4','1-5','1-B','2-1','2-2','2-3','2-4','2-5','2-B',"
-       "'3-1','3-2','3-3','3-4','3-5','3-6','3-B','4-1','4-2','4-3','4-4','4-5','4-6','4-B']")
+ALL = "(await import('/js/engine_v2/stages_v2.js')).STAGES.filter(s => s.zone !== 6).map(s => s.id)"   # 구역 6만 빼고 모든 스테이지 id (구역 6 잠김 확인용)
 CLEAR = "{ stars: [true,true,true], cleared: true, bestTime: 60 }"
 DSP = "const D = await import('/js/ui_v2/dispatchUi_v2.js');"
 
@@ -27,9 +26,21 @@ def run(ctx):
         return { locked, empty, partial, ready, sent, duplicate };""")
     ctx.check(not st['locked'] and not st['empty'] and not st['partial'] and st['ready'] and st['sent'] and not st['duplicate'],
               '파견 보유 검사: 잠금·파츠 없음·3부위 거부, 4부위 보유 시 가능, 중복 파견 거부', str(st))
+    # 협력으로 골라 둔 캐릭터를 파견 보내면 협력 선택이 비고, 파견 중에는 다시 고를 수 없음 (11-03, 홍도도 QA6)
+    st = g.js("""const { SLOTS, partsOfCharacter } = await import('/js/engine_v2/roster_v2.js');
+        progress.unlockedChars.push('kaiju');
+        SLOTS.forEach(s => progress.owned.add(partsOfCharacter('kaiju', s)[0].id));
+        const picked = progress.selectSupport('kaiju');
+        const r = progress.startDispatch('kaiju', 1);
+        const res = { picked, sent: r.success, cleared: r.supportCleared, support: progress.supportCharacter,
+                      again: progress.selectSupport('kaiju'), reason: progress.supportReason('kaiju') };
+        progress.dispatch = [];
+        return res;""")
+    ctx.check(st['picked'] and st['sent'] and st['cleared'] and st['support'] is None and not st['again'] and st['reason'] == '파견 중',
+              '협력으로 고른 캐릭터를 파견 → 협력 선택 비움, 파견 중엔 다시 못 고름', str(st))
     # 모든 구역을 깨고 하드·헬도 열어 칸 3개, 캐릭터 모두 열기
     g.js(f"""{ALL}.forEach(id => progress.stages[id] = {CLEAR});
-        ['hard', 'hell'].forEach(d => {ALL}.forEach(id => progress.recordsOf(d)[id] = {CLEAR}));
+        for (const d of ['hard', 'hell']) ({ALL}).forEach(id => progress.recordsOf(d)[id] = {CLEAR});
         progress.unlockedChars = ['kaiju', 'hero', 'chimera', 'diver', 'saint', 'frost', 'doll'];
         const {{ SLOTS, partsOfCharacter }} = await import('/js/engine_v2/roster_v2.js');
         progress.unlockedChars.forEach(c => SLOTS.forEach(s => progress.owned.add(partsOfCharacter(c, s)[0].id)));
@@ -46,8 +57,8 @@ def run(ctx):
         return { n: a.length, same: JSON.stringify(a) === JSON.stringify(b2), diff: JSON.stringify(a) !== JSON.stringify(other),
             sorted: a.every((e, i) => i === 0 || e.at >= a[i - 1].at), first: a[0].text, last: a[a.length - 1].kind,
             zones: Object.keys(D.DISPATCH_ZONES).length };""")
-    ctx.check(st['n'] == 10 and st['same'] and st['diff'] and st['sorted'] and st['last'] == 'done' and st['zones'] == 5,
-              '파견 기록: 출발·진입·6개·귀환 10줄, 같은 파견은 늘 같은 기록, 구역 5개 설정 (1~4 + 6)', str(st))
+    ctx.check(st['n'] == 10 and st['same'] and st['diff'] and st['sorted'] and st['last'] == 'done' and st['zones'] == 10,
+              '파견 기록: 출발·진입·6개·귀환 10줄, 같은 파견은 늘 같은 기록, 구역 10개 설정 (1~10)', str(st))
 
     g.page.click('#btn-menu-support-v2')
     g.wait(300)
@@ -65,9 +76,9 @@ def run(ctx):
     ctx.check(st['time'].startswith('1:') or st['time'].startswith('2:'), '남은 시간 표시 (3시간 중 1시간 지남 → 약 2시간)', str(st))
     ctx.check(30 < st['bar'] < 37 and st['steps'] >= 2 and st['log'] >= 1 and st['reward'] == '3,000' and st['rig'],
               '진행 막대 1/3 · 단계 눈금 · 기록 · 예상 보상(구역 2 DM 3,000) · 캐릭터 그림', str(st))
-    ctx.check(st['zones'] == 5 and st['locked'] == 1 and 'mech' not in st['chars'] and 'frost' not in st['chars'] and 'hero' in st['chars']
+    ctx.check(st['zones'] == 10 and st['locked'] == 1 and 'mech' not in st['chars'] and 'frost' not in st['chars'] and 'hero' in st['chars']
               and 'architect' not in st['chars'],
-              '새 파견: 구역 5개(구역 6은 6-B 전이라 잠김), 출전 중·파견 중·파츠 미보유 캐릭터는 목록에 없음', str(st))
+              '새 파견: 구역 10개(구역 6은 6-B 전이라 잠김), 출전 중·파견 중·파츠 미보유 캐릭터는 목록에 없음', str(st))
 
     # 배경이 흐르고 적이 다가와 맞붙음 (첫 적은 1.5~4.5초 뒤)
     st = g.js("""const s = document.querySelector('.v2-dsp');

@@ -25,6 +25,8 @@ import { progress } from '../engine_v2/progress_v2.js';
 const FACTION_COLOR = { mech: '#3ee6ff', kaiju: '#a0ff32', hero: '#c86eff', chimera: '#ff9628', diver: '#3fe0c8', saint: '#ff4d6d', frost: '#7fd4ff', doll: '#5ae6f0', architect: '#ff9a2e', broadcaster: '#ff50aa' };
 // 진행도 표시: 스테이지 거리와 요새·최종 기지 위치 (stages_v2.js)
 const $ = id => document.getElementById(id);
+// 휴대폰 배치의 상태 아이콘 (monster_v2.js setState)
+const STATE_ICON = { walking: 'speed', 'walking-forward': 'speed', attacking: 'swords', victory: 'star' };
 
 export class BattleHud {
     constructor(engine) {
@@ -67,7 +69,8 @@ export class BattleHud {
             pstatus: $('hud-pstatus-v2'),
             boss: $('hud-boss-v2'),
             bossName: $('hud-boss-name-v2'),
-            bossHp: $('hud-boss-hp-v2')
+            bossHp: $('hud-boss-hp-v2'),
+            badge: $('hud-state-badge-v2')
         };
         const st = this.b.stage;
         this.maxDist = st.distance;
@@ -75,8 +78,10 @@ export class BattleHud {
         if (this.el.stage) {
             // 노말이 아니면 난이도 표시 (D-063)
             const d = difficultyOf(difficultyOfStage(st));
+            const esc = s => s.replace(/[&<>]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));
+            // 이름은 휴대폰 배치(Q-015 전투 시안 A)에서 숨김 — 번호만
             this.el.stage.innerHTML = (d.id === 'normal' ? '' : `<span class="v2-diffbadge" style="--diff:${d.color}">${d.name}</span>`)
-                + `${st.id} ${st.name}`.replace(/[&<>]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));
+                + `${esc(st.id)}<span class="v2-progress__name"> ${esc(st.name)}</span>`;
         }
         if (this.el.distMax) this.el.distMax.textContent = st.distance;
         this.last = {};
@@ -203,8 +208,14 @@ export class BattleHud {
             this.el.hp.classList.toggle('is-mid', v < 600 && v >= 300);
             this.el.hp.classList.toggle('is-low', v < 300);
         });
-        this.set('hpText', `${Math.max(0, Math.round(b.playerHp)).toLocaleString()} / ${Math.round(b.maxPlayerHp).toLocaleString()}`,
-            v => { this.el.hpText.textContent = v; });
+        // 최대 체력은 휴대폰 배치에서 숨김 (Q-015 — 지금 체력 숫자만 크게)
+        this.set('hpText', `${Math.max(0, Math.round(b.playerHp)).toLocaleString()}<small> / ${Math.round(b.maxPlayerHp).toLocaleString()}</small>`,
+            v => { this.el.hpText.innerHTML = v; });
+        // 상태(진격·교전·승리)는 휴대폰 배치에서 글 대신 초상화 옆 아이콘
+        this.set('mstate', monsterControllerV2.currentState || 'walking', v => {
+            this.el.badge.dataset.state = v;
+            this.el.badge.innerHTML = icon(STATE_ICON[v] || 'speed', 22);
+        });
         const totalShield = (b.shieldHp || 0) + (b.supportShield || 0);
         const shieldPct = totalShield > 0 ? Math.min(1, totalShield / b.maxPlayerHp) : 0;
         this.set('shield', Math.round(shieldPct * 1000), v => { this.el.shield.style.width = `${v / 10}%`; });
@@ -401,7 +412,7 @@ export class BattleHud {
                 <button class="v2-support-close" aria-label="지원 효과 상세 닫기">×</button>
                 <small>${c.faction} · ${def.role}</small><h3>${icon(def.icon, 18)} ${def.ult}</h3>
                 <p class="v2-support-brief">${def.brief}</p><p>${def.effect}</p>
-                <p class="v2-support-rule">${SUPPORT.duration}초 출격 · 궁극기 ${SUPPORT.ultimateTimes.length}회 · 시너지는 출격 중에만 적용<br>첫 호출 ${this.b.support.interval}초 충전 · 사용 후 ${this.b.support.interval}초 재충전</p></section>`;
+                <p class="v2-support-rule">${SUPPORT.duration + (this.b.support.snapshot?.extraTime || 0)}초 출격 · 궁극기 ${SUPPORT.ultimateTimes.length}회 · 시너지는 출격 중에만 적용<br>첫 호출 ${this.b.support.interval}초 충전 · 사용 후 ${this.b.support.interval}초 재충전</p></section>`;
             this.supportEls = {
                 call: box.querySelector('.v2-support-call'), gauge: box.querySelector('.v2-support-gauge'),
                 num: box.querySelector('.v2-skill__num'), state: box.querySelector('.v2-support-state'),

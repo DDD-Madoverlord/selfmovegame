@@ -16,7 +16,7 @@ export const DRONE = { dmgMul: 0.35, splash: 70 };
 // curseZone: 적 왼쪽 끝 기준 저주 범위 (몸 앞 기준 px). auraDx: 저주 장판 중심 (몸 앞 기준, 장판은 발밑~범위 끝)
 // wavePierce: 관통 파동이 두 번째 적부터 주는 피해 배율 (적을 지날 때마다 곱해짐, 밸런스 1차)
 export const HERO = { recruitChance: 0.1, curseTick: 0.65, curseZone: [-40, 180], curseDps: 22, auraDx: 65,
-    waveRange: 280, slowSec: 2.5, slowMul: 0.5, wavePierce: 0.5, waveBaseMul: 0.7 };   // waveBaseMul: 파동이 거점·바리케이드에 주는 피해 배율
+    waveRange: 280, slowSec: 2.5, slowMul: 0.5, wavePierce: 0.4, waveBaseMul: 0.7 };   // waveBaseMul: 파동이 거점·바리케이드에 주는 피해 배율 · wavePierce 0.5 → 0.4 (11-03 원거리 관통 하향, Q-018)
 // 팩션 패시브 수치 (밸런스 1차): 괴수 머리 재생(최대 체력 비율/초), 합성괴인 다리 지진(초당 피해), 괴수 다리 포자(초당 피해)
 export const PASSIVE = { regen: 0.012, quakeDps: 30, sporeDps: 30 };
 export const HIT_REACT = { flashMs: 80, knockPx: 10, stopSec: 0.05 };
@@ -38,7 +38,7 @@ export const ACID = { dpsMul: 0.14, baseMul: 2, sec: 3 };
 //   심연의 손: 최대 handsMax명, 첫 피해·붙잡기(기절 초)·지속 피해(주인공 DPS 배율, 거점 × handsBaseMul, handsSec초)
 //   잠수화(다리 패시브): 밀려남(넉백) 감소율 push, 감속·속박 시간 감소율 slow
 export const DIVER = {
-    jetPierce: 0.6, jetKnock: 0.4,
+    jetPierce: 0.45, jetKnock: 0.4,   // 0.6 → 0.45 (11-03 원거리 관통 하향, Q-018)
     anchorDmg: 1.5, anchorStun: 1.6, pullGap: 30, pullSec: 0.35,
     surgeDmg: 1.2, surgeKnock: 7, surgeRange: 160,
     handsMax: 6, handsDmg: 1.5, handsHold: 2.5, handsSec: 4, handsDps: 0.35, handsBaseMul: 2,
@@ -95,13 +95,14 @@ export const DOLL = {
     stride: { leg_doll: 0.05, leg_doll_up: 0.07 }, strideMax: 4
 };
 // 근접 기본 공격 휩쓸기: 맞은 적 뒤 radius px 안의 적에게도 피해 × mul (거대 캐릭터가 무리를 쳐냄)
-export const MELEE_CLEAVE = { radius: 60, mul: 0.4 };
+// 근접 기본 공격 (11-03 근거리 상향, Q-018): 휩쓸기 반경 60 → 80, 둘레 피해 0.4 → 0.6, 주 대상 피해 ×1.15 (dmg)
+export const MELEE_CLEAVE = { radius: 80, mul: 0.6, dmg: 1.15 };
 
 // ---- 기존 4종 A·B 세트 (D-050 파츠 확장 1차, 효과는 battle/sets.js · 스킬은 skills_v2.js) ----
 // 피해 배율은 기본 1타(u) 기준, dps가 붙은 것은 주인공 DPS 대비 초당 피해 비율
 export const SET = {
     // 새 기본 공격: 레일건 관통(뒤로 갈수록 × pierce), 산성 침 웅덩이, 암흑 구체 폭발, 산탄(가까운 적 max명, 둘째부터 × mul)
-    rail: { pierce: 0.6, extra: 40 },
+    rail: { pierce: 0.45, extra: 40 },   // 0.6 → 0.45 (11-03 원거리 관통 하향, Q-018)
     spit: { puddleSec: 2.5, puddleW: 70, puddleDps: 0.12 },
     orb: { splash: 70, splashMul: 0.5 },
     shotgun: { max: 4, mul: 0.55 },

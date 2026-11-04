@@ -34,13 +34,27 @@ def run(ctx):
     ctx.check(st['sk'] == ['초승달 참격', '눈보라 춤', '영원한 안식'] and st['leg'] == '빙판 걸음',
               '스킬: 팔 초승달 참격 · 몸통 눈보라 춤 · 머리 영원한 안식 · 다리 빙판 걸음', str(st))
 
+    # 같은 캐릭터·부위에 이름이 같은 파츠가 없음 (11-03: 유니크 세트 머리를 '얼음 여왕의 왕관'으로 바꿈)
+    st = g.js("""const { PARTS_DB } = await import('/js/data/parts.js');
+        const { characterOfPart } = await import('/js/engine_v2/roster_v2.js');
+        const seen = new Set(), dup = [];
+        for (const [slot, list] of Object.entries(PARTS_DB)) for (const p of list) {
+            if (!characterOfPart(p)) continue;   // 세트 파츠(rigVariant)도 포함
+            const k = `${characterOfPart(p)}|${slot}|${p.name}`;
+            if (seen.has(k)) dup.push(k); else seen.add(k);
+        }
+        const u = PARTS_DB.head.find(p => p.id === 'head_frost_u');
+        return { dup, n: seen.size, u: u && u.name };""")
+    ctx.check(st['dup'] == [] and st['n'] > 400 and st['u'] == '얼음 여왕의 왕관',
+              '파츠 이름: 같은 캐릭터·부위에 겹치는 이름 없음 (유니크 머리 = 얼음 여왕의 왕관)', str(st))
+
     # 연구소: 강화 머리 → 머리와 뒷머리가 함께 강화 그림
     # 연구소에는 고른 캐릭터의 파츠만 나옴 (D-051) → 먼저 이 캐릭터를 고름
     g.js(f"progress.selectCharacter('frost'); gameState.cartParts = {{ head: '{UP[0]}', body: '{BASIC[1]}', arm: '{UP[2]}', leg: '{BASIC[3]}' }};"
          "window.madOverlordGameV2.switchScreen('lab');")
     g.wait(1500)
     st = g.js("""const lab = window.madOverlordGameV2.labController;
-        const card = [...document.querySelectorAll('#parts-grid-v2 .v2-partcard')].find(c => c.textContent.includes('얼음 결정 왕관'));
+        const card = document.querySelector('#parts-grid-v2 .v2-partcard[data-id="head_frost_up"]');
         const sk = lab.rig && lab.rig.skeleton;
         return { name: document.getElementById('lab-unit-name-v2').textContent, img: card && card.querySelector('img').getAttribute('src'),
                  parts: sk && ['head', 'hair', 'torso', 'armF', 'legF'].map(k => sk.byName[k].part) };""")

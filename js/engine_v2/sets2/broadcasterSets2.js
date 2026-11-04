@@ -43,15 +43,15 @@ export const BROADCASTER_BASE = basePackOf('broadcaster', {
             passive: { name: '잡음 차단 (강화)', desc: '침묵한 적에게 주는 피해 +30%', target: [{ when: 'status', status: 'silence', dmg: 0.3 }] } }
     ]
 }, {
-    bcBurst: { name: '공명 파열', slot: 'arm', cd: 9, icon: 'fork', color: '#ff50aa', target: 'enemy', range: 120, clip: 'cast', sfx: 'hero_wave',
+    bcBurst: { name: '공명 파열', slot: 'arm', cd: 9, icon: 'fork', color: '#ff50aa', target: 'enemy', range: 120, clip: 'cast', sfx: 'bc_burst',
         desc: '소리굽쇠를 울려 음파 고리 3겹이 앞으로 — 지나간 적 피해 + 0.8초 기절',
         steps: [{ at: 0.45, do: 'wave', speed: 520, dist: 380, w: 55, dmg: 1.1, status: { stun: 0.8 }, every: 0, vfx: V.sheet('sonic_pink', 110, { dur: 0.3 }), vfxEvery: 0.08, b: 130, repeat: 3, repeatGap: 0.18 }] },
     // 장막은 바닥에 서서 걸을 때 함께 흘러감 → 적이 앞에 있을 때만 씀 (target enemy)
-    bcDome: { name: '정적의 장막', slot: 'body', cd: 15, icon: 'mute', color: '#ff50aa', target: 'enemy', range: 60, clip: 'cast', sfx: 'shield_on',
+    bcDome: { name: '정적의 장막', slot: 'body', cd: 15, icon: 'mute', color: '#ff50aa', target: 'enemy', range: 60, clip: 'cast', sfx: 'bc_dome',
         desc: '앞에 분홍 반구 장막 6초 — 안의 적 침묵(원거리·치유·기술 못 씀) + 투사체 막음',
         steps: [{ at: 0.45, do: 'zone', tag: 'dome', x: 20, w: 260, sec: 6, status: { silence: 1.2 }, every: 1, art: DOME, puff: V.motes(WAVE, 4), puffEvery: 0.4, puffB: 80 },
             { at: 0.45, do: 'buff', key: 'dome', sec: 6, mods: { flags: ['projBlock'] } }, { at: 0.45, do: 'fx', x: 150, vfx: V.sheet('silence_dome', 280, { anchorY: 0.95, dur: 0.7 }) }] },
-    bcEmergency: { name: '긴급 방송', slot: 'head', ult: true, cd: 0, icon: 'speaker', color: '#ff50aa', target: 'enemy', range: 600, clip: 'cast',
+    bcEmergency: { name: '긴급 방송', slot: 'head', ult: true, cd: 0, icon: 'speaker', color: '#ff50aa', target: 'enemy', range: 600, clip: 'cast', sfx: 'bc_emergency',
         desc: '도시 스피커를 장악 — 화면 적 4초 침묵 + 음파 폭발 3번',
         steps: [{ at: 0.45, do: 'screen', units: true, dmg: 0, status: { silence: 4 }, vfx: V.motes(WAVE, 8), maxFx: 10 },
             { at: 0.45, do: 'screen', dmg: 1, vfx: V.sheet('emergency_broadcast', 150, { dur: 0.5 }), maxFx: 6, repeat: 3, repeatGap: 0.45 },

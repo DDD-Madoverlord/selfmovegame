@@ -1,0 +1,18 @@
+{
+  "frameWidth": 90,
+  "frameHeight": 92,
+  "anchorX": 55.8,
+  "res": 2.0,
+  "clips": {
+    "walk": {
+      "src": "assets/sprites/rig/zealot/zealot_walk.webp",
+      "frames": 16,
+      "duration": 0.6
+    },
+    "attack": {
+      "src": "assets/sprites/rig/zealot/zealot_attack.webp",
+      "frames": 14,
+      "duration": 0.8
+    }
+  }
+}

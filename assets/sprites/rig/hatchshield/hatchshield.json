@@ -1,0 +1,18 @@
+{
+  "frameWidth": 110,
+  "frameHeight": 106,
+  "anchorX": 53.1,
+  "res": 2.0,
+  "clips": {
+    "walk": {
+      "src": "assets/sprites/rig/hatchshield/hatchshield_walk.webp",
+      "frames": 16,
+      "duration": 0.85
+    },
+    "attack": {
+      "src": "assets/sprites/rig/hatchshield/hatchshield_attack.webp",
+      "frames": 14,
+      "duration": 0.9
+    }
+  }
+}

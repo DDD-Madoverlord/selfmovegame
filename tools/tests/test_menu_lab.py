@@ -84,13 +84,13 @@ def run(ctx):
     st2 = g.js("return { ch: progress.character, info: document.getElementById('select-info-v2').textContent };")
     ctx.check(st['lock'] and '★9로 해금' in st['foot'] and st2['ch'] == 'mech' and '별이 부족' in st2['info'],
               '선택창: 잠긴 합성괴인 — "★9로 해금", 별이 없으면 안 바뀌고 안내', str([st, st2]))
-    g.js("['1-1','1-2','1-3','1-4','1-5','1-B'].forEach(id => progress.stages[id] = { stars: [true,true,true], cleared: true, bestTime: 60 });")
+    g.js("(await import('/js/engine_v2/stages_v2.js')).CHAPTER1.stages.map(s => s.id).forEach(id => progress.stages[id] = { stars: [true,true,true], cleared: true, bestTime: 60 });")
 
     # 합성괴인 (파츠 무료·보유) → 별 9개로 해금하고 바로 그 캐릭터 파츠로
     g.page.click('.v2-charcard[data-char="chimera"]')
     g.wait(300)
     st = g.js("return { ch: progress.character, eq: gameState.equippedParts, ready: progress.isReady(), stars: progress.availableStars() };")
-    ctx.check(st['ch'] == 'chimera' and st['eq']['body'] == 'body_chimera' and st['eq']['arm'] == 'arm_chimera' and st['ready'] and st['stars'] == 9,
+    ctx.check(st['ch'] == 'chimera' and st['eq']['body'] == 'body_chimera' and st['eq']['arm'] == 'arm_chimera' and st['ready'] and st['stars'] == 33 - 9,
               '선택창: 합성괴인 → 별 9개로 해금, 가진 합성괴인 파츠로 장착', str(st))
 
     # 타락 히어로 (파츠 없음) → 빈 장착, 흐린 모습, 출격 막힘
@@ -114,7 +114,8 @@ def run(ctx):
     g.wait(800)
     g.page.click('.v2-slottab[data-slot="body"]')
     names = g.js("return [...document.querySelectorAll('#parts-grid-v2 .v2-partcard__name')].map(e => e.firstChild.textContent);")  # 이름만 (뒤의 Lv·등급 표시 빼고)
-    ctx.check(names[:3] == ['흑마법 룬 갑옷', '찢어진 망토 갑옷', '저주 룬 로브'] and len(names) == 10 and '검은 날개 갑주' in names,
+    # 순서는 등급 묶음(Q-017 C안, test_grade_ui) — 여기서는 어떤 카드가 있는지만
+    ctx.check({'흑마법 룬 갑옷', '찢어진 망토 갑옷', '저주 룬 로브'} <= set(names) and len(names) == 10 and '검은 날개 갑주' in names,
               '연구소: 타락 히어로 몸통만 표시 (기본 + A·B 세트 + 2차 7세트)', str(names))
     g.page.locator('.v2-partcard', has_text='흑마법 룬 갑옷').click()
     g.page.click('#btn-equip-confirm-v2')

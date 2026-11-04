@@ -1,8 +1,7 @@
 """난이도 (D-063): 노말·하드·헬·나이트메어 — 잠금·해금, 난이도별 기록·별 보너스, 배율, 엘리트 속성, 보스 기술 간격, 강화 한도, 저장"""
 from test_stages import clear_stage_fast
 
-ALL = ("['1-1','1-2','1-3','1-4','1-5','1-B','2-1','2-2','2-3','2-4','2-5','2-B',"
-       "'3-1','3-2','3-3','3-4','3-5','3-6','3-B','4-1','4-2','4-3','4-4','4-5','4-6','4-B']")
+ALL = "(await import('/js/engine_v2/stages_v2.js')).STAGES.map(s => s.id)"   # 모든 스테이지 id (구역이 늘어도 그대로)
 
 
 def clear_all(diff, but=None):
@@ -40,15 +39,15 @@ def run(ctx):
         return { same: stageFor(s, 'normal') === s, cached: stageFor(s, 'hard') === h,
             hp: Math.abs(h.enemy.hp - s.enemy.hp * H.enemyHp) < 0.011, dps: Math.abs(h.enemy.dps - s.enemy.dps * H.enemyDps) < 0.011,
             base: Math.abs(h.base.final - s.base.final * H.base) <= 50, reward: Math.abs(h.reward.final - s.reward.final * H.reward) <= 25,
-            elite: Math.abs(h.elite - (s.elite + H.elite)) < 0.001, origHp: s.enemy.hp, origEvery: s.boss.artillery.every,
-            art: n.boss.artillery.every, artWant: Math.round(15 / N.bossHaste * 100) / 100, warn: n.boss.artillery.warn, time: n.timeLimit, origTime: s.timeLimit,
+            elite: Math.abs(h.elite - (s.elite + H.elite)) < 0.001, origHp: s.enemy.hp, origEvery: s.boss.orbital.every,
+            art: n.boss.orbital.every, artWant: Math.round(20 / N.bossHaste * 100) / 100, warn: n.boss.orbital.warn, time: n.timeLimit, origTime: s.timeLimit,
             aff: [stageFor(stageById('1-1'), 'hard').affixCount, stageFor(stageById('1-1'), 'hell').affixCount, n4.affixCount] };""")
     ctx.check(st['same'] and st['cached'], '노말 = 원래 스테이지 객체, 같은 난이도는 같은 복사본')
     ctx.check(st['hp'] and st['dps'] and st['base'] and st['reward'] and st['elite'],
               '하드: 적 체력·공격력·거점 체력·보상·엘리트 확률 배율', str(st))
-    ctx.check(st['origHp'] == 2.3 and st['origEvery'] == 15, '배율은 원래 스테이지 값을 바꾸지 않음', str(st))
-    ctx.check(st['art'] == st['artWant'] < 15 and st['warn'] == 2.2 and st['time'] > st['origTime'],
-              f"나이트메어: EMP 포격 간격 15 → {st['artWant']}초(경고 시간 그대로), 제한 시간 늘어남", str(st))
+    ctx.check(st['origHp'] == 2.3 and st['origEvery'] == 20, '배율은 원래 스테이지 값을 바꾸지 않음', str(st))
+    ctx.check(st['art'] == st['artWant'] < 20 and st['warn'] == 2.2 and st['time'] > st['origTime'],
+              f"나이트메어: 궤도 폭격 간격 20 → {st['artWant']}초(경고 시간 그대로), 제한 시간 늘어남", str(st))
     ctx.check(st['aff'] == [1, 2, 3], '엘리트 속성 수: 하드 구역 1 = 1개, 헬 = 2개, 나이트메어 구역 4 = 3개', str(st['aff']))
 
     # 노말 4-B까지 깨면 하드가 열리고 강화 한도 Lv7, 하드는 기록이 따로라 1-1부터

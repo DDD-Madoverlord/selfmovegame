@@ -69,11 +69,11 @@ export function affixCountFor(zone, d) {
 const round2 = v => Math.round(v * 100) / 100;
 const roundTo = (v, step) => Math.round(v / step) * step;
 
-// 구역 기믹(EMP 포격·유독 가스·심연의 문)의 간격만 줄임 — 경고(warn)·효과 시간은 그대로
+// 구역 기믹(EMP 포격·유독 가스·심연의 문 + 새 기획 궤도 폭격·컨테이너·간헐천·강제 헌혈 등)의 간격만 줄임 — 경고(warn)·효과 시간은 그대로
 function hasteBoss(boss, haste) {
     if (!boss || typeof boss !== 'object' || haste === 1) return boss;
     const out = { ...boss };
-    for (const k of ['artillery', 'gas', 'knights']) {
+    for (const k of ['artillery', 'gas', 'knights', 'orbital', 'containers', 'geysers', 'donors', 'flares', 'freeze', 'blackout', 'broadcast']) {
         if (boss[k]) out[k] = { ...boss[k], every: round2(boss[k].every / haste) };
     }
     return out;

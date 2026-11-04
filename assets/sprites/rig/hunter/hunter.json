@@ -1,0 +1,18 @@
+{
+  "frameWidth": 95,
+  "frameHeight": 98,
+  "anchorX": 55.9,
+  "res": 2.0,
+  "clips": {
+    "walk": {
+      "src": "assets/sprites/rig/hunter/hunter_walk.webp",
+      "frames": 16,
+      "duration": 0.7
+    },
+    "attack": {
+      "src": "assets/sprites/rig/hunter/hunter_attack.webp",
+      "frames": 12,
+      "duration": 0.6
+    }
+  }
+}

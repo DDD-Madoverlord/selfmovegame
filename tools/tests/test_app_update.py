@@ -67,26 +67,40 @@ def run(ctx):
         b = build_www.update_feed()
         sys.argv = ['build_www.py', '--config', os.path.join(NAS, '_none.json')]
         c = build_www.update_feed()
+        sys.argv = ['build_www.py', '--config', cfg, '--feed', '']
+        d = build_www.update_feed()
     finally:
         sys.argv = argv
     os.remove(cfg)
-    ctx.check(a == 'https://nas.example/mo/latest.json' and b == 'http://localhost:8765/x.json' and c is None,
-              'build_www.py: 설정 파일 feed → 앱에, --feed가 먼저, 설정 없으면 넣지 않음(GitHub)', f'{a} / {b} / {c}')
+    ctx.check(a == 'https://nas.example/mo/latest.json' and b == 'http://localhost:8765/x.json' and c is None and d == '',
+              'build_www.py: 설정 파일 feed → 앱에, --feed가 먼저, --feed 빈 값이면 플레이판 주소 제외', f'{a} / {b} / {c} / {d}')
+    index = os.path.join(NAS, '_play.html')
+    blocked = []
+    for page in ['<html></html>', '<script>window.madOverlordUpdateFeed = "https://nas.example/mo/latest.json";</script>']:
+        with open(index, 'w', encoding='utf-8') as f:
+            f.write(page)
+        try:
+            release.check_play_index(index)
+            blocked.append(False)
+        except SystemExit:
+            blocked.append(True)
+    os.remove(index)
+    ctx.check(blocked == [False, True], '플레이판 index.html: 업데이트 주소가 남아 있으면 빌드 중단', str(blocked))
 
     # ---- 앱 쪽 (appUpdate_v2.js) ----
     g = ctx.game(fresh=True)
     g.enter_v2()
     st = g.js(MOD + """
-        const n = U.parseFeed({ version: '0.2.1', build: 3, notes: '- 새것', file: 'releases/0.2.1-b3/MadOverlord-0.2.1-b3.apk', size: 100 },
+        const n = U.parseFeed({ version: '0.2.1', build: 3, notes: '- 새것', file: 'releases/0.2.1-b3/MadOverlord-0.2.1-b3.apk', size: 100, sha256: 'ab'.repeat(32) },
             'https://nas.example/madoverlord/latest.json');
         const gh = U.parseFeed({ tag_name: 'v0.3.0', name: '0.3.0 [필수]', body: '바뀐 점',
             assets: [{ name: 'MadOverlord-0.3.0-b5.apk', browser_download_url: 'https://github.com/x.apk', size: 9 }] }, 'https://api.github.com/');
-        return { n, gh, bad: [U.parseFeed(null), U.parseFeed({ version: '1.0.0' }), U.parseFeed({ tag_name: 'v1', assets: [] })] };""")
+        return { n, gh, noHash: gh.sha256 === undefined, bad: [U.parseFeed(null), U.parseFeed({ version: '1.0.0' }), U.parseFeed({ tag_name: 'v1', assets: [] })] };""")
     n, gh = st['n'], st['gh']
     ctx.check(n['url'] == 'https://nas.example/madoverlord/releases/0.2.1-b3/MadOverlord-0.2.1-b3.apk' and n['build'] == 3
-              and n['fileName'] == 'MadOverlord-0.2.1-b3.apk' and n['required'] is False and n['notes'] == '- 새것',
-              'NAS latest.json: APK 상대 주소 → latest.json 기준 전체 주소, 빌드·파일 이름', str(n))
-    ctx.check(gh['version'] == '0.3.0' and gh['required'] is True and gh['url'] == 'https://github.com/x.apk' and st['bad'] == [None, None, None],
+              and n['fileName'] == 'MadOverlord-0.2.1-b3.apk' and n['required'] is False and n['notes'] == '- 새것' and n['sha256'] == 'ab' * 32,
+              'NAS latest.json: APK 상대 주소 → latest.json 기준 전체 주소, 빌드·파일 이름·체크섬', str(n))
+    ctx.check(gh['version'] == '0.3.0' and gh['required'] is True and gh['url'] == 'https://github.com/x.apk' and st['noHash'] and st['bad'] == [None, None, None],
               'GitHub 릴리스 모양도 그대로 읽음 ([필수]), APK 없는 정보는 무시', str(st))
     st = g.js(MOD + """
         const v = (version, build) => U.isNewer({ version, build }, '0.2.0', 2);
@@ -122,4 +136,43 @@ def run(ctx):
     ctx.check(a.get('url') == 'https://nas.example/mo/r/a.apk' and a.get('required') is True and st['off'] is None
               and st['url'].startswith('https://nas.example/mo/latest.json?t=') and st['timeout'] == 8000,
               '앱: 네이티브 AppUpdate.fetchText로 읽음(캐시 피하기 ?t=, 8초 제한), 실패하면 null', str(st))
+    st = g.js(MOD + """
+        const savedFetch = window.fetch, savedOpen = window.open;
+        const calls = [], statuses = [];
+        window.madOverlordApp = true;
+        window.Capacitor = { Plugins: {} };
+        window.madOverlordUpdateFeed = 'https://nas.example/mo/latest.json';
+        window.fetch = async () => { calls.push('fetch'); throw new Error('플레이판 통신 금지'); };
+        window.open = () => { calls.push('open'); };
+        try {
+            const direct = await U.fetchLatest();
+            const silent = await U.checkForUpdate({ onStatus: s => statuses.push(s) });
+            const manual = await U.checkForUpdate({ silent: false, onStatus: s => statuses.push(s) });
+            return { direct, silent, manual, calls, statuses, dialog: !!document.querySelector('.v2-update') };
+        } finally {
+            window.fetch = savedFetch; window.open = savedOpen;
+            delete window.madOverlordUpdateFeed; delete window.madOverlordApp; delete window.Capacitor;
+        }""")
+    ctx.check(st == {'direct': None, 'silent': 'play', 'manual': 'play', 'calls': [],
+                     'statuses': ['구글 플레이에서 업데이트됩니다'], 'dialog': False},
+              '플레이판: 플러그인 없으면 통신·브라우저·업데이트 창 없음, 수동 확인은 구글 플레이 안내', str(st))
+    st = g.js(MOD + """
+        let downloaded;
+        window.madOverlordApp = true;
+        window.Capacitor = { Plugins: { AppUpdate: {
+            fetchText: async () => ({ status: 200, text: JSON.stringify({ version: '9.0.0', build: 99, file: 'r/a.apk', sha256: 'AB'.repeat(32) }) }),
+            addListener: async () => ({ remove() {} }),
+            download: async o => { downloaded = o; throw new Error('받은 파일의 체크섬이 다릅니다'); }
+        } } };
+        window.madOverlordUpdateFeed = 'https://nas.example/mo/latest.json';
+        await U.checkForUpdate();
+        document.querySelector('.v2-update [data-act="go"]').click();
+        await new Promise(resolve => setTimeout(resolve, 0));
+        const status = document.querySelector('.v2-update__status').textContent;
+        document.querySelector('.v2-update').remove();
+        delete window.madOverlordUpdateFeed; delete window.madOverlordApp; delete window.Capacitor;
+        return { downloaded, status };""")
+    ctx.check(st['downloaded'] == {'url': 'https://nas.example/mo/r/a.apk', 'fileName': 'a.apk', 'sha256': 'AB' * 32}
+              and st['status'] == '내려받지 못했습니다: 받은 파일의 체크섬이 다릅니다',
+              '앱: NAS 체크섬을 download에 그대로 전달, 검증 실패 메시지를 업데이트 창에 표시', str(st))
     shutil.rmtree(NAS, ignore_errors=True)

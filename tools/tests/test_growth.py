@@ -1,9 +1,8 @@
 """강화 외 성장 (Q-006): 파츠 등급·드랍·조각·옵션, 스킬 레벨, 전술 모듈, 별·캐릭터 해금·계정 연구, 파견, 나이트메어 전장 변이, 저장"""
 from test_stages import clear_stage_fast
 
-ZONE1 = "['1-1','1-2','1-3','1-4','1-5','1-B']"
-ALL = ("['1-1','1-2','1-3','1-4','1-5','1-B','2-1','2-2','2-3','2-4','2-5','2-B',"
-       "'3-1','3-2','3-3','3-4','3-5','3-6','3-B','4-1','4-2','4-3','4-4','4-5','4-6','4-B']")
+ZONE1 = "(await import('/js/engine_v2/stages_v2.js')).CHAPTER1.stages.map(s => s.id)"
+ALL = "(await import('/js/engine_v2/stages_v2.js')).STAGES.map(s => s.id)"   # 모든 스테이지 id (구역이 늘어도 그대로)
 CLEAR = "{ stars: [true,true,true], cleared: true, bestTime: 60 }"
 IMPORTS = """const G = await import('/js/engine_v2/growth_v2.js');
     const { ELITE_AFFIXES } = await import('/js/engine_v2/enemies_v2.js');"""
@@ -88,6 +87,13 @@ def run(ctx):
         const hellFirst = S.dropGroupOf(progress.pickDropPart('kaiju', 'hell', { prefer: ['unique', 'rare', 'base'] }, r([0.5])));
         // 드랍으로 얻은 레어 세트 파츠는 커먼으로 뽑혀도 레어
         const got = progress.grantPart('arm_kaiju_b', 'common', r([0.3]));
+        // 등급 단계 (11-03): 거대괴수 커먼 파츠를 3개 가져야 레어 세트를 만들 수 있음 → 커먼 없이 막히는 것을 본 뒤 3개를 줌
+        const { SLOTS, partsOfCharacter } = await import('/js/engine_v2/roster_v2.js');
+        const commons = SLOTS.flatMap(s => partsOfCharacter('kaiju', s)).filter(q => S.dropGroupOf(q) === 'base').map(q => q.id);
+        commons.forEach(id => progress.owned.delete(id));
+        progress.shards = 40;
+        const tierLocked = progress.craftPart('arm_kaiju_a');
+        commons.slice(0, 3).forEach(id => progress.owned.add(id));
         // 조각 제작
         progress.shards = 10;
         const c0 = progress.craftCost('arm_kaiju_a'), poor = progress.craftPart('arm_kaiju_a');
@@ -102,7 +108,7 @@ def run(ctx):
         const save = { ...progress.growthData(), options: {}, grades: {} };
         progress.owned.add('head_hero_a'); delete progress.options.head_hero_a;
         progress.loadGrowth(save);
-        return { floor, dps, want, normal, hard, first, hellFirst, got: [got.type, got.grade, progress.optionsOf('arm_kaiju_b').length],
+        return { tierLocked: [tierLocked.success, tierLocked.reason || ''], floor, dps, want, normal, hard, first, hellFirst, got: [got.type, got.grade, progress.optionsOf('arm_kaiju_b').length],
             c0, poor: poor.success, made: [made.success, made.grade, made.shards], after, locked: locked.success, lockedWhy: locked.reason || '',
             old: [progress.gradeOf('head_hero_a'), progress.optionsOf('head_hero_a').length],
             label: S.setLabelOf(S.setOf('head_hero_a')) };""")
@@ -115,6 +121,8 @@ def run(ctx):
     ctx.check(st['c0'] == {'shards': 30, 'grade': 'rare'} and not st['poor'] and st['made'] == [True, 'rare', 30]
               and st['after'] == {'owned': True, 'shards': 10, 'again': None, 'base': None},
               '조각 제작: 레어 세트 부위 30개 (부족하면 실패), 가진 파츠·기본 파츠는 불가', str(st))
+    ctx.check(not st['tierLocked'][0] and '커먼 파츠를 3개' in st['tierLocked'][1],
+              '등급 단계: 거대괴수 커먼 파츠가 3개 안 되면 레어 세트를 조각으로도 못 만듦', str(st['tierLocked']))
     ctx.check(not st['locked'] and '드랍·조각' in st['lockedWhy'], '드랍 전용 파츠는 개조 확정(DM 구매) 불가', st['lockedWhy'])
     ctx.check(st['old'] == ['rare', 1] and st['label'] == '레어 ① 타락 기사', '예전 저장: 산 A·B → 레어 + 옵션 1개 · 이름표 "레어 ① 타락 기사"', str(st))
     g.js("progress.options = {}; progress.grades = {};")
@@ -132,7 +140,7 @@ def run(ctx):
         b.dealDamageToEnemy(s, 100, false); const shieldLeft = s.shield;
         const th = b.spawnMinion('guard', { x: b.monsterX + 540, elite: true }); th.affixes = ['thorns'];
         const p0 = b.playerHp; b.dealDamageToEnemy(th, 2000, false, { knock: 0 }); const reflected = p0 - b.playerHp;
-        const rg = b.spawnMinion('guard', { x: b.monsterX + 560, elite: true }); rg.affixes = ['regen'];
+        const rg = b.spawnMinion('guard', { x: b.monsterX + 560, elite: true }); rg.affixes = ['regen']; rg.shield = 0;   // 무작위 보호막 속성이 붙어도 피해가 들어가게
         b.dealDamageToEnemy(rg, 50, false); rg.lastHit = -99; const r0 = rg.hp;
         b.pSlowT = 0; b.applyPlayerSlow(2);
         return { elite, shieldLeft, reflected, cap: b.maxPlayerHp * ELITE_AFFIXES.thorns.cap, blocked: rg.healBlockUntil > b.stats.time, r0, slow: b.pSlowT };""")
@@ -186,7 +194,7 @@ def run(ctx):
         const r1 = progress.buyModule('repair'), r2 = progress.buyModule('barrier'), dup = progress.buyModule('repair');
         return {{ before: before.success, avail, r1: r1.success, r2: r2.success, dup: dup.success, slots: progress.moduleSlots(),
             eq: progress.equippedModules(), left: progress.availableStars(), cost: G.MODULES.repair.stars + G.MODULES.barrier.stars }};""")
-    ctx.check(not st['before'] and st['r1'] and st['avail'] == 18 and st['left'] == 18 - st['cost'] and not st['dup'],
+    ctx.check(not st['before'] and st['r1'] and st['avail'] == 33 and st['left'] == 33 - st['cost'] and not st['dup'],   # 구역 1 = 11판 × 별 3
               '전술 모듈: 별이 없으면 못 삼, 별로 해금(겹쳐 사지 않음)', str(st))
     ctx.check(st['slots'] == 1 and st['eq'] == ['repair'], '모듈 칸: 노말만 열리면 1칸 (먼저 산 긴급 수리가 끼워짐)', str(st))
     g.js(f"{ALL}.forEach(id => progress.stages[id] = {CLEAR}); progress.equipModule(1, 'barrier');")
@@ -245,14 +253,14 @@ def run(ctx):
         progress.spentStars = progress.totalStars();
         const fail = progress.unlockCharacter('doll');
         return { total, a, r: r.success, b2, fail: fail.success, mech: progress.isCharacterUnlocked('mech') };""")
-    ctx.check(st['total'] == 78 and not st['a'] and st['r'] and st['b2'] and not st['fail'] and st['mech'],
-              '별: 노말 26판 × 3 = 78개, 캐릭터 해금(거대괴수 ★6), 별이 모자라면 못 엶, 거대로봇은 처음부터', str(st))
+    ctx.check(st['total'] == 330 and not st['a'] and st['r'] and st['b2'] and not st['fail'] and st['mech'],
+              '별: 노말 110판 × 3 = 330개, 캐릭터 해금(거대괴수 ★6), 별이 모자라면 못 엶, 거대로봇은 처음부터', str(st))
     st = g.js(f"""progress.spentStars = 0;
-        ['hard', 'hell'].forEach(d => {ALL}.forEach(id => progress.recordsOf(d)[id] = {CLEAR}));
+        for (const d of ['hard', 'hell']) ({ALL}).forEach(id => progress.recordsOf(d)[id] = {CLEAR});
         const avail = progress.availableStars();
         const r = progress.buyResearch('dmBoost'); progress.buyResearch('dropRate'); progress.buyResearch('dispatchSlot');
         return {{ avail, r: r.success, dm: progress.researchBonus('dmBoost'), drop: progress.researchBonus('dropRate'), slots: progress.dispatchSlots() }};""")
-    ctx.check(st['avail'] == 234 and st['r'] and abs(st['dm'] - 0.05) < 1e-9 and abs(st['drop'] - 0.01) < 1e-9 and st['slots'] == 4,
+    ctx.check(st['avail'] == 990 and st['r'] and abs(st['dm'] - 0.05) < 1e-9 and abs(st['drop'] - 0.01) < 1e-9 and st['slots'] == 4,
               '계정 연구: 별로 DM +5% · 드랍 +1%p · 파견 칸 +1 (나이트메어까지 열림 = 3칸 + 1)', str(st))
     fresh_battle(g, '1-2')
     st = g.js("const { stageById } = await import('/js/engine_v2/stages_v2.js'); return [b.stage.reward.final, stageById('1-2').reward.final];")

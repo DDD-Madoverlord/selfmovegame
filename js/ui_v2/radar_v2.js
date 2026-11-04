@@ -28,6 +28,7 @@ export class TacticalRadar {
         this.nodes = null;       // [{ id, at, state: 'cleared'|'open'|'locked', stars, boss, name }]
         this.selected = null;
         this.onSelect = null;
+        this.scale = 1;          // 점·글자 배율 — 휴대폰 배치의 전체 화면 레이더는 2.2 (menu_v2.js, Q-015)
         if (canvas) canvas.addEventListener('click', e => this._click(e));
     }
 
@@ -139,7 +140,7 @@ export class TacticalRadar {
 
         const cx = w * 0.5, cy = h * 0.52, R = Math.min(w * 0.46, h * 0.47);
         const P = ([x, y]) => [cx + x * R, cy + y * R];
-        const s = dpr;
+        const s = dpr * this.scale;
         this.geo = { cx, cy, R, s };
         const sweep = this.t * 1.1;
 

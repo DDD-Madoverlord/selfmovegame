@@ -1,0 +1,18 @@
+{
+  "frameWidth": 127,
+  "frameHeight": 78,
+  "anchorX": 60.3,
+  "res": 2.0,
+  "clips": {
+    "walk": {
+      "src": "assets/sprites/rig/speakerdrone/speakerdrone_walk.webp",
+      "frames": 16,
+      "duration": 1.2
+    },
+    "attack": {
+      "src": "assets/sprites/rig/speakerdrone/speakerdrone_attack.webp",
+      "frames": 12,
+      "duration": 0.8
+    }
+  }
+}

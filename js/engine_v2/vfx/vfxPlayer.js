@@ -60,7 +60,7 @@
      launchWave / launchOrb / launchMissile / launchChain / launchNeedle: 이동하는 투사체
        orb: 흰 구체 심 + 색 테두리 + 리본 꼬리 / missile: 추진 불꽃(flame) + 연기 / needle: 긴 속도 꼬리
        beam: 흰 심 + 맥박치는 색 띠 + 일렁이는 가장자리 (기존 w·to 유지)
-     onSfx(name): 효과음 연결 지점 (지금은 비어 있음 — 효과 확정 후 사운드 매니저를 연결)
+     onSfx(name, x): 효과음 연결 지점 (x = 이펙트 자리, 소리 좌우에 씀 — battleFx가 사운드 매니저를 연결)
    ========================================================================== */
 
 const WHITE = '255, 255, 255';
@@ -103,7 +103,7 @@ export class VfxPlayer {
             this.items.push({ ...layer, t: -(layer.at || 0), x, y, s, follow: opts.follow || null,
                 to: opts.to || null, started: false, owner: opts.owner });
         }
-        if (def.sfx && this.onSfx) this.onSfx(def.sfx);
+        if (def.sfx && this.onSfx) this.onSfx(def.sfx, x);
     }
 
     setPersistent(key, layer, follow, scale = 1, opts = {}) {

@@ -20,11 +20,19 @@
 
 import { gameState } from '../engine/state.js';
 import { PARTS_DB } from '../data/parts.js';
-import { SLOTS, DEFAULT_CHARACTER, rosterOf, characterOfPart, partsOfCharacter } from './roster_v2.js';
+import { ROSTER, SLOTS, DEFAULT_CHARACTER, rosterOf, characterOfPart, partsOfCharacter } from './roster_v2.js';
 import { DIFFICULTIES, DEFAULT_DIFFICULTY, difficultyOf, difficultyUnlocked, highestDifficulty } from './difficulty_v2.js';
 import { GrowthMethods, emptyGrowth } from './progressGrowth_v2.js';
-import { gradeOf } from './growth_v2.js';
+import { CommerceMethods, emptyCommerce } from './progressCommerce_v2.js';
+import { PetMethods } from './progressPets_v2.js';
+import { OfflineMethods, emptyOffline } from './offlineReward_v2.js';
+import { TutorialMethods, emptyTutorial } from './tutorial_v2.js';
+import { track } from './analytics_v2.js';
+import { gradeOf, TIER_UNLOCK } from './growth_v2.js';
 import { isDropOnly, dropGroupOf } from './sets_v2.js';
+import { allStagesUnlocked, isUnlockedNormally } from './stages_v2.js';
+import * as saveStore from './saveStore_v2.js';
+import { settings } from './settings_v2.js';
 import { SupportProgressMethods } from './support_v2.js';
 
 const KEY = 'mo_v2_save';
@@ -56,8 +64,12 @@ class Progress {
         this.supportRandom = false;
         this.supportHelpSeen = false;
         Object.assign(this, emptyGrowth());   // 파츠 등급·조각·코어·스킬 레벨·모듈·연구·별 사용·파견 (저장)
+        this.commerce = emptyCommerce();
+        this.offline = emptyOffline();
+        this.tutorial = emptyTutorial();
         this.loaded = false;
         this.saveTimer = null;
+        this.saveId = null;
     }
 
     // ---- 시작 / 저장 ----
@@ -68,8 +80,9 @@ class Progress {
         // 가격 0인 파츠는 처음부터 보유 (드랍 전용 — 유니크 세트 — 은 빼고)
         SLOTS.forEach(slot => (PARTS_DB[slot] || []).forEach(p => { if (!p.cost && !isDropOnly(p)) this.owned.add(p.id); }));
         let data = null;
-        try { data = JSON.parse(localStorage.getItem(KEY) || 'null'); } catch (e) { data = null; }
+        try { data = JSON.parse(saveStore.load(KEY) || 'null'); } catch (e) { data = null; }
         if (data) {
+            if (typeof data.saveId === 'string' && data.saveId) this.saveId = data.saveId;
             if (Number.isFinite(data.dm)) gameState.darkMatter = data.dm;
             if (data.equipped) {
                 SLOTS.forEach(slot => {
@@ -92,6 +105,10 @@ class Progress {
             this.supportHelpSeen = data.supportHelpSeen === true;
             this.loadGrowth(data);
         }
+        this.loadTutorial(data);
+        this.loadCommerce(data);
+        this.loadPets(data);
+        this.loadOffline(data);   // 펫 지급 등의 즉시 저장보다 먼저, 원래 savedAt으로 정산
         SLOTS.forEach(slot => this.owned.add(gameState.equippedParts[slot]));   // 장착 중인 파츠는 보유
         // 고른 캐릭터: 저장에 있으면 그것, v1 저장이면 몸통 캐릭터
         const saved = data && rosterOf(data.character) ? data.character : null;
@@ -100,6 +117,8 @@ class Progress {
         this.fixMixed(!saved);
         this.rememberLoadout();
         gameState.cartParts = { ...gameState.equippedParts };
+        this.checkPetRewards('migration');
+        this.resolvePendingCommercePets();
         gameState.subscribe(() => this.saveSoon());
         this.save();
     }
@@ -120,12 +139,16 @@ class Progress {
     }
 
     save() {
+        clearTimeout(this.saveTimer);
+        if (!this.saveId) this.saveId = globalThis.crypto?.randomUUID?.() || `${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`;
         // 장착이 바깥(검사 도구 등)에서 바뀌었으면 몸통 캐릭터를 따라감
         const bodyChar = characterOfPart(partOf('body', gameState.equippedParts.body));
         if (bodyChar) this.character = bodyChar;
         this.rememberLoadout();
         const data = {
             v: 3,   // 3: 강화 외 성장 필드 추가 (Q-006)
+            savedAt: Date.now(),
+            saveId: this.saveId,
             dm: gameState.darkMatter,
             equipped: { ...gameState.equippedParts },
             owned: [...this.owned],
@@ -137,18 +160,29 @@ class Progress {
             character: this.character,
             loadouts: this.loadouts,
             tips: [...this.tips],
+            commerce: this.commerce,
+            offline: this.offline,
+            tutorial: this.tutorial,
             supportCharacter: this.supportCharacter,
             supportAuto: this.supportAuto,
             supportRandom: this.supportRandom,
             supportHelpSeen: this.supportHelpSeen,
             ...this.growthData()
         };
-        try { localStorage.setItem(KEY, JSON.stringify(data)); } catch (e) { /* 저장 불가 환경: 이번 실행에서만 유지 */ }
+        const text = JSON.stringify(data);
+        saveStore.save(KEY, text);
+        this._offlineSavedText = text;
+    }
+
+    /** 가져오기·다른 탭이 바꾼 저장을 생명주기 저장으로 덮어쓰지 않는다. */
+    offlineStorageCurrent() {
+        return this._offlineSavedText === undefined || saveStore.load(KEY) === this._offlineSavedText;
     }
 
     /** 처음부터 다시 (설정 창의 진행 초기화) */
     resetAll() {
-        try { localStorage.removeItem(KEY); } catch (e) { /* 무시 */ }
+        clearTimeout(this.saveTimer);
+        saveStore.remove(KEY);
         location.reload();
     }
 
@@ -225,6 +259,19 @@ class Progress {
         return this.owned.has(id);
     }
 
+    /** 시험용 전체 해제 2단계 (메뉴 왼쪽 위 아이콘 5번 → 다시 5번, menu_v2.js): 저장을 메모리 사본으로 돌린 뒤
+     *  캐릭터 전부·파츠 전부를 가짐. 이 뒤의 진행은 실제 저장에 안 남고, 게임을 다시 켜면 원래 저장 */
+    unlockEverythingTemp() {
+        if (this.everythingUnlocked) return false;
+        saveStore.isolateSaveInMemory();
+        this.everythingUnlocked = true;
+        ROSTER.forEach(c => { if (!this.unlockedChars.includes(c.id)) this.unlockedChars.push(c.id); });
+        SLOTS.forEach(slot => (PARTS_DB[slot] || []).forEach(p => { if (p.id !== 'none') this.owned.add(p.id); }));
+        this.save();
+        gameState.notify();
+        return true;
+    }
+
     /** 장바구니 중 보유하지 않은 파츠의 구매 비용 */
     cartCost() {
         return SLOTS.reduce((sum, slot) => {
@@ -244,12 +291,32 @@ class Progress {
             .filter(p => p && p.id !== 'none' && !this.owned.has(p.id) && isDropOnly(p));
     }
 
+    /** 등급 단계 잠김 (growth_v2.js TIER_UNLOCK): 안 가진 파츠가 아직 못 여는 등급이면 { tier, from, need, have }, 열렸으면 null.
+     *  그 등급 파츠가 need개보다 적은 캐릭터는 그 등급을 전부 가지면 열림 */
+    tierLock(part) {
+        if (!part || part.id === 'none' || this.owned.has(part.id)) return null;
+        const tierOf = p => (dropGroupOf(p) === 'base' ? 'common' : dropGroupOf(p));
+        const tier = tierOf(part), rule = TIER_UNLOCK[tier];
+        if (!rule) return null;
+        const pool = SLOTS.flatMap(slot => partsOfCharacter(characterOfPart(part), slot)).filter(p => tierOf(p) === rule.from);
+        const need = Math.min(rule.need, pool.length);
+        const have = pool.filter(p => this.owned.has(p.id)).length;
+        return have >= need ? null : { tier, from: rule.from, need, have };
+    }
+
+    tierLockText(lock) {
+        return `${gradeOf(lock.tier).name} 파츠는 이 캐릭터의 ${gradeOf(lock.from).name} 파츠를 ${lock.need}개 가지면 열립니다 (지금 ${lock.have}개)`;
+    }
+
     /** 장바구니 확정: 보유하지 않은 파츠는 구매 후 장착 (세트 파츠는 등급 바닥만큼 옵션을 채움) */
     confirmCart() {
         const locked = this.cartLocked();
         if (locked.length) return { success: false, reason: `${locked[0].name}: 드랍·조각으로만 얻는 파츠입니다` };
+        const tierLocked = SLOTS.map(slot => partOf(slot, gameState.cartParts[slot])).find(p => this.tierLock(p));
+        if (tierLocked) return { success: false, reason: `${tierLocked.name}: ${this.tierLockText(this.tierLock(tierLocked))}` };
         const cost = this.cartCost();
         if (gameState.darkMatter < cost) return { success: false, reason: '다크 매터(DM)가 부족합니다' };
+        const partIds = SLOTS.map(slot => gameState.cartParts[slot]).filter(id => id !== 'none' && !this.owned.has(id));
         SLOTS.forEach(slot => {
             const id = gameState.cartParts[slot];
             if (!this.owned.has(id)) {
@@ -261,6 +328,8 @@ class Progress {
         gameState.equippedParts = { ...gameState.cartParts };
         this.rememberLoadout();
         gameState.notify();
+        if (partIds.length) track('part_purchase', { partIds, cost });
+        if (partIds.length) this.tutorialGrowth(partIds[0]);
         return { success: true, cost };
     }
 
@@ -274,6 +343,11 @@ class Progress {
         return highestDifficulty(this).maxLevel;
     }
 
+    /** 장착한 파츠 중 지금 DM으로 강화할 수 있는 것이 있는지 (연구소 강화 안내 — main_v2.js) */
+    canUpgradeEquipped() {
+        return SLOTS.some(slot => { const c = this.upgradeCost(gameState.equippedParts[slot]); return c != null && c <= gameState.darkMatter; });
+    }
+
     /** 다음 레벨 강화 비용 (최대면 null) */
     upgradeCost(id) {
         const lv = this.levelOf(id);
@@ -281,7 +355,8 @@ class Progress {
         const p = partOf(slotOf(id), id);
         // 강화 기준값 = 가격 (가격 없는 유니크 세트는 1200 — 레어 세트 부위 값보다 조금 위, 레전더리 세트는 1600)
         const base = Math.max(p ? p.cost || ({ unique: 1200, legendary: 1600 }[dropGroupOf(p)] || 0) : 0, 200);
-        return Math.round((base * 0.6 * lv) / 10) * 10;
+        const grade = gradeOf(this.gradeOf(id)).upCost;   // 등급 배율 (growth_v2.js GRADES upCost, 11-03)
+        return Math.round((base * 0.6 * lv * grade) / 10) * 10;
     }
 
     upgrade(id) {
@@ -357,6 +432,8 @@ class Progress {
      * @returns {{ newStars: number, bonus: number }} 새로 얻은 별 수와 보너스 DM (보너스는 여기서 지급, 난이도 보상 배율)
      */
     recordStage(id, { stars, cleared, time }, diff = this.difficulty) {
+        // 시험용 전체 해제로 연 판(원래 잠긴 판)은 기록하지 않음 — 다시 켜면 이전 진행 그대로
+        if (allStagesUnlocked() && !isUnlockedNormally(id, this)) return { newStars: 0, bonus: 0, pets: [], skipped: true };
         const prev = this.stage(id, diff);
         const merged = prev.stars.map((had, i) => had || !!stars[i]);
         const newStars = merged.filter(Boolean).length - prev.stars.filter(Boolean).length;
@@ -368,11 +445,28 @@ class Progress {
         const bonus = Math.round(newStars * STAR_BONUS_DM * difficultyOf(diff).reward);
         if (bonus) gameState.darkMatter += bonus;
         gameState.notify();
-        return { newStars, bonus };
+        const pets = this.checkPetRewards();
+        return { newStars, bonus, pets };
     }
 }
 
 Object.assign(Progress.prototype, GrowthMethods);
+Object.assign(Progress.prototype, CommerceMethods);
+Object.assign(Progress.prototype, PetMethods);
+Object.assign(Progress.prototype, OfflineMethods);
+Object.assign(Progress.prototype, TutorialMethods);
 Object.assign(Progress.prototype, SupportProgressMethods);
 
 export const progress = new Progress();
+
+export function exportSave() {
+    progress.save();
+    saveStore.save('mo_v2_settings', JSON.stringify(settings.values));
+    return saveStore.exportSave();
+}
+
+export function importSave(code) {
+    const result = saveStore.importSave(code);
+    if (result.success) clearTimeout(progress.saveTimer);
+    return result;
+}

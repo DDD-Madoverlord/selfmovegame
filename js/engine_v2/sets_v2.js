@@ -87,15 +87,34 @@ export function setCounts(partsObj) {
     return out;
 }
 
-/** 장착에 걸린 세트 효과 목록 [{ id, name, label, count, need, desc, on }] (연구소 표시) */
+/** 장착에 걸린 세트 효과 목록 [{ id, name, label, count, need, desc, on, perk? }] (연구소 표시) — 전투 밖 효과(SET_PERKS)도 함께 */
 export function setBonusList(partsObj) {
     const counts = setCounts(partsObj);
     const out = [];
     for (const [sid, count] of Object.entries(counts)) {
         const s = SETS[sid];
-        for (const [need, desc] of Object.entries(s.bonus || {})) {
-            out.push({ id: sid, name: s.name, label: setLabelOf({ id: sid, ...s }), count, need: Number(need), desc, on: count >= Number(need) });
+        const perk = SET_PERKS[sid];
+        const lines = [...Object.entries(s.bonus || {}), ...(perk ? [[perk.need, perk.text]] : [])];
+        for (const [need, desc] of lines) {
+            out.push({ id: sid, name: s.name, label: setLabelOf({ id: sid, ...s }), count, need: Number(need), desc, on: count >= Number(need), perk: desc === perk?.text });
         }
     }
     return out;
+}
+
+/**
+ * 전투 밖 세트 효과 (2026-11-03 Trello '파츠 세트효과 추가', 세트·수치는 임시 Q-018): 같은 세트를 need부위 이상 끼우면 켜짐.
+ *   supportTime: 주인공이 끼우면 협력 출격 시간 +초 · supportCd: 주인공이 끼우면 협력 대기 시간 −초
+ *   dispatchLoot: 파견 보낸 캐릭터가 끼우고 있으면 파견 보상(DM·조각·코어·파츠 확률) ×(1 + 값)
+ */
+export const SET_PERKS = {
+    mech_a: { need: 2, supportTime: 3, text: '협력 출격 시간 +3초' },
+    chimera_b: { need: 2, supportCd: 5, text: '협력 대기 시간 −5초' },
+    hero_b: { need: 2, dispatchLoot: 0.2, text: '이 캐릭터를 파견하면 보상 +20%' }
+};
+
+/** 파츠 묶음(부위 → 파츠)에서 켜진 전투 밖 세트 효과의 합 */
+export function setPerkOf(partsObj, key) {
+    const counts = setCounts(partsObj);
+    return Object.entries(SET_PERKS).reduce((sum, [sid, p]) => sum + ((counts[sid] || 0) >= p.need ? p[key] || 0 : 0), 0);
 }

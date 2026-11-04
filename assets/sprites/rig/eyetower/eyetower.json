@@ -1,0 +1,18 @@
+{
+  "frameWidth": 91,
+  "frameHeight": 156,
+  "anchorX": 45.8,
+  "res": 2.0,
+  "clips": {
+    "walk": {
+      "src": "assets/sprites/rig/eyetower/eyetower_walk.webp",
+      "frames": 12,
+      "duration": 1.6
+    },
+    "attack": {
+      "src": "assets/sprites/rig/eyetower/eyetower_attack.webp",
+      "frames": 12,
+      "duration": 0.9
+    }
+  }
+}

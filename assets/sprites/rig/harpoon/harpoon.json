@@ -1,0 +1,18 @@
+{
+  "frameWidth": 164,
+  "frameHeight": 112,
+  "anchorX": 78.5,
+  "res": 2.0,
+  "clips": {
+    "walk": {
+      "src": "assets/sprites/rig/harpoon/harpoon_walk.webp",
+      "frames": 12,
+      "duration": 0.5
+    },
+    "attack": {
+      "src": "assets/sprites/rig/harpoon/harpoon_attack.webp",
+      "frames": 14,
+      "duration": 1
+    }
+  }
+}

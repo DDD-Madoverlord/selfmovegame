@@ -10,11 +10,11 @@ def state(g, final=False):
 
 
 def run(ctx):
-    run_bases(ctx)
-    run_hero_wave(ctx)
-    run_guard(ctx)
-    run_roster(ctx)
-    run_background(ctx)
+    for part in (run_bases, run_hero_wave, run_guard, run_roster, run_background):
+        part(ctx)
+        # 끝난 창의 전투를 멈춤 — 창들이 함께 열려 있어 앞 창의 전투가 계속 돌면 다음 창 로딩이 30초를 넘김(11-04, 혼자 열면 4초)
+        for g in ctx.games:
+            g.js("if (b.isActive) b.stopBattle();")
 
 
 def run_hero_wave(ctx):
@@ -42,7 +42,7 @@ def run_bases(ctx):
     g.js("b.spawnInterval = 999; b.enemies.forEach(e => e.dom && e.dom.remove()); b.enemies = []; b.distanceTraveled = b.stage.midAt - 0.5;")
     g.wait(1500)
     st = state(g)
-    ctx.check(st and st['art'] and st['state'] == '0' and 'bunker_1' in st['img'], '요새 그림 (온전)', str(st))
+    ctx.check(st and st['art'] and st['state'] == '0' and 'st1/fort_1' in st['img'], '요새 그림 (온전)', str(st))
     ctx.check(st and st['w'] > 150 and st['h'] > 200, '요새 그림 크기 (주인공보다 크게)', str(st and (st['w'], st['h'])))
     g.js("b.spd0 = b.playerSpeed; b.monsterX = 150; m.setMonsterPosition(150); b.playerSpeed = 0;")   # 주인공은 그 자리에 (화면 확인용)
     g.wait(300)
@@ -52,7 +52,7 @@ def run_bases(ctx):
     g.js("const bd = b.enemies.find(e => e.isBuilding); bd.hp = bd.maxHp * 0.45; b.dealDamageToEnemy(bd, 1, false);")
     g.wait(400)
     st = state(g)
-    ctx.check(st and st['state'] == '1' and 'bunker_2' in st['img'], '체력 절반 → 요새 파손 그림', str(st))
+    ctx.check(st and st['state'] == '1' and 'st1/fort_2' in st['img'], '체력 절반 → 요새 파손 그림', str(st))
     g.shot('bases_mid_damaged', '#screen-battle-v2')
 
     # 파괴 → 잔해 그림으로 남고, 무너지는 동안 주인공은 멈춰 있음
@@ -60,7 +60,7 @@ def run_bases(ctx):
     g.wait(1300)
     st = state(g)
     hold = g.js("return { hold: b.ruinHoldT > 0, mstate: m.currentState, ruins: b.ruins.length };")
-    ctx.check(st and st['state'] == '2' and 'bunker_3' in st['img'], '요새 파괴 → 잔해 그림으로 남음', str(st))
+    ctx.check(st and st['state'] == '2' and 'st1/fort_3' in st['img'], '요새 파괴 → 잔해 그림으로 남음', str(st))
     ctx.check(hold['ruins'] == 1 and hold['mstate'] == 'victory', '무너지는 동안 주인공 승리 자세로 멈춤', str(hold))
     g.shot('bases_mid_ruin', '#screen-battle-v2')
 
@@ -82,18 +82,18 @@ def run_bases(ctx):
     g.wait(1500)
     g.js("b.playerSpeed = 0;")
     st = state(g, final=True)
-    ctx.check(st and st['art'] and st['state'] == '0' and 'tower_1' in st['img'], '최종 기지 그림 (온전)', str(st))
+    ctx.check(st and st['art'] and st['state'] == '0' and 'st1/base_1' in st['img'], '최종 기지 그림 (온전)', str(st))
     ctx.check(st and st['h'] > 250, '최종 기지가 요새보다 큼', str(st and (st['w'], st['h'])))
     g.shot('bases_final_intact', '#screen-battle-v2')
     g.js("const bd = b.enemies.find(e => e.isFinal); bd.hp = bd.maxHp * 0.4; b.dealDamageToEnemy(bd, 1, false);")
     g.wait(400)
     st = state(g, final=True)
-    ctx.check(st and st['state'] == '1' and 'tower_2' in st['img'], '체력 절반 → 최종 기지 파손 그림', str(st))
+    ctx.check(st and st['state'] == '1' and 'st1/base_2' in st['img'], '체력 절반 → 최종 기지 파손 그림', str(st))
     g.shot('bases_final_damaged', '#screen-battle-v2')
     g.js("const bd = b.enemies.find(e => e.isFinal); bd.hp = 1; b.dealDamageToEnemy(bd, 50, true, { knock: 0 });")
     g.wait(2600)
     st = state(g, final=True)
-    ctx.check(st and st['state'] == '2' and 'tower_3' in st['img'], '최종 기지 파괴 → 잔해 그림 (승리 연출 중)', str(st))
+    ctx.check(st and st['state'] == '2' and 'st1/base_3' in st['img'], '최종 기지 파괴 → 잔해 그림 (승리 연출 중)', str(st))
     g.shot('bases_final_ruin', '#screen-battle-v2')
     g.wait(6000)
     ctx.check(g.js("return !!document.querySelector('.v2-result.is-win');"), '최종 기지 파괴 → 승리 결과 화면')
@@ -144,6 +144,7 @@ def run_guard(ctx):
 
 
 TYPES = ['guard', 'shield', 'tranq', 'shock', 'medic', 'guardian']
+TYPES_Z1 = ['conscript', 'riot', 'taser', 'rocket', 'empdrone', 'hound', 'flamer', 'exo', 'wmdalpha']   # 새 기획 구역 1 (D-085)
 
 
 def run_roster(ctx):
@@ -177,6 +178,19 @@ def run_roster(ctx):
     ctx.check(st['slash'] and st['bash'], '보스: 붙으면 베기 + 방패 강타 동작', str(st))
     g.shot('enemy_boss_bash', '#screen-battle-v2')
 
+    # 새 기획 구역 1 (D-085): 적 8종 + 보스 모두 자기 그림, EMP 드론은 떠 있음
+    g.js(f"""b.enemies.forEach(e => e.dom && e.dom.remove()); b.enemies = [];
+        {TYPES_Z1}.forEach((t, i) => b.spawnMinion(t, {{ x: b.monsterX + 260 + i * 95 }}));
+        b.enemies.forEach(e => {{ e.hp = e.maxHp = 99999; e.speed = 0; e.dps = 0; e.cd.skill = -999; }});""")
+    g.wait(400)
+    st = g.js("""return b.enemies.map(e => { const sp = e.dom.querySelector('.v2-enemy__sprite');
+        return { t: e.type, img: sp ? getComputedStyle(sp).backgroundImage : '', b: parseFloat(getComputedStyle(e.dom).bottom) }; });""")
+    ctx.check(all(f"{x['t']}_walk" in x['img'] for x in st) and len({x['t'] for x in st}) == len(TYPES_Z1),
+              '구역 1 적 8종 + WMD-알파: 모두 걷기 그림', str([x['t'] for x in st if f"{x['t']}_walk" not in x['img']]))
+    drone = next(x for x in st if x['t'] == 'empdrone')
+    ctx.check(drone['b'] > 100, 'EMP 드론: 땅에서 떠서 다님', str(drone['b']))
+    g.shot('enemy_roster_zone1', '#screen-battle-v2')
+
 
 BG = "return ['sky', 'city', 'ground'].map(k => getComputedStyle(document.getElementById(`bg-${k}-v2`)).backgroundImage);"
 
@@ -187,9 +201,9 @@ def run_background(ctx):
     g.enter_v2()
     g.battle('mech', wait_ms=2900)
     sky, city, ground = g.js(BG)
-    ctx.check('hall.webp' in sky and 'machinery.webp' in city and 'floor.webp' in ground, '배경 3층 = 탱크 홀·기계 띠·바닥', str([sky[-30:], city[-30:], ground[-30:]]))
+    ctx.check('st1/far.webp' in sky and 'st1/mid.webp' in city and 'st1/floor.webp' in ground, '배경 3층 = 벙커 철골·서버랙 띠·강철 그릴 바닥 (새 기획 구역 1)', str([sky[-30:], city[-30:], ground[-30:]]))
     ctx.check(g.js("return getComputedStyle(document.getElementById('bg-ground-v2')).animationName;") == 'scroll-bg', '걷는 동안 배경이 흐름')
-    g.js("['1-1','1-2','1-3','1-4','1-5'].forEach(id => progress.stages[id] = { stars: [true,true,true], cleared: true, bestTime: 60 }); progress.selectStage('1-B');")
+    g.js("['1-1','1-2','1-3','1-4','1-5','1-6','1-7','1-8','1-9','1-10'].forEach(id => progress.stages[id] = { stars: [true,true,true], cleared: true, bestTime: 60 }); progress.selectStage('1-B');")
     g.battle('mech', wait_ms=1500)
     sky = g.js(BG)[0]
-    ctx.check('hall_alarm.webp' in sky, '보스전: 붉은 경보 조명 배경', sky[-40:])
+    ctx.check('st1/far_boss.webp' in sky, '보스전: 천장 해치 달빛 배경', sky[-40:])

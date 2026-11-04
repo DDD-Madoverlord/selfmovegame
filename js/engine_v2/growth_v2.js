@@ -7,13 +7,17 @@
    ========================================================================== */
 
 // ---- 2-1 파츠 등급 ----
+// upCost: 강화(Lv) 비용 배율 — 높은 등급일수록 단계마다 더 비쌈 (2026-11-03 Trello '등급별 강화 비용 차등', 임시 값 Q-018)
 export const GRADES = [
-    { id: 'common', name: '커먼', color: '170, 176, 190', mul: 1.0, options: 0 },
-    { id: 'rare', name: '레어', color: '80, 160, 255', mul: 1.1, options: 1 },
-    { id: 'unique', name: '유니크', color: '186, 104, 255', mul: 1.2, options: 2 },
-    { id: 'legendary', name: '레전더리', color: '255, 150, 40', mul: 1.35, options: 2 }
+    { id: 'common', name: '커먼', color: '170, 176, 190', mul: 1.0, options: 0, upCost: 1.0 },
+    { id: 'rare', name: '레어', color: '80, 160, 255', mul: 1.1, options: 1, upCost: 1.3 },
+    { id: 'unique', name: '유니크', color: '186, 104, 255', mul: 1.2, options: 2, upCost: 1.7 },
+    { id: 'legendary', name: '레전더리', color: '255, 150, 40', mul: 1.35, options: 2, upCost: 2.2 }
 ];
 export const gradeOf = id => GRADES.find(g => g.id === id) || GRADES[0];
+/** 등급 단계 열기 (2026-11-03 Trello '파츠 잠금 해제 방식'): 그 캐릭터의 from 등급 파츠를 need개 가져야 그 등급 파츠를 DM으로 사거나 조각으로 만들 수 있음.
+ *  드랍으로 받는 파츠·이미 가진 파츠는 막지 않음. 개수 = 캐릭터별, 무료 기본 파츠 포함 (임시 규칙 Q-018) */
+export const TIER_UNLOCK = { rare: { from: 'common', need: 3 }, unique: { from: 'rare', need: 4 }, legendary: { from: 'unique', need: 5 } };
 export const gradeIndex = id => Math.max(0, GRADES.findIndex(g => g.id === id));
 
 // 옵션: 엘리트 속성·전장 변이에 맞서는 것 위주 (기획안 2-1 표). key = 전투 합계 이름 (battle/growth.js gear)
@@ -65,7 +69,7 @@ export const DROP = {
     craftCost: { rare: 30, unique: 80, legendary: 200 }
 };
 // 구역 상성 캐릭터 (추천안 — 구역 이야기와 맞춘 짝)
-export const AFFINITY = { 1: ['mech', 'frost'], 2: ['kaiju', 'doll'], 3: ['hero', 'saint'], 4: ['chimera', 'diver'], 6: ['saint'] };   // 구역 6 = 성녀의 구역 (D-078)
+export const AFFINITY = { 1: ['mech', 'frost'], 2: ['kaiju', 'doll'], 3: ['hero', 'saint'], 4: ['chimera', 'diver'], 5: ['diver'], 6: ['saint'], 7: ['doll'], 8: ['frost'], 9: ['architect'], 10: ['broadcaster'] };   // 구역 6 = 성녀의 구역 (D-078), 구역 5 = 길잡이의 구역 (새 기획 D-085)
 
 // ---- 2-2 스킬 강화 ----
 export const SKILL_LEVEL = {

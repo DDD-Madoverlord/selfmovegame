@@ -1,0 +1,18 @@
+{
+  "frameWidth": 152,
+  "frameHeight": 147,
+  "anchorX": 102.4,
+  "res": 2.0,
+  "clips": {
+    "walk": {
+      "src": "assets/sprites/rig/executioner/executioner_walk.webp",
+      "frames": 16,
+      "duration": 0.95
+    },
+    "attack": {
+      "src": "assets/sprites/rig/executioner/executioner_attack.webp",
+      "frames": 16,
+      "duration": 1.1
+    }
+  }
+}

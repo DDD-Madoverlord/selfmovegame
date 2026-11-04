@@ -1,0 +1,23 @@
+{
+  "frameWidth": 407,
+  "frameHeight": 325,
+  "anchorX": 236.3,
+  "res": 1.5,
+  "clips": {
+    "walk": {
+      "src": "assets/sprites/rig/vladimir/vladimir_walk.webp",
+      "frames": 16,
+      "duration": 1.4
+    },
+    "attack": {
+      "src": "assets/sprites/rig/vladimir/vladimir_attack.webp",
+      "frames": 16,
+      "duration": 1.1
+    },
+    "breath": {
+      "src": "assets/sprites/rig/vladimir/vladimir_breath.webp",
+      "frames": 16,
+      "duration": 1.2
+    }
+  }
+}

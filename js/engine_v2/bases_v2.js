@@ -19,8 +19,9 @@ const DEFAULT_ART = { mid: 'bunker', final: 'tower' };   // 구역 1 (그림 이
 /** 이 스테이지의 요새(kind 'mid')·기지('final')에 쓸 그림 이름 */
 export const baseArtName = (stage, kind) => (stage && stage.art && stage.art[kind]) || DEFAULT_ART[kind];
 
-/** 로딩 화면에서 미리 받을 그림 */
+/** 로딩 화면에서 미리 받을 그림 — 그림 이름을 주면 그 그림들만 (새 기획 거점 80장이 더해져 쓰는 구역 것만 받음, D-085) */
 export const BASE_IMAGES = Object.values(BASE_ART).flatMap(a => a.src);
+export const baseImagesFor = names => [...new Set(names)].flatMap(n => (BASE_ART[n] ? BASE_ART[n].src : []));
 
 export const baseArt = art => BASE_ART[art] || null;
 export const baseSize = (art, kind) => BASE_ART[art] || OLD_BOX[kind];

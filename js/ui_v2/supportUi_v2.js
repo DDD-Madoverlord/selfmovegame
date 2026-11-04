@@ -50,7 +50,7 @@ export function supportHtml() {
             <strong>${icon(def.icon, 16)} ${def.ult}</strong><p>${supportPairText(c.id, progress.character)}</p>
             <em>${reason || (on ? '편성 완료' : '편성 가능')}</em></div></button>`;
     }).join('');
-    return `<p class="v2-growth__hint">머리·몸통·팔·다리 파츠를 모두 보유한 다른 캐릭터 1명이 ${SUPPORT.duration}초 동안 지원하고 대표 필살기를 ${SUPPORT.ultimateTimes.length}회 사용합니다. 첫 호출은 전투 시작 후 ${progress.supportCooldown()}초 충전, 이후에도 사용 시점부터 ${progress.supportCooldown()}초마다 재충전 (기본 ${SUPPORT.cooldown}초, 계정 연구로 단축) · 무료 · Q 또는 지원 초상화로 호출.
+    return `<p class="v2-growth__hint">머리·몸통·팔·다리 파츠를 모두 보유한 다른 캐릭터 1명이 ${SUPPORT.duration + progress.mainSetPerk('supportTime')}초 동안 지원하고 대표 필살기를 ${SUPPORT.ultimateTimes.length}회 사용합니다. 첫 호출은 전투 시작 후 ${progress.supportCooldown()}초 충전, 이후에도 사용 시점부터 ${progress.supportCooldown()}초마다 재충전 (기본 ${SUPPORT.cooldown}초, 계정 연구·세트 효과로 단축) · 무료 · Q 또는 지원 초상화로 호출.
         충전은 최대 1회분, 동시 출격은 1명입니다. 일시정지 중에는 충전과 출격 시간이 멈추며, 2배속에서는 두 배 빠르게 진행됩니다.</p>
         <p class="v2-growth__hint">근접 공격 장비의 지원은 적 앞의 공격 사거리 안에 등장하고, 원거리 장비는 주인공 주변에서 등장합니다. 방벽 너머로 소환되지 않으며, 근접 지원은 첫 대상 처치 후 가까운 다음 적에게 한 번 짧게 돌진할 수 있어요.</p>
         <p class="v2-growth__hint">대표 필살기는 지원 전용이며 장착 머리의 기술과 다를 수 있습니다. 능력치는 출격 당시 보유 장비·강화·등급·옵션과 장착 머리의 스킬 레벨을 반영합니다.</p>

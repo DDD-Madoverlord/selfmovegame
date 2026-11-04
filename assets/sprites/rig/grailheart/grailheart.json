@@ -1,0 +1,23 @@
+{
+  "frameWidth": 163,
+  "frameHeight": 221,
+  "anchorX": 60.4,
+  "res": 1.5,
+  "clips": {
+    "walk": {
+      "src": "assets/sprites/rig/grailheart/grailheart_walk.webp",
+      "frames": 16,
+      "duration": 0.9
+    },
+    "attack": {
+      "src": "assets/sprites/rig/grailheart/grailheart_attack.webp",
+      "frames": 16,
+      "duration": 1
+    },
+    "drain": {
+      "src": "assets/sprites/rig/grailheart/grailheart_drain.webp",
+      "frames": 16,
+      "duration": 1
+    }
+  }
+}

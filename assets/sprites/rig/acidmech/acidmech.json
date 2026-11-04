@@ -1,0 +1,18 @@
+{
+  "frameWidth": 169,
+  "frameHeight": 125,
+  "anchorX": 105.8,
+  "res": 2.0,
+  "clips": {
+    "walk": {
+      "src": "assets/sprites/rig/acidmech/acidmech_walk.webp",
+      "frames": 16,
+      "duration": 0.95
+    },
+    "attack": {
+      "src": "assets/sprites/rig/acidmech/acidmech_attack.webp",
+      "frames": 16,
+      "duration": 1
+    }
+  }
+}

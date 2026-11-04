@@ -10,6 +10,7 @@ import { gameState } from '../engine/state.js';
 import { progress } from '../engine_v2/progress_v2.js';
 import { rosterOf, ROSTER, SLOTS, partsOfCharacter } from '../engine_v2/roster_v2.js';
 import { CHAPTERS } from '../engine_v2/stages_v2.js';
+import { isZoneReleased, releaseDateOf } from '../engine_v2/contentSchedule_v2.js';
 import { DISPATCH, gradeOf } from '../engine_v2/growth_v2.js';
 import { ENEMY_TYPES } from '../engine_v2/enemies_v2.js';
 import { ENEMY_ART } from '../engine_v2/enemyArt_v2.js';
@@ -34,45 +35,92 @@ const FIGHT = { hits: 2, maxSec: 2.2, gap: [5, 10] };   // 맞붙음: 타격 2�
 export const DISPATCH_ZONES = {
     1: {
         trek: `${ART}zone1_trek.webp`, back: `${ART}zone1_return.webp`,
-        far: [`${BG}bg/hall.webp`, 'brightness(0.55) saturate(0.85)', 1280 / 715],
-        mid: [`${BG}bg/machinery.webp`, 'brightness(0.66) saturate(0.85)'], ground: [`${BG}bg/floor.webp`, 'brightness(0.85)'],
-        enemies: ['guard', 'shield', 'tranq', 'shock', 'medic'],
-        places: ['격리 복도', '배양 홀', '보안 검문소', '환풍 통로', '폐쇄된 실험동'],
-        finds: ['버려진 실험 장비', '보안실 사물함', '시약 보관함', '부서진 경비 드론']
+        // 새 기획 구역 1 · 제14 비밀 벙커 (D-085): 전투 배경·적은 새 그림, 파견 일러스트(trek·back)는 예전 연구소 그림 그대로
+        far: [`${BG}st1/far.webp`, 'brightness(0.62) saturate(0.9)', 1280 / 715],
+        mid: [`${BG}st1/mid.webp`, 'brightness(0.6) saturate(0.85)'], ground: [`${BG}st1/floor.webp`, 'brightness(0.85)'],
+        enemies: ['conscript', 'riot', 'taser', 'rocket', 'hound'],
+        places: ['붉은 복도', '배관 구역', '무기고', '환풍로', '격납고'],
+        finds: ['불타다 남은 서버랙', '토벌군 탄약 상자', '버려진 수송 차량', '부서진 EMP 드론']
     },
     2: {
         trek: `${ART}zone2_trek.webp`, back: `${ART}zone2_return.webp`,
-        far: [`${BG}bg2/dump.webp`, 'brightness(0.5) saturate(0.85)', 1280 / 715],
-        mid: [`${BG}bg2/shanty.webp`, 'brightness(0.55) saturate(0.8)'], ground: [`${BG}bg2/ground.webp`, 'none'],
-        enemies: ['raider', 'builder', 'sludge', 'netter', 'mechanic'],
-        places: ['고철 산', '판잣집 골목', '소각로 아래', '배수 터널', '버려진 화물 열차'],
-        finds: ['쓸 만한 고철 더미', '약탈자 창고', '녹슨 금고', '버려진 화물칸']
+        // 새 기획 구역 2 · 해안 시추 단지 (D-085): 전투 배경·적은 새 그림, 파견 일러스트는 예전 그림 그대로
+        far: [`${BG}st2/far.webp`, 'brightness(0.6) saturate(0.9)', 1280 / 715],
+        mid: [`${BG}st2/mid.webp`, 'brightness(0.58) saturate(0.85)'], ground: [`${BG}st2/floor.webp`, 'brightness(0.85)'],
+        enemies: ['merc', 'dozer', 'harpoon', 'sawdrone', 'acidmech'],
+        places: ['무너진 해안선', '시추 파이프라인', '깎여 나간 바위산', '방파제 아래', '불타는 정유 탱크'],
+        finds: ['버려진 시추 장비', '용병단 보급 상자', '찌그러진 트럭', '코퍼레이션 금고']
     },
     3: {
         trek: `${ART}zone3_trek.webp`, back: `${ART}zone3_return.webp`,
-        far: [`${BG}bg3/city.webp`, 'brightness(0.62) saturate(0.95)', 1280 / 715],
-        mid: [`${BG}bg3/statues.webp`, 'brightness(0.6) saturate(0.85)'], ground: [`${BG}bg3/cobble.webp`, 'brightness(0.85)'],
-        enemies: ['soldier', 'inquisitor', 'holyshield', 'priest', 'mage'],
+        // 새 기획 구역 3 · 피로 물든 순례길 (D-085): 전투 배경·적은 새 그림, 파견 일러스트는 예전 그림 그대로
+        far: [`${BG}st3/far.webp`, 'brightness(0.62) saturate(0.95)', 1280 / 715],
+        mid: [`${BG}st3/mid.webp`, 'brightness(0.6) saturate(0.85)'], ground: [`${BG}st3/floor.webp`, 'brightness(0.85)'],
+        enemies: ['zealot', 'holyshield', 'inquisitor', 'lightmage', 'battlepriest'],
         places: ['진홍의 순례길', '무너진 성벽', '대성당 앞 광장', '석상 회랑', '불 꺼진 시장'],
         finds: ['봉헌물 상자', '기사단 무기고', '금빛 장식함', '버려진 수레']
     },
     4: {
         trek: `${ART}zone4_trek.webp`, back: `${ART}zone4_return.webp`,
-        far: [`${BG}bg4/void.webp`, 'brightness(0.7) saturate(1)', 1280 / 715],
-        mid: [`${BG}bg4/pillars.webp`, 'brightness(0.5) saturate(0.9)'], ground: [`${BG}bg4/flesh.webp`, 'brightness(0.85)'],
-        enemies: ['cultist', 'tentacle', 'carapace', 'sporer', 'slime'],
+        // 새 기획 구역 4 · 살점의 요람 (D-085): 전투 배경·적은 새 그림, 파견 일러스트는 예전 그림 그대로
+        far: [`${BG}st4/far.webp`, 'brightness(0.7) saturate(1)', 1280 / 715],
+        mid: [`${BG}st4/mid.webp`, 'brightness(0.5) saturate(0.9)'], ground: [`${BG}st4/floor.webp`, 'brightness(0.85)'],
+        enemies: ['mutant', 'boneshield', 'leechfiend', 'sporecaster', 'chimeraslime'],
         places: ['꿈틀대는 요람', '포자 숲', '유기질 기둥 사이', '심연의 틈', '빛나는 웅덩이'],
         finds: ['빛나는 변이 결정', '굳은 고치', '심연 광맥', '버려진 연구 장비']
     },
-    // 구역 6 · 성왕국 변두리 (D-078): 파견 그림은 Gemini 전 (trek·back = null) — 그동안 전투 배경 3층을 잿빛으로
+    // 새 기획 구역 5 · 해상 요새 포세이돈 (D-085): 파견 일러스트 없음 (trek·back = null) — 전투 배경 3층
+    5: {
+        trek: null, back: null,
+        far: [`${BG}st5/far.webp`, 'brightness(0.62) saturate(0.9)', 1280 / 715],
+        mid: [`${BG}st5/mid.webp`, 'brightness(0.55) saturate(0.85)'], ground: [`${BG}st5/floor.webp`, 'brightness(0.85)'],
+        enemies: ['marine', 'hatchshield', 'netgunner', 'mineman', 'toxicdiver'],
+        places: ['파도치는 갑판', '닫힌 해치', '녹슨 크레인 아래', '함포 진지', '비상 격벽 통로'],
+        finds: ['해군 보급 상자', '부서진 소나 드론', '녹슨 작살 더미', '사령부 금고']
+    },
+    // 새 기획 구역 9·10 (D-085): 파견 일러스트 없음 — 전투 배경 3층
+    9: {
+        trek: null, back: null,
+        far: [`${BG}st9/far.webp`, 'brightness(0.62) saturate(0.9)', 1280 / 715],
+        mid: [`${BG}st9/mid.webp`, 'brightness(0.55) saturate(0.85)'], ground: [`${BG}st9/floor.webp`, 'brightness(0.85)'],
+        enemies: ['thug', 'cementsprayer', 'rivetsniper', 'dynamite', 'safetywarden'],
+        places: ['부서진 장벽', '시멘트 웅덩이', '앙상한 철골 아래', '불법 톨게이트', '크레인 하부'],
+        finds: ['용역 보급 상자', '버려진 공구함', '추락한 헬기 잔해', '건설사 비자금 금고']
+    },
+    10: {
+        trek: null, back: null,
+        far: [`${BG}st10/far.webp`, 'brightness(0.66) saturate(0.95)', 1280 / 715],
+        mid: [`${BG}st10/mid.webp`, 'brightness(0.58) saturate(0.9)'], ground: [`${BG}st10/floor.webp`, 'brightness(0.85)'],
+        enemies: ['citizen', 'sonicshield', 'lasersniper', 'thug', 'enforcer'],
+        places: ['거짓의 거리', '네온 전광판 아래', '방송국 로비', '케이블 통로', '송출실 복도'],
+        finds: ['꺼진 수신기', '진압대 보급 상자', '홀로그램 광고판 부품', '통제국 기밀 금고']
+    },
+    // 새 기획 구역 8 · 노르딘 왕성 (D-085): 파견 일러스트 없음 — 전투 배경 3층
+    8: {
+        trek: null, back: null,
+        far: [`${BG}st8/far.webp`, 'brightness(0.66) saturate(0.9)', 1280 / 715],
+        mid: [`${BG}st8/mid.webp`, 'brightness(0.58) saturate(0.85)'], ground: [`${BG}st8/floor.webp`, 'brightness(0.85)'],
+        enemies: ['torch', 'furnaceshield', 'oilthrower', 'hunter', 'steambomber'],
+        places: ['얼음 공원', '얼어붙은 극장 앞', '눈 덮인 왕성 회랑', '용광로 성문', '화로석 창고'],
+        finds: ['꺼진 화로석', '근위대 보급 상자', '얼어붙은 공연 의상', '왕실 금고']
+    },
+    // 새 기획 구역 7 · 잿빛 전장 (D-085): 파견 일러스트 없음 — 전투 배경 3층
+    7: {
+        trek: null, back: null,
+        far: [`${BG}st7/far.webp`, 'brightness(0.62) saturate(0.85)', 1280 / 715],
+        mid: [`${BG}st7/mid.webp`, 'brightness(0.55) saturate(0.8)'], ground: [`${BG}st7/floor.webp`, 'brightness(0.85)'],
+        enemies: ['trench', 'wireshield', 'grenadier', 'gassoldier', 'officer'],
+        places: ['무너진 고아원 터', '철조망 참호선', '노란 가스 지대', '포탄 구덩이 들판', '부서진 벽돌 거리'],
+        finds: ['버려진 탄약 상자', '불타다 남은 나무 인형', '야전 무전기', '포병대 보급품']
+    },
+    // 새 기획 구역 6 · 기적의 대병동 (D-085): 파견 일러스트 없음 (trek·back = null) — 전투 배경 3층
     6: {
         trek: null, back: null,
-        far: [`${BG}bg/hall.webp`, 'brightness(0.38) grayscale(0.75) sepia(0.15) hue-rotate(190deg)', 1280 / 715],
-        mid: [`${BG}bg/machinery.webp`, 'brightness(0.42) grayscale(0.85) sepia(0.1)'],
-        ground: [`${BG}bg/floor.webp`, 'brightness(0.62) grayscale(0.7) sepia(0.15) hue-rotate(190deg)'],
-        enemies: ['soldier', 'warden', 'shade', 'priest', 'tithe'],
-        places: ['잿빛 빈민가', '잠긴 약창고', '헌금 광장', '사라진 사람들의 골목', '백색 병동 회랑'],
-        finds: ['풀려난 약 상자', '헌금함 더미', '버려진 병상 담요', '금빛 성수 단지']
+        far: [`${BG}st6/far.webp`, 'brightness(0.62) saturate(0.9)', 1280 / 715],
+        mid: [`${BG}st6/mid.webp`, 'brightness(0.55) saturate(0.85)'], ground: [`${BG}st6/floor.webp`, 'brightness(0.85)'],
+        enemies: ['orderly', 'maidenshield', 'holywater', 'anesthetist', 'bloated'],
+        places: ['VIP 병동', '닫힌 병실', '소각로 앞', '수술실 회랑', '성배의 지하 제단'],
+        finds: ['봉인된 약 상자', '버려진 수술 도구', '금박 수혈 팩', '귀족의 기부 금고']
     }
 };
 const TREK_ASPECT = 32 / 9;   // 파견 일러스트 띠 (16:9 그림 + 거울 반전 = 끊김 없이 이어짐)
@@ -401,9 +449,10 @@ function newHtml() {
     const hours = progress.dispatchMs() / 3600000;
     const zoneCards = CHAPTERS.map(ch => {
         const z = DISPATCH_ZONES[ch.zone], open = zones.includes(ch.zone);
+        const soon = !isZoneReleased(ch.zone);
         // 썸네일: 전투 먼 배경(색조) 위에 파견 일러스트 (일러스트가 없으면 아래 것이 보임)
-        return `<button class="v2-dsp-zone${open ? '' : ' is-lock'}${ch.zone === pickedZone ? ' is-pick' : ''}" data-act="dspZone" data-zone="${ch.zone}" aria-pressed="${ch.zone === pickedZone}" ${open ? '' : 'disabled'}>
-            <i style="background-image:url('${z.far[0]}');filter:${z.far[1]}"></i>${z.trek ? `<i style="background-image:url('${z.trek}')"></i>` : ''}<b>구역 ${ch.zone}</b><small>${open ? esc(shortZone(ch.zone)) : '보스전(노말)을 깨면 열림'}</small><span class="v2-dsp-choice" aria-hidden="true">✓ 선택</span></button>`;
+        return `<button class="v2-dsp-zone${open ? '' : ' is-lock'}${soon ? ' is-coming-soon' : ''}${ch.zone === pickedZone ? ' is-pick' : ''}" data-act="dspZone" data-zone="${ch.zone}" aria-pressed="${ch.zone === pickedZone}" ${open ? '' : 'disabled'}>
+            <i style="background-image:url('${z.far[0]}');filter:${z.far[1]}"></i>${z.trek ? `<i style="background-image:url('${z.trek}')"></i>` : ''}<b>구역 ${ch.zone}</b><small>${soon ? `곧 공개 · ${releaseDateOf('zones', ch.zone)}` : open ? esc(shortZone(ch.zone)) : '보스전(노말)을 깨면 열림'}</small><span class="v2-dsp-choice" aria-hidden="true">✓ 선택</span></button>`;
     }).join('');
     const chars = !cands.length ? '<p class="v2-growth__hint">보낼 캐릭터가 없어요 — 해금하고 파츠 4부위를 보유한 캐릭터 중 출전·파견 중이 아닌 캐릭터만 보낼 수 있어요.</p>'
         : cands.map(c => `<button class="v2-dsp-char${c.id === pickedChar ? ' is-pick' : ''}" data-act="dspChar" data-char="${c.id}" aria-pressed="${c.id === pickedChar}" style="--sk:${c.color}">
@@ -416,7 +465,7 @@ function newHtml() {
         <div class="v2-dsp-go">${ex ? `<span>예상 보상</span><ul class="v2-dsp__reward">${rewardHtml(pickedZone)}</ul>` : ''}
             <button data-act="dispatch" data-char="${pickedChar || ''}" data-zone="${pickedZone || ''}" ${can ? '' : 'disabled'}>파견 보내기</button></div>
         <p class="v2-growth__hint">파츠는 30% 확률로 그 캐릭터 것 (레어 이하). 기록·장면은 연출이고 보상은 구역으로 정해져요.</p>`
-        : '<p class="v2-growth__hint">노말에서 구역 보스전(1-B)을 깨면 그 구역에 파견할 수 있어요.</p>'}
+        : `${CHAPTERS.some(ch => !isZoneReleased(ch.zone)) ? `<div class="v2-dsp-zones">${zoneCards}</div>` : ''}<p class="v2-growth__hint">노말에서 구역 보스전(1-B)을 깨면 그 구역에 파견할 수 있어요.</p>`}
     </section>`;
 }
 

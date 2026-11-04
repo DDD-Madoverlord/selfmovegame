@@ -40,6 +40,4 @@
     <!-- Permissions -->
 
     <uses-permission android:name="android.permission.INTERNET" />
-    <!-- 앱 업데이트: 내려받은 새 APK의 설치 화면 열기 (D-074, AppUpdatePlugin) -->
-    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
 </manifest>

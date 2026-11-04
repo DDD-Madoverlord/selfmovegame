@@ -1,0 +1,18 @@
+{
+  "frameWidth": 82,
+  "frameHeight": 100,
+  "anchorX": 31.9,
+  "res": 2.0,
+  "clips": {
+    "walk": {
+      "src": "assets/sprites/rig/steambomber/steambomber_walk.webp",
+      "frames": 16,
+      "duration": 0.55
+    },
+    "attack": {
+      "src": "assets/sprites/rig/steambomber/steambomber_attack.webp",
+      "frames": 14,
+      "duration": 0.9
+    }
+  }
+}

@@ -1,0 +1,514 @@
+/* ==========================================================================
+   PROJECT: MAD OVERLORD // 휴대폰 배치 전용 스타일 (v2)
+   body.v2-mobile일 때만 적용 — 휴대폰·태블릿(앱이거나 터치가 주 입력)이면 켜짐, PC(마우스)는 ui_v2.css 그대로 (D-099 · D-102).
+   켜는 곳: js/main_v2.js fitScreens. 설정 '화면 배치'(자동·휴대폰·PC)나 주소 ?ui=mobile|pc로 고정.
+   설계 px = 휴대폰 실제 px × 약 2 (휴대폰 가로에서 화면 맞춤 배율 약 0.5): 글자 22px 이상(실제 11px), 중요한 숫자 28px 이상, 누르는 것 88px 안팎.
+   PC 화면은 바꾸지 않음 — .v2-mobile 아래 규칙과 휴대폰에서만 보이는 요소(PC에서는 ui_v2.css가 숨김)의 모양만 있음.
+   ========================================================================== */
+
+/* ---------- 메인 · 전투 (Q-015 모바일 가독성 — 메인 시안 B · 전투 시안 A, 2026-11-03 D-099) ----------
+   메인은 창 전체(20:9 폭, --v2-vw × --v2-vh)를 쓰고, 전투는 16:9 그대로 HUD만 키우고 글을 줄임 */
+
+/* --- 메인 (시안 B): 창 전체, 왼쪽 메뉴 줄 · 가운데 캐릭터 · 오른쪽 스테이지 카드 + 협력 + 출격 --- */
+body.v2-fit.v2-mobile #screen-menu-v2 { left: 0; top: 0; width: var(--v2-vw, 1288px); height: var(--v2-vh, 728px); border: 0; border-radius: 0; box-shadow: none; }
+.v2-mobile #screen-menu-v2 .v2-menu__grid { position: static; display: block; height: 0; }
+.v2-mobile #screen-menu-v2 .v2-menu__foot { position: static; }
+.v2-mobile #screen-menu-v2 .v2-showroom { position: static; padding: 0; background: none; border: 0; box-shadow: none; clip-path: none; }
+.v2-mobile #screen-menu-v2 .v2-showroom::before, .v2-mobile #screen-menu-v2 .v2-showroom::after,
+.v2-mobile #screen-menu-v2 .v2-callouts, .v2-mobile #screen-menu-v2 .v2-showroom__actions, .v2-mobile #screen-menu-v2 .v2-statusbar,
+.v2-mobile #screen-menu-v2 #menu-faction-name-v2, .v2-mobile #screen-menu-v2 #menu-unit-tag-v2,
+.v2-mobile #screen-menu-v2 .v2-brand > div, .v2-mobile #screen-menu-v2 #btn-menu-shop-v2, .v2-mobile #screen-menu-v2 #btn-menu-support-v2 { display: none; }
+
+/* 위: 문장(시험 모드 5번 누르기) · 이름 · 소속 / 재화 · DM · 설정 */
+.v2-mobile #screen-menu-v2 .v2-topbar { top: 24px; left: 176px; right: 40px; height: 80px; }
+.v2-mobile #screen-menu-v2 .v2-brand__emblem { width: 64px; height: 64px; }
+.v2-mobile #screen-menu-v2 .v2-brand__emblem .v2-icon { width: 36px; height: 36px; }
+.v2-mobile #screen-menu-v2 .v2-showroom > .v2-frame__head { position: absolute; left: 256px; top: 24px; height: 80px; min-height: 0; align-items: center; z-index: 2; pointer-events: none; }
+.v2-mobile #screen-menu-v2 .v2-showroom > .v2-frame__head > div { display: flex; align-items: center; gap: 16px; }
+.v2-mobile #screen-menu-v2 #menu-unit-name-v2 { font-family: var(--v2-font); font-size: 42px; letter-spacing: 0; line-height: 1; white-space: nowrap; }
+.v2-mobile #screen-menu-v2 .v2-mclass { display: inline-block; padding: 6px 16px; border-radius: 8px; font: 700 24px var(--v2-font); white-space: nowrap; color: #c9d1de; background: rgba(42, 48, 60, 0.9); }
+.v2-mobile #screen-menu-v2 .v2-mclass.is-warn { color: #16120a; background: var(--v2-amber); }
+.v2-mobile #screen-menu-v2 .v2-topbar__right { gap: 16px; }
+.v2-mobile #screen-menu-v2 .v2-topbar .v2-chip { height: 72px; padding: 0 26px; gap: 10px; clip-path: none; border-radius: 36px; border-color: rgba(255, 176, 32, 0.3); }
+.v2-mobile #screen-menu-v2 .v2-topbar .v2-chip strong { font-size: 32px; }
+.v2-mobile #screen-menu-v2 .v2-topbar .v2-chip .v2-icon { width: 34px; height: 34px; }
+.v2-mobile #screen-menu-v2 .v2-chip--dm small, .v2-mobile #screen-menu-v2 .v2-chip--res i { display: none; }
+.v2-mobile #screen-menu-v2 .v2-chip--res { gap: 26px; }
+.v2-mobile #screen-menu-v2 .v2-chip--res span { align-items: center; gap: 8px; }
+.v2-mobile #screen-menu-v2 .v2-chip--res em { display: inline-flex; }
+.v2-mobile #screen-menu-v2 .v2-chip--res em .v2-icon { width: 30px; height: 30px; }
+.v2-mobile #screen-menu-v2 .v2-chip--res span:nth-child(1) em { color: #ffd166; }
+.v2-mobile #screen-menu-v2 .v2-chip--res span:nth-child(2) em { color: #7fd8ff; }
+.v2-mobile #screen-menu-v2 .v2-chip--res span:nth-child(3) em { color: #3dff8a; }
+.v2-mobile #screen-menu-v2 .v2-chip--res b { font-family: var(--v2-font-num); font-size: 28px; }
+.v2-mobile #screen-menu-v2 #btn-menu-settings-v2 { width: 80px; height: 80px; border-radius: 50%; clip-path: none; }
+.v2-mobile #screen-menu-v2 #btn-menu-settings-v2 .v2-icon { width: 44px; height: 44px; }
+/* 방치 보상: 위 줄 재화 칩 왼쪽 (열렸을 때만, 11-04 디자인 제안 — 좁은 16:9는 아래 @container에서 이름 아래로) */
+.v2-mobile #screen-menu-v2 #btn-menu-offline-v2 { position: static; flex: none; height: 64px; padding: 0 24px; font-size: 24px; white-space: nowrap; }
+
+/* 왼쪽 메뉴 줄 */
+.v2-mobile #screen-menu-v2 .v2-mrail { position: absolute; left: 24px; top: 24px; bottom: 24px; width: 120px; z-index: 3; display: flex; flex-direction: column; gap: 16px; }
+.v2-mrail__btn {
+    --rc: 217, 204, 255;
+    position: relative; flex: 0 1 112px; min-height: 88px; padding: 0;
+    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; cursor: pointer;
+    font: 900 24px var(--v2-font); color: rgb(var(--rc));
+    background: linear-gradient(180deg, rgba(var(--rc), 0.16), rgba(10, 12, 18, 0.92));
+    border: 2px solid rgba(var(--rc), 0.55); border-radius: 20px;
+    transition: transform 0.08s ease, filter 0.15s ease;
+}
+.v2-mrail__btn.is-cyan { --rc: 62, 230, 255; }
+.v2-mrail__btn.is-amber { --rc: 255, 194, 77; }
+.v2-mrail__btn:hover { filter: brightness(1.2); }
+.v2-mrail__btn:active { transform: scale(0.95); }
+.v2-mrail__btn i { position: absolute; top: -8px; right: -8px; width: 22px; height: 22px; border-radius: 50%; background: #ff3355; border: 4px solid #0b0d12; }
+.v2-mrail__btn i[hidden] { display: none; }
+
+/* 가운데: 캐릭터 · 오른쪽에 능력치 세로 4칸 · 아래 파츠 4칸 (11-04 디자인 제안 — [파츠·스킬] 창은 없앰) */
+.v2-mobile #screen-menu-v2 .v2-showroom__stage { position: absolute; left: 176px; right: 896px; top: 112px; bottom: 140px; height: auto; }
+.v2-mobile #screen-menu-v2 #menu-sprite-canvas-v2 { width: 100%; height: 100%; }
+.v2-mobile #screen-menu-v2 .v2-showroom__floor { width: 64%; max-width: 520px; height: 72px; bottom: 2%; }
+.v2-mobile #screen-menu-v2 .v2-showroom__stats { position: absolute; right: 664px; top: 186px; width: 212px; display: flex; flex-direction: column; gap: 14px; }
+.v2-mobile #screen-menu-v2 .v2-showroom__stats > div { flex-direction: row; justify-content: flex-start; gap: 16px; height: 72px; box-sizing: border-box; padding: 0 22px;
+    background: rgba(18, 21, 28, 0.86); border: 2px solid rgba(139, 149, 168, 0.3); border-radius: 12px; }
+.v2-mobile #screen-menu-v2 .v2-showroom__stats dt { display: flex; }
+.v2-mobile #screen-menu-v2 .v2-showroom__stats dt span { display: none; }
+.v2-mobile #screen-menu-v2 .v2-showroom__stats dt .v2-icon { display: block; }
+.v2-mobile #screen-menu-v2 .v2-showroom__stats > div:nth-child(1) dt { color: #9fb0c8; }
+.v2-mobile #screen-menu-v2 .v2-showroom__stats > div:nth-child(2) dt { color: #ff9a4d; }
+.v2-mobile #screen-menu-v2 .v2-showroom__stats > div:nth-child(3) dt { color: #7fd8ff; }
+.v2-mobile #screen-menu-v2 .v2-showroom__stats > div:nth-child(4) dt { color: #3dff8a; }
+.v2-mobile #screen-menu-v2 .v2-showroom__stats dd { font-size: 32px; }
+/* 파츠 4칸: 부위 · 파츠 이름 · 스킬 (menu_v2.js renderPartsRow) */
+.v2-mobile #screen-menu-v2 .v2-mparts-row { position: absolute; left: 176px; right: 640px; bottom: 24px; height: 112px; z-index: 2; margin: 0; padding: 0; list-style: none;
+    display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
+.v2-mparts-row li { min-width: 0; display: flex; flex-direction: column; justify-content: center; gap: 4px; padding: 0 18px;
+    background: rgba(14, 16, 22, 0.88); border: 2px solid rgba(255, 255, 255, 0.1); border-radius: 14px; }
+.v2-mparts-row li b { font: 800 22px var(--v2-font); color: var(--v2-amber); white-space: nowrap; }
+.v2-mparts-row li strong { font: 900 26px var(--v2-font); color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.v2-mparts-row li em { display: block; font: normal 700 22px var(--v2-font); color: var(--sk); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.v2-mparts-row li em .v2-icon { width: 26px; height: 26px; margin-right: 6px; vertical-align: -5px; filter: drop-shadow(0 0 4px var(--sk)); }
+
+/* 오른쪽: 스테이지 카드 · 협력 · 출격 (엄지 자리) */
+.v2-mobile #screen-menu-v2 .v2-mstage {
+    position: absolute; right: 40px; top: 124px; bottom: 280px; width: 560px; z-index: 2; box-sizing: border-box; padding: 20px 24px;
+    display: flex; flex-direction: column; gap: 12px;
+    background: rgba(14, 16, 22, 0.9); border: 2px solid rgba(255, 176, 32, 0.4); border-radius: 20px;
+}
+.v2-mstage button { cursor: pointer; font-family: var(--v2-font); }
+.v2-mstage__zone { align-self: flex-start; max-width: 100%; display: inline-flex; align-items: center; gap: 6px; padding: 0; border: 0; background: none; font-size: 24px; font-weight: 700; color: #b7c0cf; white-space: nowrap; }
+.v2-mstage__title { display: flex; align-items: baseline; gap: 20px; min-width: 0; }
+.v2-mstage__title b { font: 900 60px/1 var(--v2-font-num); color: var(--v2-amber); }
+.v2-mstage__title strong { min-width: 0; font: 900 36px/1.15 var(--v2-font); color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.v2-mstage__meta { display: flex; align-items: center; gap: 14px; font-size: 24px; color: var(--v2-dim); }
+.v2-mstage__stars { display: flex; gap: 4px; }
+.v2-mstage__stars i { display: flex; color: rgba(255, 209, 102, 0.25); }
+.v2-mstage__stars i.is-on { color: var(--v2-gold); filter: drop-shadow(0 0 6px rgba(255, 209, 102, 0.7)); }
+.v2-mstage .v2-diffbadge { font-size: 24px; padding: 4px 14px; border-radius: 8px; }
+.v2-mstage__boss { padding: 4px 12px; border-radius: 8px; font: 900 22px var(--v2-font); color: #fff; background: #b3263f; }
+.v2-mstage__time { margin-left: auto; display: inline-flex; align-items: center; gap: 8px; font: 800 28px var(--v2-font-num); color: var(--v2-gold); }
+.v2-mstage__pick { margin-top: auto; height: 72px; flex: none; display: flex; align-items: center; justify-content: center; gap: 12px;
+    font-size: 28px; font-weight: 900; color: var(--v2-gold); background: rgba(255, 176, 32, 0.1); border: 2px solid rgba(255, 176, 32, 0.5); border-radius: 16px; }
+.v2-mstage__pick:hover { background: rgba(255, 176, 32, 0.2); }
+.v2-mobile #screen-menu-v2 .v2-coop-menu { left: auto; right: 40px; top: auto; bottom: 172px; width: 560px; height: 92px; min-height: 0; padding: 0 22px; gap: 16px; border-width: 2px; border-radius: 20px; }
+.v2-mobile #screen-menu-v2 .v2-coop-menu:not(.is-selected)::before { content: '+'; flex: none; width: 64px; height: 64px; box-sizing: border-box; display: grid; place-items: center;
+    border: 3px dashed rgba(62, 230, 255, 0.7); border-radius: 50%; font: 400 40px/1 var(--v2-font); color: var(--v2-cyan); }
+.v2-mobile #screen-menu-v2 .v2-coop-menu:not(.is-selected) .v2-coop-menu__text { display: flex; align-items: baseline; gap: 16px; }
+.v2-mobile #screen-menu-v2 .v2-coop-menu strong { flex: none; font-size: 28px; }
+.v2-mobile #screen-menu-v2 .v2-coop-menu small, .v2-mobile #screen-menu-v2 .v2-coop-menu.is-selected small { min-width: 0; margin-top: 2px; font-size: 22px; line-height: 1.3; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.v2-mobile #screen-menu-v2 .v2-coop-menu.is-selected strong { font-size: 28px; }
+.v2-mobile #screen-menu-v2 .v2-coop-menu__label { display: none !important; }
+.v2-mobile #screen-menu-v2 .v2-coop-menu__portrait { width: 64px; height: 76px; }
+.v2-mobile #screen-menu-v2 .v2-sortie { position: absolute; right: 40px; bottom: 28px; width: 560px; height: 128px; padding: 0 76px; background-size: 68px 100%, 68px 100%, auto; }
+.v2-mobile #screen-menu-v2 .v2-sortie strong, .v2-mobile #screen-menu-v2 .v2-sortie small { display: none; }
+.v2-mobile #screen-menu-v2 .v2-sortie__ko { display: block; margin-right: -12px; font: 900 56px/1 var(--v2-font); letter-spacing: 12px; }
+
+/* 16:9처럼 좁은 화면(설계 폭 1450px 미만 — 20:9 휴대폰은 약 1600px): 오른쪽 칸 · 능력치 · 파츠 칸을 조금 줄임 */
+.v2-mobile #screen-menu-v2 .v2-hangar { container-type: inline-size; }
+@container (max-width: 1449px) {
+    .v2-mobile #screen-menu-v2 .v2-mstage, .v2-mobile #screen-menu-v2 .v2-coop-menu, .v2-mobile #screen-menu-v2 .v2-sortie { width: 480px; }
+    .v2-mobile #screen-menu-v2 .v2-showroom__stage { right: 760px; }
+    .v2-mobile #screen-menu-v2 .v2-showroom__stats { right: 576px; width: 176px; }
+    .v2-mobile #screen-menu-v2 .v2-showroom__stats > div { gap: 10px; padding: 0 16px; }
+    .v2-mobile #screen-menu-v2 .v2-showroom__stats dt .v2-icon { width: 26px; height: 26px; }
+    .v2-mobile #screen-menu-v2 .v2-showroom__stats dd { font-size: 28px; }
+    .v2-mobile #screen-menu-v2 .v2-mparts-row { right: 560px; gap: 8px; }
+    .v2-mparts-row li { padding: 0 12px; }
+    .v2-mobile #screen-menu-v2 #btn-menu-offline-v2 { position: absolute; left: 80px; top: 96px; height: 60px; padding: 0 22px; font-size: 22px; }   /* 위 줄에 자리가 없어 이름 아래로 */
+}
+
+/* 스테이지 선택: 레이더를 전체 화면으로 ([스테이지 선택]·구역 이름을 누르면, menu_v2.js openStages) */
+.v2-mobile #screen-menu-v2 .v2-radar { display: none; }
+.v2-mobile #screen-menu-v2 .v2-menu.is-stages-open .v2-radar {
+    display: grid; grid-template-columns: minmax(0, 1fr) auto; grid-template-rows: auto minmax(0, 1fr) auto; gap: 12px 20px;
+    position: absolute; inset: 16px; z-index: 40; padding: 16px 24px;
+}
+.v2-mobile #screen-menu-v2 .v2-radar::before { display: none; }
+.v2-mobile #screen-menu-v2 .v2-radar > .v2-frame__head, .v2-mobile #screen-menu-v2 .v2-radar__screen { grid-column: 1 / -1; }
+.v2-mobile #screen-menu-v2 .v2-radar > .v2-frame__head { align-items: center; gap: 16px; min-height: 88px; }
+.v2-mobile #screen-menu-v2 .v2-radar h2, .v2-mobile #screen-menu-v2 .v2-radar .v2-frame__tag--live { display: none; }
+.v2-mobile #screen-menu-v2 #menu-map-name-v2 { margin: 0; font-size: 28px; font-weight: 900; color: var(--v2-amber); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.v2-mobile #screen-menu-v2 .v2-radar > .v2-frame__head > div:first-child { min-width: 0; }   /* 긴 구역 이름은 … (난이도 단추가 같은 줄) */
+.v2-mobile #screen-menu-v2 .v2-radar__close { display: grid; flex: none; }
+.v2-mobile #screen-menu-v2 .v2-radar__screen { height: auto; min-height: 0; }
+.v2-mobile #screen-menu-v2 .v2-difftabs { gap: 10px; }   /* 머리 줄: 구역 이름과 닫기 사이 */
+.v2-mobile #screen-menu-v2 .v2-difftab { min-height: 60px; padding: 0 20px; gap: 6px; font-size: 24px; border-radius: 10px; }
+.v2-mobile #screen-menu-v2 .v2-difftab .v2-icon { width: 18px; height: 18px; }
+.v2-mobile #screen-menu-v2 .v2-radar__diffnote { right: 16px; bottom: 16px; padding: 10px 16px; font-size: 22px; }
+.v2-mobile #screen-menu-v2 .v2-radar__diffnote b { font-size: 24px; }
+.v2-mobile #screen-menu-v2 .v2-radar__locked strong { font-size: 40px; }
+.v2-mobile #screen-menu-v2 .v2-radar__locked small { font-size: 24px; }
+.v2-mobile #screen-menu-v2 .v2-radar__locked .v2-icon { width: 64px; height: 64px; }
+.v2-mobile #screen-menu-v2 .v2-radar__foot { align-self: center; justify-content: flex-start; gap: 4px 16px; min-height: 0; font: 700 24px/1.35 var(--v2-font); letter-spacing: 0; color: var(--v2-text); }
+.v2-mobile #screen-menu-v2 .v2-radar__foot b { font-size: 26px; color: var(--v2-amber); }
+.v2-mobile #screen-menu-v2 .v2-radar__foot .v2-stars { font-size: 28px; }
+.v2-mobile #screen-menu-v2 .v2-radar__foot .v2-radar__time { font-size: 24px; }
+.v2-mobile #screen-menu-v2 .v2-radar__foot small { text-align: left; font-size: 22px; font-weight: 400; }
+.v2-mobile #screen-menu-v2 .v2-radar__tabs { align-self: center; gap: 12px; }
+.v2-mobile #screen-menu-v2 .v2-maptab { flex: none; width: 240px; height: 72px; font-size: 24px; letter-spacing: 1px; }
+.v2-mclose { width: 88px; height: 88px; padding: 0; place-items: center; cursor: pointer; color: var(--v2-text); background: rgba(255, 255, 255, 0.06); border: 2px solid rgba(255, 255, 255, 0.22); border-radius: 50%; }
+.v2-mclose:hover { border-color: var(--v2-amber); color: var(--v2-amber); }
+
+/* 스테이지 선택 창 뒤 어둡게 · 잠깐 뜨는 알림 */
+.v2-mobile #screen-menu-v2 .v2-mscrim:not([hidden]) { display: block; position: absolute; inset: 0; z-index: 35; background: rgba(4, 5, 8, 0.62); }
+.v2-mobile #screen-menu-v2 .v2-mtoast:not([hidden]) {
+    display: block; position: absolute; left: 50%; top: 120px; z-index: 60; transform: translateX(-50%); max-width: 70%; padding: 18px 32px; pointer-events: none;
+    font: 700 26px/1.4 var(--v2-font); color: #fff; text-align: center; background: rgba(12, 14, 20, 0.95); border: 2px solid var(--v2-amber); border-radius: 16px; box-shadow: 0 8px 30px rgba(0, 0, 0, 0.6);
+}
+.v2-mtoast.is-in { animation: v2-coach-in 0.3s ease both; }
+.v2-mtoast b { color: var(--v2-amber); }
+
+/* 첫 성장 안내 줄: 메인은 파츠 4칸 위, 전투는 왼쪽 아래(전황 문장 자리) */
+.v2-mobile #screen-menu-v2 .v2-tutorial, .v2-mobile #screen-battle-v2 .v2-tutorial { right: auto; justify-content: flex-start; gap: 12px; font-size: 22px; }
+.v2-mobile #screen-menu-v2 .v2-tutorial { left: 176px; bottom: 152px; }
+.v2-mobile #screen-battle-v2 .v2-tutorial { left: 16px; top: auto; bottom: 16px; }
+.v2-mobile #screen-menu-v2 .v2-tutorial span, .v2-mobile #screen-battle-v2 .v2-tutorial span { padding: 10px 18px; border-radius: 10px; }
+.v2-mobile #screen-menu-v2 .v2-tutorial button, .v2-mobile #screen-battle-v2 .v2-tutorial button { min-height: 60px; padding: 0 20px; border-radius: 10px; }
+
+/* 안내 말풍선: 짧은 한 줄 (coach_v2.js short) */
+.v2-mobile #screen-menu-v2 .v2-coach, .v2-mobile #screen-battle-v2 .v2-coach { max-width: 680px; padding: 14px 24px; border-width: 3px; }
+.v2-mobile #screen-menu-v2 .v2-coach p, .v2-mobile #screen-battle-v2 .v2-coach p { font-size: 26px; font-weight: 900; }
+
+/* --- 전투 (시안 A): HUD 자리는 그대로 — 얼굴 + 체력 숫자, 진행 막대에 요새·기지 아이콘, 큰 스킬 버튼. 이름·상태·전황 글은 숨김 --- */
+.v2-mobile #screen-battle-v2 .v2-unit { top: 16px; left: 16px; width: auto; height: 92px; padding: 0; gap: 12px; background: none; clip-path: none; filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.6)); }
+.v2-mobile #screen-battle-v2 .v2-unit::before,
+.v2-mobile #screen-battle-v2 .v2-unit__name, .v2-mobile #screen-battle-v2 .v2-unit__state, .v2-mobile #screen-battle-v2 .v2-log,
+.v2-mobile #screen-battle-v2 .v2-progress__dist, .v2-mobile #screen-battle-v2 #battle-stars-v2, .v2-mobile #screen-battle-v2 .v2-progress__name,
+.v2-mobile #screen-battle-v2 #btn-speed-v2 .v2-icon, .v2-mobile #screen-battle-v2 .v2-topright .v2-chip small,
+.v2-mobile #screen-battle-v2 .v2-skill kbd, .v2-mobile #screen-battle-v2 .v2-skill-name,
+.v2-mobile #screen-battle-v2 .v2-support-hud.is-empty, .v2-mobile #screen-battle-v2 .v2-support-heading,
+.v2-mobile #screen-battle-v2 .v2-support-preview, .v2-mobile #screen-battle-v2 .v2-support-info, .v2-mobile #screen-battle-v2 .v2-pause__keys,
+.v2-mobile #screen-battle-v2 .enemy-entity.v2-enemy:not(.is-elite):not(.is-boss)::after { display: none; }
+.v2-mobile #screen-battle-v2 .v2-unit__portrait { flex: 0 0 92px; height: 92px; box-sizing: border-box; clip-path: none; overflow: hidden; border: 4px solid var(--faction, #3ee6ff); border-radius: 20px; box-shadow: none; }
+.v2-mobile #screen-battle-v2 .v2-unit__phase { bottom: 2px; padding: 1px 6px; font-size: 16px; }
+.v2-mobile #screen-battle-v2 .v2-unit__badge {
+    display: flex; position: absolute; left: 64px; top: 64px; z-index: 2; width: 40px; height: 40px; box-sizing: border-box;
+    align-items: center; justify-content: center; border-radius: 50%; border: 3px solid #12151c; color: #06210f; background: var(--v2-green);
+}
+.v2-mobile #screen-battle-v2 .v2-unit__badge[data-state="attacking"] { color: #1d0e00; background: var(--v2-orange); }
+.v2-mobile #screen-battle-v2 .v2-unit__badge[data-state="victory"] { color: #16120a; background: var(--v2-gold); }
+.v2-mobile #screen-battle-v2 .v2-unit__body { flex: 0 0 264px; gap: 6px; }
+.v2-mobile #screen-battle-v2 .v2-unit .v2-bar { height: 40px; clip-path: none; border: 2px solid rgba(0, 0, 0, 0.6); border-radius: 8px; }
+.v2-mobile #screen-battle-v2 .v2-unit .v2-bar__fill::after { background: repeating-linear-gradient(90deg, transparent 0 43px, rgba(0, 0, 0, 0.22) 43px 44px); }
+.v2-mobile #screen-battle-v2 .v2-unit .v2-bar__text { right: 12px; font-size: 26px; font-weight: 900; }
+.v2-mobile #screen-battle-v2 .v2-unit .v2-bar__text small { display: none; }
+.v2-mobile #screen-battle-v2 .v2-unit__status { top: 44px; left: 0; right: auto; gap: 6px; }   /* 체력 막대 바로 아래 (기준 = .v2-unit__body) */
+.v2-mobile #screen-battle-v2 .v2-unit__status .v2-status__icon { width: 30px; height: 30px; border-radius: 6px; }
+.v2-mobile #screen-battle-v2 .v2-unit__status .v2-status__icon .v2-icon { width: 22px; height: 22px; }
+.v2-mobile #screen-battle-v2 .v2-unit__status em { margin-right: 8px; font-size: 22px; }
+
+.v2-mobile #screen-battle-v2 .v2-progress { top: 16px; width: auto; height: 72px; padding: 0 22px; flex-direction: row; align-items: center; gap: 16px; }
+.v2-mobile #screen-battle-v2 .v2-progress__head { display: contents; }
+.v2-mobile #screen-battle-v2 .v2-progress__head > * { position: relative; z-index: 1; }
+.v2-mobile #screen-battle-v2 .v2-progress__stage { order: 1; display: flex; align-items: center; gap: 8px; font-size: 26px; white-space: nowrap; }
+.v2-mobile #screen-battle-v2 .v2-progress__stage .v2-diffbadge { margin-right: 0; padding: 2px 8px; font-size: 18px; }
+.v2-mobile #screen-battle-v2 .v2-progress__track { order: 2; flex: none; width: 200px; height: 16px; border-radius: 8px; overflow: visible; }
+.v2-mobile #screen-battle-v2 .v2-progress:has(.v2-diffbadge) .v2-progress__track { width: 150px; }
+.v2-mobile #screen-battle-v2 .v2-progress__fill { border-radius: 8px; }
+.v2-mobile #screen-battle-v2 .v2-progress__timer { order: 3; font-size: 32px; white-space: nowrap; }
+.v2-mobile #screen-battle-v2 .v2-progress__mark { width: 38px; height: 38px; margin-left: -19px; }
+.v2-mobile #screen-battle-v2 .v2-progress__mark .v2-icon { width: 22px; height: 22px; }
+.v2-mobile #screen-battle-v2 .v2-progress__unit { top: 50%; z-index: 2; width: 24px; height: 24px; margin: -12px 0 0 -12px; box-sizing: border-box; border: 3px solid #0b0d12; border-radius: 50%; background: var(--v2-cyan); }
+
+.v2-mobile #screen-battle-v2 .v2-topright { top: 16px; right: 16px; gap: 12px; }
+.v2-mobile #screen-battle-v2 .v2-topright .v2-chip { height: 72px; padding: 0 20px; gap: 10px; }
+.v2-mobile #screen-battle-v2 .v2-topright .v2-chip strong { font-size: 28px; }
+.v2-mobile #screen-battle-v2 .v2-topright .v2-chip .v2-icon { width: 30px; height: 30px; }
+.v2-mobile #screen-battle-v2 .v2-topright .v2-iconbtn { min-width: 80px; height: 72px; font-size: 26px;
+    clip-path: polygon(12px 0, 100% 0, 100% calc(100% - 12px), calc(100% - 12px) 100%, 0 100%, 0 12px); }
+.v2-mobile #screen-battle-v2 #btn-pause-v2 .v2-icon { width: 36px; height: 36px; }
+
+.v2-mobile #screen-battle-v2 .v2-target { top: 104px; width: 560px; gap: 6px; }
+.v2-mobile #screen-battle-v2 .v2-target__label { padding: 4px 28px; font-size: 22px; }
+.v2-mobile #screen-battle-v2 .v2-bar--boss { height: 24px; }
+.v2-mobile #screen-battle-v2 .v2-bossbar { top: 172px; width: 560px; gap: 6px; }
+.v2-mobile #screen-battle-v2 .v2-bossbar__label { font-size: 24px; }
+.v2-mobile #screen-battle-v2 .v2-bossbar__label b { padding: 2px 10px; font-size: 20px; }
+.v2-mobile #screen-battle-v2 .enemy-entity.is-elite::after, .v2-mobile #screen-battle-v2 .enemy-entity.is-boss::after { top: -34px; padding: 2px 8px; font-size: 16px; }
+.v2-mobile #screen-battle-v2 .enemy-entity .enemy-hp-track { height: 7px; }
+.v2-mobile #screen-battle-v2 .v2-support-mark::after { top: -32px; font-size: 18px; }
+.v2-mobile #screen-battle-v2 .v2-support-actor > span { font-size: 20px; }
+
+/* 스킬: 56px·필살기 72px (실제 크기) — 이름·단축키 대신 아이콘 + 쿨타임 숫자 */
+.v2-mobile #screen-battle-v2 .v2-skilldock { right: 16px; bottom: 16px; gap: 16px; }
+.v2-mobile #screen-battle-v2 .v2-skills { gap: 16px; }
+.v2-mobile #screen-battle-v2 .v2-skill { width: 112px; height: 112px;
+    clip-path: polygon(22px 0, calc(100% - 22px) 0, 100% 22px, 100% calc(100% - 22px), calc(100% - 22px) 100%, 22px 100%, 0 calc(100% - 22px), 0 22px); }
+.v2-mobile #screen-battle-v2 .v2-skill::before, .v2-mobile #screen-battle-v2 .v2-skill__cd { inset: 4px; }
+.v2-mobile #screen-battle-v2 .v2-skill__icon .v2-icon { width: 60px; height: 60px; }
+.v2-mobile #screen-battle-v2 .v2-skill__num { font-size: 40px; }
+.v2-mobile #screen-battle-v2 .v2-skill--mod { width: 84px; height: 84px;
+    clip-path: polygon(16px 0, calc(100% - 16px) 0, 100% 16px, 100% calc(100% - 16px), calc(100% - 16px) 100%, 16px 100%, 0 calc(100% - 16px), 0 16px); }
+.v2-mobile #screen-battle-v2 .v2-skill--mod .v2-skill__icon .v2-icon { width: 42px; height: 42px; }
+.v2-mobile #screen-battle-v2 .v2-skill--mod .v2-skill__num { font-size: 30px; }
+.v2-mobile #screen-battle-v2 .v2-skill--ult { width: 144px; height: 144px; clip-path: none; box-shadow: 0 0 0 4px #3a404d, 0 0 0 7px #0b0d12; }
+.v2-mobile #screen-battle-v2 .v2-skill--ult::before { inset: 10px; }
+.v2-mobile #screen-battle-v2 .v2-skill--ult .v2-skill__icon .v2-icon { width: 66px; height: 66px; }
+.v2-mobile #screen-battle-v2 .v2-skill--ult .v2-skill__num { align-items: flex-end; padding-bottom: 18px; font-size: 26px; }
+.v2-mobile #screen-battle-v2 .v2-auto { height: 56px; padding: 0 26px 0 18px; gap: 8px; font-size: 24px; clip-path: polygon(12px 0, 100% 0, calc(100% - 12px) 100%, 0 100%); }
+.v2-mobile #screen-battle-v2 .v2-auto .v2-icon { width: 28px; height: 28px; }
+
+/* 협력: 충전 초상화 + 자동 단추만 (효과 상세는 메인의 협력 출격 창에서) */
+.v2-mobile #screen-battle-v2 .v2-support-hud { left: 16px; top: 124px; width: auto; padding: 8px 12px 8px 8px; gap: 12px; }
+.v2-mobile #screen-battle-v2 .v2-support-call.v2-skill { width: 96px; height: 96px; }
+.v2-mobile #screen-battle-v2 .v2-support-call img { width: 76px; height: 80px; padding-top: 8px; }
+.v2-mobile #screen-battle-v2 .v2-support-call .v2-skill__num { font-size: 34px; }
+.v2-mobile #screen-battle-v2 .v2-support-summary { flex: none; }
+.v2-mobile #screen-battle-v2 .v2-support-actions { margin: 0; }
+.v2-mobile #screen-battle-v2 .v2-support-auto { min-height: 64px; padding: 0 18px; font-size: 22px; }
+.v2-mobile #screen-battle-v2 .v2-support-notice { top: 196px; padding: 16px 32px; font-size: 28px; }
+
+/* 모바일 웹 '전체 화면' 단추 (mobileWeb_v2.js, 앱에는 없음): 메인은 위 가운데, 전투는 왼쪽 아래 — 출격·스킬 단추를 가리지 않게 */
+body.v2-mobile:has(#screen-menu-v2.active) .v2-mobile-web > .v2-mobile-web__fullscreen { right: auto; bottom: auto; left: calc(184px * var(--v2-scale, 0.5)); top: calc(118px * var(--v2-scale, 0.5)); }   /* 이름 아래 (위 가운데는 방치 보상 자리, 11-04) */
+@media (max-aspect-ratio: 1.8) {   /* 16:9: 방치 보상이 이름 아래로 내려오므로 그 밑 */
+    body.v2-mobile:has(#screen-menu-v2.active) .v2-mobile-web > .v2-mobile-web__fullscreen { top: calc(190px * var(--v2-scale, 0.5)); }
+}
+body.v2-mobile:has(#screen-battle-v2.active) .v2-mobile-web > .v2-mobile-web__fullscreen { right: auto; left: max(2px, env(safe-area-inset-left)); }
+body.v2-mobile:has(#screen-lab-v2.active) .v2-mobile-web > .v2-mobile-web__fullscreen,
+body.v2-mobile:has(#screen-select-v2.active) .v2-mobile-web > .v2-mobile-web__fullscreen,   /* 연구소·선택창은 오른쪽 아래 단추를 가림 — 전체 화면은 메인·전투에서 */
+body.v2-mobile:has(#screen-menu-v2 .v2-menu.is-stages-open) .v2-mobile-web > .v2-mobile-web__fullscreen,
+body.v2-mobile:has([role="dialog"]:not([hidden]):not(.v2-mobile-web__portrait)) .v2-mobile-web > .v2-mobile-web__fullscreen { display: none; }   /* 스테이지 선택·설정 등 창의 머리를 가림 */
+
+/* 일시정지 창: 단추를 손가락 크기로 */
+.v2-mobile #screen-battle-v2 .v2-pause__panel { zoom: 1.5; }
+.v2-mobile #screen-battle-v2 .v2-pause__panel p { font-size: 16px; }
+.v2-mobile #screen-battle-v2:has(#pause-overlay-v2:not([hidden])) .v2-coach { display: none; }   /* 일시정지 창 위로 안내 말풍선이 뜨지 않게 */
+
+/* ---------- 화면 위에 뜨는 창 (설정 · 작전 지원 · 앱 업데이트 · 로딩, 2026-11-03) ----------
+   PC는 게임 판 배율(--v2-scale, 휴대폰 약 0.5)로 줄여 글자가 실제 5~7px → 휴대폰은 실제 크기 × 1.15.
+   창 폭·높이는 화면에 맞추고, 넘치는 내용은 창 안에서 밀어 봄. (상점·방치 보상·확률 정보 창은 처음부터 실제 크기) */
+body.v2-mobile { --v2-mz: 1.15; }
+body.v2-fit.v2-mobile .v2-settings__panel,
+body.v2-fit.v2-mobile .v2-update__panel,
+body.v2-fit.v2-mobile .v2-growth__box,
+body.v2-fit.v2-mobile .v2-loading__box { zoom: var(--v2-mz); }
+body.v2-fit.v2-mobile .v2-growth__box { width: min(940px, calc(100vw / var(--v2-mz) - 24px)); max-height: calc(100vh / var(--v2-mz) - 12px); }
+body.v2-fit.v2-mobile .v2-settings__panel,
+body.v2-fit.v2-mobile .v2-update__panel { width: min(520px, calc(100vw / var(--v2-mz) - 24px)); max-height: calc(100vh / var(--v2-mz) - 12px); overflow-y: auto; overscroll-behavior: contain; }
+
+/* ---------- 연구소 (2026-11-03, 11-04 디자인 제안 반영): 게임 판 배율을 빼고 실제 크기(--v2-lz배)로 창 전체에 펼침 ----------
+   여기 px ≈ 휴대폰 실제 px (위 메인·전투의 절반 크기 기준과 다름). 2칸: 왼쪽 캐릭터(크게) · 능력치 2×2 / 오른쪽 세로 부위 탭 · 등급 칩 · [초기화] · 파츠 · 강화 줄 + [확정].
+   파츠는 고른 것만 펼쳐(개조 후 능력치 4칸 · 스킬) 나머지는 그림 + 이름 한 줄. 스킬 구성은 캐릭터 칸의 [스킬]을 누르면 파츠 칸 자리에 (lab_v2.js) */
+body.v2-mobile { --v2-lz: 1; }
+body.v2-fit.v2-mobile #screen-lab-v2 { left: 0; top: 0; width: var(--v2-aw, 100vw); height: var(--v2-ah, 100vh); transform: none; border: 0; border-radius: 0; box-shadow: none; }
+.v2-mobile #screen-lab-v2 .v2-lab { zoom: var(--v2-lz); width: calc(var(--v2-aw, 100vw) / var(--v2-lz)); height: calc(var(--v2-ah, 100vh) / var(--v2-lz)); }
+/* 위 줄: 뒤로 · 연구소 · 재화 · 확률 정보 · 설정 */
+.v2-mobile #screen-lab-v2 .v2-topbar { top: 6px; left: 8px; right: 8px; height: 40px; }
+.v2-mobile #screen-lab-v2 .v2-brand { gap: 10px; }
+.v2-mobile #screen-lab-v2 .v2-brand small, .v2-mobile #screen-lab-v2 .v2-brand span:not([data-icon]) { display: none; }
+.v2-mobile #screen-lab-v2 .v2-brand h1 { font-size: 20px; }
+.v2-mobile #screen-lab-v2 .v2-iconbtn--lg { width: 40px; height: 40px; }
+.v2-mobile #screen-lab-v2 .v2-topbar__right { gap: 6px; }
+.v2-mobile #screen-lab-v2 .v2-chip { height: 36px; padding: 0 10px 0 8px; }
+.v2-mobile #screen-lab-v2 .v2-chip small, .v2-mobile #screen-lab-v2 .v2-chip--res i { font-size: 11px; }
+.v2-mobile #screen-lab-v2 .v2-topbar__right .v2-btn { height: 36px; padding: 0 12px; font-size: 13px; }
+/* 두 칸 */
+.v2-mobile #screen-lab-v2 .v2-lab__grid { top: 52px; left: 8px; right: 8px; bottom: 8px; height: auto; gap: 8px;
+    grid-template-columns: 236px minmax(0, 1fr); grid-template-rows: minmax(0, 1fr) auto; }
+.v2-mobile #screen-lab-v2 .v2-lab__preview { grid-column: 1; grid-row: 1; padding: 6px 10px; gap: 0; min-height: 0; }
+.v2-mobile #screen-lab-v2 .v2-lab__preview .v2-frame__head { min-height: 0; align-items: center; }
+.v2-mobile #screen-lab-v2 .v2-lab__preview .v2-frame__head h2 { font-size: 16px; }
+.v2-mobile #screen-lab-v2 .v2-lab__preview .v2-frame__head small { font-size: 11px; margin: 0; }
+.v2-mobile #screen-lab-v2 .v2-frame__tag { display: none; }
+.v2-mobile #screen-lab-v2 .v2-lab__stage { min-height: 0; }
+.v2-mobile #lab-rig-canvas-v2 { width: 100%; height: 100%; max-height: 100%; }
+.v2-mobile #screen-lab-v2 .v2-lab__info { display: contents; }
+.v2-mobile #screen-lab-v2 .v2-lab__info > .v2-lab__title, .v2-mobile #screen-lab-v2 .v2-lab__scroll-hint { display: none; }
+/* 능력치: 캐릭터 칸 아래 2×2 — 이름 위, 개조 후 값 + 차이 아래 (값과 차이가 겹치던 것) */
+.v2-mobile #screen-lab-v2 .v2-compare { grid-column: 1; grid-row: 2; margin: 0; display: grid; grid-template-columns: 1fr 1fr; gap: 4px; }
+.v2-mobile #screen-lab-v2 .v2-compare > div { grid-template-columns: auto minmax(0, 1fr); grid-template-rows: auto auto; align-items: baseline; gap: 0 6px; padding: 5px 8px; border: 0;
+    background: rgba(10, 12, 18, 0.8); border-left: 2px solid rgba(255, 176, 32, 0.5); }
+.v2-mobile #screen-lab-v2 .v2-compare dt { grid-column: 1 / -1; font-size: 11px; white-space: nowrap; }
+.v2-mobile #screen-lab-v2 .v2-compare .is-old, .v2-mobile #screen-lab-v2 .v2-compare .is-arrow { display: none; }
+.v2-mobile #screen-lab-v2 .v2-compare dd { font-size: 16px; text-align: left; white-space: nowrap; }
+.v2-mobile #screen-lab-v2 .v2-compare .is-delta { font-size: 11px; text-align: right; white-space: nowrap; }
+/* 스킬 구성: [스킬]을 누르면 파츠 칸 자리에 (한 번 더 누르면 파츠) */
+.v2-mobile #screen-lab-v2 .v2-lab__skills { grid-column: 2; grid-row: 1 / span 2; display: none; z-index: 2; padding: 10px 12px;
+    background: linear-gradient(180deg, rgba(22, 25, 34, 0.98), rgba(9, 10, 14, 0.98)); border: 1px solid rgba(255, 176, 32, 0.32); }
+.v2-mobile #screen-lab-v2 .v2-lab__skills::before { content: '스킬 구성 · 파츠가 스킬을 정함'; display: block; margin-bottom: 8px; font-size: 14px; font-weight: 900; color: var(--v2-amber); }
+.v2-mobile #screen-lab-v2 .v2-lab.is-mskills .v2-lab__skills { display: block; }
+.v2-mobile #screen-lab-v2 .v2-lab.is-mskills .v2-lab__parts,
+.v2-mobile #screen-lab-v2 .v2-lab.is-mskills #btn-cart-reset-v2, .v2-mobile #screen-lab-v2 .v2-lab.is-mskills #btn-equip-confirm-v2 { visibility: hidden; }
+.v2-mobile #screen-lab-v2 .v2-skillup, .v2-mobile #screen-lab-v2 .v2-skillup small { font-size: 11px; }
+.v2-mobile #screen-lab-v2 .v2-loadout__name { font-size: 13px; }
+.v2-mobile #screen-lab-v2 .v2-loadout__name em, .v2-mobile #screen-lab-v2 .v2-loadout__name b, .v2-mobile #screen-lab-v2 .v2-loadout__name i { font-size: 11px; }
+.v2-mobile #screen-lab-v2 .v2-loadout__desc { font-size: 11px; -webkit-line-clamp: 3; }
+.v2-mobile #screen-lab-v2 .v2-setbonus__row, .v2-mobile #screen-lab-v2 .v2-setbonus__row b { font-size: 11px; }
+.v2-mlabskills { align-items: center; gap: 4px; height: 30px; padding: 0 12px; border: 1px solid rgba(255, 176, 32, 0.5); border-radius: 15px;
+    background: rgba(255, 176, 32, 0.08); color: var(--v2-amber); font: 800 13px var(--v2-font); cursor: pointer; }
+.v2-mlabskills[aria-pressed="true"] { color: #16120a; background: var(--v2-amber); }
+.v2-mobile .v2-mlabskills { display: inline-flex; }
+/* 파츠 칸: 왼쪽 세로 부위 탭 | 위 등급 칩(+ 오른쪽 [초기화]) · 파츠 목록 / 아래 강화 줄 */
+.v2-mobile #screen-lab-v2 .v2-lab__parts { grid-column: 2; grid-row: 1 / span 2; padding: 8px 10px; min-height: 0;
+    display: grid; grid-template-columns: 88px minmax(0, 1fr); grid-template-rows: auto minmax(0, 1fr) auto; gap: 6px 8px; }
+.v2-mobile #screen-lab-v2 .v2-slottabs { grid-column: 1; grid-row: 1 / span 2; min-height: 0; display: flex; flex-direction: column; gap: 4px; }
+.v2-mobile #screen-lab-v2 .v2-slottab { flex: 1 1 0; height: auto; min-height: 0; }
+.v2-mobile #screen-lab-v2 .v2-slottab b { font-size: 14px; }
+.v2-mobile #screen-lab-v2 .v2-slottab small { font-size: 11px; }
+.v2-mobile #screen-lab-v2 .v2-gradebar { grid-column: 2; grid-row: 1; padding-right: 86px; }
+.v2-mobile #screen-lab-v2 .v2-gradechip, .v2-mobile #screen-lab-v2 .v2-gradechip b { font-size: 12px; }
+.v2-mobile #screen-lab-v2 .v2-partgrid { grid-column: 2; grid-row: 2; gap: 6px; align-items: start; grid-auto-rows: max-content; }   /* 줄 높이 = 카드 내용 (칸이 낮아도 눌리지 않게) */
+.v2-mobile #screen-lab-v2 .v2-partgroup small { font-size: 11px; }
+/* 고른 파츠 = 펼친 카드 (한 줄 전체): 그림 · 이름 · 세트 · 개조 후 능력치 4칸 · 스킬 */
+.v2-mobile #screen-lab-v2 .v2-partcard { min-height: 0; grid-template-columns: 60px minmax(0, 1fr); gap: 8px; padding: 7px 8px 7px 10px; }   /* index.css .part-card 110px 최소 높이를 풂 */
+.v2-mobile #screen-lab-v2 .v2-partcard.is-selected { grid-column: 1 / -1; }
+.v2-mobile #screen-lab-v2 .v2-partcard__name { font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.v2-mobile #screen-lab-v2 .v2-partcard__faction, .v2-mobile #screen-lab-v2 .v2-partcard__stats, .v2-mobile #screen-lab-v2 .v2-partcard__skill { font-size: 11px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.v2-mobile #screen-lab-v2 .v2-partcard.is-selected .v2-partcard__stats { display: none; }   /* 파츠 하나의 수치 대신 개조 후 능력치 */
+.v2-mobile #screen-lab-v2 .v2-partcard.is-selected .v2-partcard__totals { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 2px 4px; margin: 2px 0; }
+.v2-mobile #screen-lab-v2 .v2-partcard__totals > div { display: flex; align-items: baseline; justify-content: space-between; gap: 6px; padding: 2px 8px; background: rgba(0, 0, 0, 0.35); }
+.v2-mobile #screen-lab-v2 .v2-partcard__totals dt { font-size: 11px; color: var(--v2-dim); white-space: nowrap; }
+.v2-mobile #screen-lab-v2 .v2-partcard__totals dd { margin: 0; font: 800 14px var(--v2-font-num); color: #fff; }
+.v2-mobile #screen-lab-v2 .v2-partcard__totals dd.is-up { color: var(--v2-green); }
+.v2-mobile #screen-lab-v2 .v2-partcard__totals dd.is-down { color: #ff5a6e; }
+.v2-mobile #screen-lab-v2 .v2-partcard__badge, .v2-mobile #screen-lab-v2 .v2-partcard__skill em, .v2-mobile #screen-lab-v2 .v2-setmark,
+.v2-mobile #screen-lab-v2 .v2-partcard__mate, .v2-mobile #screen-lab-v2 .v2-partcard__grade { font-size: 11px; }
+.v2-mobile #screen-lab-v2 .v2-partcard__thumb img { max-width: 50px; max-height: 42px; margin-bottom: 10px; }
+/* 나머지 파츠 = 그림 + 이름 + 값표(가격·보유·잠김) 한 줄 — 목록이 더 많이 보이게 */
+.v2-mobile #screen-lab-v2 .v2-partcard:not(.is-selected) { grid-template-columns: 38px minmax(0, 1fr) auto; align-items: center; padding: 4px 8px; }
+.v2-mobile #screen-lab-v2 .v2-partcard:not(.is-selected) .v2-partcard__side { display: contents; }
+.v2-mobile #screen-lab-v2 .v2-partcard:not(.is-selected) .v2-partcard__thumb { grid-column: 1; grid-row: 1; width: 38px; height: 38px; border-width: 1px; }
+.v2-mobile #screen-lab-v2 .v2-partcard:not(.is-selected) .v2-partcard__thumb img { max-width: 34px; max-height: 34px; margin: 0; }
+.v2-mobile #screen-lab-v2 .v2-partcard:not(.is-selected) .v2-partcard__grade { display: none; }
+.v2-mobile #screen-lab-v2 .v2-partcard:not(.is-selected) .v2-setmark { font-size: 11px; line-height: 13px; padding: 0 2px; }
+.v2-mobile #screen-lab-v2 .v2-partcard:not(.is-selected) .v2-partcard__body { grid-column: 2; grid-row: 1; }
+.v2-mobile #screen-lab-v2 .v2-partcard:not(.is-selected) .v2-partcard__badge { grid-column: 3; grid-row: 1; padding: 1px 6px; }
+.v2-mobile #screen-lab-v2 .v2-partcard:not(.is-selected) .v2-partcard__faction,
+.v2-mobile #screen-lab-v2 .v2-partcard:not(.is-selected) .v2-partcard__stats,
+.v2-mobile #screen-lab-v2 .v2-partcard:not(.is-selected) .v2-partcard__skill { display: none; }
+/* 강화 줄: 등급 표 · 이름 · 효과 / [등급·만들기] [강화] — 오른쪽 끝에 [확정] 자리 */
+.v2-mobile #screen-lab-v2 .v2-upgrade { grid-column: 1 / -1; grid-row: 3; position: relative; padding: 12px 136px 6px 10px; gap: 8px; }
+.v2-mobile #screen-lab-v2 #lab-upg-grade-v2 { position: absolute; left: 10px; top: -9px; font-size: 12px; padding: 2px 8px; }
+.v2-mobile #screen-lab-v2 .v2-upgrade__info strong { font-size: 15px; }
+.v2-mobile #screen-lab-v2 .v2-upgrade__info small { font-size: 11px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.v2-mobile #screen-lab-v2 .v2-upgrade__opts { display: none; }   /* 옵션은 파츠 카드·확률 정보에서 */
+.v2-mobile #screen-lab-v2 .v2-upgrade__btn { min-height: 46px; }
+@media (max-height: 380px) {   /* 높이 360px 휴대폰: 세로 탭이 낮아 부제(필살기·스킬 N)를 숨김 */
+    .v2-mobile #screen-lab-v2 .v2-slottab small { display: none; }
+}
+/* 아래 줄(비용·되돌리기·개조 확정)은 없애고: [되돌리기] → 파츠 칸 오른쪽 위 [초기화], [개조 확정] → 강화 줄 오른쪽 [확정] */
+.v2-mobile #screen-lab-v2 .v2-lab__foot { display: contents; }
+.v2-mobile #screen-lab-v2 .v2-lab__cart { display: none; }
+.v2-mobile #screen-lab-v2 #btn-cart-reset-v2 { position: absolute; top: 60px; right: 18px; z-index: 3; min-width: 0; width: 78px; height: 30px; padding: 0;
+    display: inline-flex; align-items: center; justify-content: center; gap: 5px; font-size: 0; }
+.v2-mobile #screen-lab-v2 #btn-cart-reset-v2::before { content: ''; width: 9px; height: 9px; border: 2px solid currentColor; border-radius: 50%; }
+.v2-mobile #screen-lab-v2 #btn-cart-reset-v2::after { content: '초기화'; font-size: 13px; }
+.v2-mobile #screen-lab-v2 #btn-equip-confirm-v2 { position: absolute; right: 26px; bottom: 22px; z-index: 3; width: 120px; height: 48px; background-size: 22px 100%, 22px 100%, auto; }
+.v2-mobile #screen-lab-v2 #btn-equip-confirm-v2 strong { font-size: 0; letter-spacing: 0; }
+.v2-mobile #screen-lab-v2 #btn-equip-confirm-v2 strong::after { content: '확정'; font-size: 18px; letter-spacing: 2px; }
+.v2-mobile #screen-lab-v2 #btn-equip-confirm-v2 small { display: none; }   /* 값은 파츠 카드 값표에 */
+
+/* ---------- 캐릭터 선택창 (2026-11-03, 11-04 디자인 제안 반영): 연구소처럼 실제 크기(--v2-lz배)로 창 전체, 한 화면에 3장 + 가로로 넘김 ----------
+   아래 줄(고른 캐릭터·[결정])은 없애고 카드를 누르면 바로 메인으로(select_v2.js), 연구소 단추는 위 줄 제목 옆. 카드 = 이름·소속 한 줄 / 큰 그림 + 능력치 4칸 세로 / 스킬 / 보유 파츠 */
+body.v2-fit.v2-mobile #screen-select-v2 { left: 0; top: 0; width: var(--v2-aw, 100vw); height: var(--v2-ah, 100vh); transform: none; border: 0; border-radius: 0; box-shadow: none; }
+.v2-mobile #screen-select-v2 .v2-select { zoom: var(--v2-lz); width: calc(var(--v2-aw, 100vw) / var(--v2-lz)); height: calc(var(--v2-ah, 100vh) / var(--v2-lz)); }
+/* 위 줄: 뒤로 · 캐릭터 선택 · [연구소] / 별·조각·코어 · DM · 설정 */
+.v2-mobile #screen-select-v2 .v2-topbar { top: 6px; left: 8px; right: 8px; height: 40px; }
+.v2-mobile #screen-select-v2 .v2-brand { gap: 10px; }
+.v2-mobile #screen-select-v2 .v2-brand small, .v2-mobile #screen-select-v2 .v2-brand span:not([data-icon]) { display: none; }
+.v2-mobile #screen-select-v2 .v2-brand h1 { font-size: 20px; white-space: nowrap; }
+.v2-mobile #screen-select-v2 .v2-iconbtn--lg { width: 40px; height: 40px; }
+.v2-mobile #screen-select-v2 .v2-topbar__right { gap: 8px; }
+.v2-mobile #screen-select-v2 .v2-topbar .v2-chip { height: 36px; padding: 0 14px; gap: 6px; clip-path: none; border-radius: 18px; border-color: rgba(255, 176, 32, 0.3); }
+.v2-mobile #screen-select-v2 .v2-chip--dm small, .v2-mobile #screen-select-v2 .v2-chip--res i { display: none; }
+.v2-mobile #screen-select-v2 #select-res-v2 { display: inline-flex; gap: 12px; }
+.v2-mobile #screen-select-v2 .v2-chip--res span { display: inline-flex; align-items: center; gap: 4px; }
+.v2-mobile #screen-select-v2 .v2-chip--res em { display: inline-flex; }
+.v2-mobile #screen-select-v2 .v2-chip--res span:nth-child(1) em { color: #ffd166; }
+.v2-mobile #screen-select-v2 .v2-chip--res span:nth-child(2) em { color: #7fd8ff; }
+.v2-mobile #screen-select-v2 .v2-chip--res span:nth-child(3) em { color: #3dff8a; }
+.v2-mobile #screen-select-v2 .v2-chip--res b, .v2-mobile #screen-select-v2 .v2-chip--dm strong { font-size: 15px; }
+.v2-mobile #screen-select-v2 #btn-select-settings-v2 { border-radius: 50%; clip-path: none; }
+.v2-mobile #screen-select-v2 .v2-select__foot { position: static; }   /* 아래 줄은 숨기고 [연구소]만 위 줄로 꺼냄 */
+.v2-mobile #screen-select-v2 .v2-select__info, .v2-mobile #screen-select-v2 #btn-select-confirm-v2 { display: none; }
+.v2-mobile #screen-select-v2 #btn-select-lab-v2 { position: absolute; top: 8px; left: 188px; z-index: 3; min-width: 0; height: 36px; padding: 0 14px 0 10px;
+    display: inline-flex; align-items: center; gap: 6px; font-size: 14px; }
+.v2-mobile #screen-select-v2 #btn-select-lab-v2::before { content: ''; width: 16px; height: 18px; background: var(--v2-amber);
+    clip-path: polygon(35% 0, 65% 0, 65% 38%, 100% 100%, 0 100%, 35% 38%); }   /* 플라스크 */
+/* 카드 */
+.v2-mobile #screen-select-v2 .v2-select__grid { top: 52px; left: 8px; right: 8px; bottom: 8px; height: auto; gap: 8px; padding-top: 0;
+    grid-auto-columns: calc((100% - 2 * 8px) / 3); }
+.v2-mobile #screen-select-v2 .v2-select__pager { top: 60px; width: 36px; height: 36px; font-size: 26px; }
+.v2-mobile #screen-select-v2 .v2-select__pager.is-prev { left: 12px; }
+.v2-mobile #screen-select-v2 .v2-select__pager.is-next { right: 12px; }
+.v2-mobile #screen-select-v2 .v2-charcard { min-height: 0; overflow: hidden; padding: 8px 10px; gap: 6px 6px;
+    display: grid; grid-template-columns: minmax(0, 1fr) 80px; grid-template-rows: auto minmax(0, 1fr) auto auto;
+    border: 2px solid color-mix(in srgb, var(--cc) 55%, transparent); border-radius: 10px; clip-path: none; }
+.v2-mobile #screen-select-v2 .v2-charcard.is-locked { border-color: rgba(255, 224, 138, 0.6); }
+.v2-mobile #screen-select-v2 .v2-charcard.is-selected { border-color: var(--cc); }
+.v2-mobile #screen-select-v2 .v2-charcard__head { grid-column: 1 / -1; align-items: center; min-width: 0; }
+.v2-mobile #screen-select-v2 .v2-charcard__head > div { display: flex; flex-direction: row-reverse; justify-content: flex-end; align-items: baseline; gap: 8px; min-width: 0; }
+.v2-mobile #screen-select-v2 .v2-charcard__head small { font-size: 11px; letter-spacing: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.v2-mobile #screen-select-v2 .v2-charcard__head h2 { margin: 0; font-size: 18px; white-space: nowrap; }
+.v2-mobile #screen-select-v2 .v2-charcard__badge { flex: none; padding: 2px 8px; border-radius: 4px; font-size: 0; letter-spacing: 0; }
+.v2-mobile #screen-select-v2 .v2-charcard__badge::after { content: '선택'; font: 900 13px var(--v2-font); }   /* 'SELECTED'가 이름을 밀어 잘라서 */
+.v2-mobile #screen-select-v2 .v2-charcard:not(.is-selected) .v2-charcard__badge { display: none; }
+.v2-mobile #screen-select-v2 .v2-charcard__stage { grid-column: 1; grid-row: 2; height: auto; min-height: 60px; margin-right: -26px; overflow: hidden; }   /* 능력치 칸 밑으로 조금 들어가 그림을 키움 */
+.v2-mobile #screen-select-v2 .v2-charcard canvas { position: absolute; inset: 0; width: 100%; height: 100%; object-position: 0 100%; }   /* 칸에 통째로 맞춤 — 키우면 머리가 잘림(11-03) */
+.v2-mobile #screen-select-v2 .v2-charcard__stage .v2-showroom__floor { width: 92%; height: 24px; }
+.v2-mobile #screen-select-v2 .v2-charcard__desc { display: none; }   /* 그림 자리를 먼저 — 능력치·스킬은 그대로 */
+@media (max-aspect-ratio: 1.8) {   /* 16:9: 카드가 좁아 그림이 능력치 칸 밑으로 들어가면 가려짐 */
+    .v2-mobile #screen-select-v2 .v2-charcard__stage { margin-right: 0; }
+}
+/* 능력치 4칸 (그림 오른쪽 세로, 아이콘 + 값) */
+.v2-mobile #screen-select-v2 .v2-charcard__stats { grid-column: 2; grid-row: 2; z-index: 1; align-self: center; display: flex; flex-direction: column; gap: 6px; }
+.v2-mobile #screen-select-v2 .v2-charcard__stats > div, .v2-mobile #screen-select-v2 .v2-charcard__stats .is-mobile { display: flex; flex-direction: row; align-items: center; gap: 6px;
+    height: 30px; padding: 0 8px; background: rgba(10, 12, 18, 0.85); border: 1px solid rgba(139, 149, 168, 0.3); border-radius: 6px; }
+.v2-mobile #screen-select-v2 .v2-charcard__stats dt { display: flex; }
+.v2-mobile #screen-select-v2 .v2-charcard__stats dt span { display: none; }
+.v2-mobile #screen-select-v2 .v2-charcard__stats dt .v2-icon { display: block; width: 16px; height: 16px; }
+.v2-mobile #screen-select-v2 .v2-charcard__stats > div:nth-child(1) dt { color: #9fb0c8; }
+.v2-mobile #screen-select-v2 .v2-charcard__stats > div:nth-child(2) dt { color: #ff9a4d; }
+.v2-mobile #screen-select-v2 .v2-charcard__stats > div:nth-child(3) dt { color: #7fd8ff; }
+.v2-mobile #screen-select-v2 .v2-charcard__stats > div:nth-child(4) dt { color: #3dff8a; }
+.v2-mobile #screen-select-v2 .v2-charcard__stats > div { padding: 0 6px; gap: 4px; }
+.v2-mobile #screen-select-v2 .v2-charcard__stats dd { flex: 1; font-size: 14px; text-align: right; }
+.v2-mobile #screen-select-v2 .v2-charcard__skills { grid-column: 1 / -1; padding-top: 6px; border-top: 1px solid rgba(255, 255, 255, 0.08); }
+.v2-mobile #screen-select-v2 .v2-charcard__skills li, .v2-mobile #screen-select-v2 .v2-charcard__foot { font-size: 12px; }
+.v2-mobile #screen-select-v2 .v2-charcard__foot { grid-column: 1 / -1; margin: 0; padding-top: 4px; }
+/* 안내 (아래 줄 대신 잠깐 뜨는 알림) */
+.v2-mobile #screen-select-v2 .v2-select__toast:not([hidden]) { display: block; position: absolute; left: 50%; top: 56px; z-index: 60; transform: translateX(-50%); max-width: 80%;
+    padding: 10px 18px; pointer-events: none; font: 700 14px/1.4 var(--v2-font); color: #fff; text-align: center;
+    background: rgba(12, 14, 20, 0.96); border: 1px solid var(--v2-amber); border-radius: 10px; box-shadow: 0 6px 24px rgba(0, 0, 0, 0.6); }
+
+/* ---------- 전투 결과 (2026-11-03): 16:9 판 안에서 2배(실제 크기 안팎), 두 칸 — 왼쪽 결과·별 / 오른쪽 기록·보상·패배 원인, 아래 단추 줄 ---------- */
+.v2-mobile #screen-battle-v2 .v2-result { justify-content: center; padding: 0; }
+.v2-mobile #screen-battle-v2 .v2-result__panel { zoom: 2; width: 610px; max-height: 352px; padding: 0 16px 10px; display: grid;
+    grid-template-columns: 210px minmax(0, 1fr); grid-template-rows: auto minmax(0, 1fr) auto; gap: 8px 16px; }
+.v2-mobile #screen-battle-v2 .v2-result__stripe { grid-column: 1 / -1; margin: 0 -16px; height: 10px; }
+.v2-mobile #screen-battle-v2 .v2-result__head { grid-column: 1; grid-row: 2; display: flex; flex-direction: column; justify-content: center; gap: 6px; min-width: 0; }
+.v2-mobile #screen-battle-v2 .v2-result__body { grid-column: 2; grid-row: 2; display: flex; flex-direction: column; gap: 6px; min-height: 0; overflow-y: auto; overscroll-behavior: contain; }
+.v2-mobile #screen-battle-v2 .v2-result__actions { grid-column: 1 / -1; grid-row: 3; margin: 0; }
+.v2-mobile #screen-battle-v2 .v2-result__op { letter-spacing: 1px; }
+.v2-mobile #screen-battle-v2 .v2-result__title { font-size: 24px; line-height: 1.1; white-space: normal; letter-spacing: 1px; }
+.v2-mobile #screen-battle-v2 .v2-result__sub { margin: 0; font-size: 12px; }
+.v2-mobile #screen-battle-v2 .v2-result__stars { justify-content: space-between; gap: 4px; padding: 4px 0 0; }
+.v2-mobile #screen-battle-v2 .v2-result__star .v2-icon { width: 40px; height: 40px; }
+.v2-mobile #screen-battle-v2 .v2-result__star { font-size: 11px; text-align: center; }
+.v2-mobile #screen-battle-v2 .v2-result__stats > div { padding: 4px 2px; }
+.v2-mobile #screen-battle-v2 .v2-result__stats dt { font-size: 12px; }
+.v2-mobile #screen-battle-v2 .v2-result__stats dd { font-size: 14px; }
+.v2-mobile #screen-battle-v2 .v2-result__stats .is-reward strong { font-size: 20px; }
+.v2-mobile #screen-battle-v2 .v2-result__pet, .v2-mobile #screen-battle-v2 .v2-result__unlock { margin: 0; font-size: 12px; }
+.v2-mobile #screen-battle-v2 .v2-why-bar i b, .v2-mobile #screen-battle-v2 .v2-why-bar i span { font-size: 11px; }
+.v2-mobile #screen-battle-v2 .v2-result__actions .v2-btn { min-height: 44px; padding: 8px 6px; font-size: 14px; }

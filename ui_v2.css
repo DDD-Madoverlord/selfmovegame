@@ -967,35 +967,86 @@
     image-rendering: auto;
 }
 #screen-battle-v2 #bg-city-v2::after { display: none; }
-/* 구역 2 · 하부 쓰레기 폐기 정착지 (D-040): 폐기장 / 판잣집 띠 / 고철판 바닥, 보스전은 소각로 불길 판.
-   갈색 적이 판잣집 띠에 묻히지 않게 중간 층을 조금 더 어둡게 */
-#screen-battle-v2.v2-zone-2 #bg-sky-v2 { background-image: url('assets/sprites/stage/bg2/dump.webp'); filter: brightness(0.5) saturate(0.85); }
-#screen-battle-v2.v2-zone-2.v2-stage-boss #bg-sky-v2 { background-image: url('assets/sprites/stage/bg2/dump_fire.webp'); filter: brightness(0.62) saturate(0.9); }
-#screen-battle-v2.v2-zone-2 #bg-city-v2 { background-image: url('assets/sprites/stage/bg2/shanty.webp'); bottom: 30px; filter: brightness(0.55) saturate(0.8); }
-#screen-battle-v2.v2-zone-2 #bg-ground-v2 { background-image: url('assets/sprites/stage/bg2/ground.webp'); }
-/* 구역 3 · 성왕국 수도 (D-056, 그림 2026-10-24 — MD/구역3_설계안.md 8장): 연기 오르는 중세 도시와 대성당 / 쓰러진 석상·깃발 띠 /
-   꽃잎 흩어진 돌길, 보스전 = 대성당 위 금빛 빛줄기 판, 악마기사 소환 때 진홍 점멸 (.v2-crimson, enemyField.js crimsonPulse).
-   중간 층 그림 아래 72px가 비어 있어 bottom을 낮춤 (석상 받침이 바닥 위에 오게) */
-#screen-battle-v2.v2-zone-3 #bg-sky-v2 { background-image: url('assets/sprites/stage/bg3/city.webp'); filter: brightness(0.62) saturate(0.95); transition: filter 0.25s; }
-#screen-battle-v2.v2-zone-3.v2-stage-boss #bg-sky-v2 { background-image: url('assets/sprites/stage/bg3/city_light.webp'); filter: brightness(0.66) saturate(0.95); }
+/* 새 기획 구역 1 · 제14 비밀 벙커 (D-085, 그림 2026-10-25 — build_bg.py st1/*): 끝없는 철골·거대 환풍기 / 불타는 서버랙·수송 차량 띠 /
+   강철 그릴 바닥(75px, 발이 그릴 가운데), 보스전 = 천장 해치가 열려 달빛이 쏟아지는 판. 중간 층 그림 아래 19px가 비어 바닥 위에 받침이 오게 */
+#screen-battle-v2.v2-zone-1 #bg-sky-v2 { background-image: url('assets/sprites/stage/st1/far.webp'); filter: brightness(0.62) saturate(0.9); }
+#screen-battle-v2.v2-zone-1.v2-stage-boss #bg-sky-v2 { background-image: url('assets/sprites/stage/st1/far_boss.webp'); filter: brightness(0.72) saturate(0.95); }
+#screen-battle-v2.v2-zone-1 #bg-city-v2 { background-image: url('assets/sprites/stage/st1/mid.webp'); bottom: 56px; filter: brightness(0.6) saturate(0.85); }
+#screen-battle-v2.v2-zone-1 #bg-ground-v2 { background-image: url('assets/sprites/stage/st1/floor.webp'); height: 75px; filter: brightness(0.85); }
+/* 새 기획 구역 2 · 해안 시추 단지 (D-085, 그림 2026-10-25 — build_bg.py st2/*): 매연 굴뚝·스모그 / 깎인 바위산·파이프라인·찌그러진 트럭 띠 /
+   용암이 흐르는 갈라진 아스팔트(76px), 보스전 = 경고등과 불길로 붉은 판. 중간 층 그림 아래 47px가 비어 bottom을 낮춤 */
+#screen-battle-v2.v2-zone-2 #bg-sky-v2 { background-image: url('assets/sprites/stage/st2/far.webp'); filter: brightness(0.6) saturate(0.9); }
+#screen-battle-v2.v2-zone-2.v2-stage-boss #bg-sky-v2 { background-image: url('assets/sprites/stage/st2/far_boss.webp'); filter: brightness(0.68) saturate(0.95); }
+#screen-battle-v2.v2-zone-2 #bg-city-v2 { background-image: url('assets/sprites/stage/st2/mid.webp'); bottom: 29px; filter: brightness(0.58) saturate(0.85); }
+#screen-battle-v2.v2-zone-2 #bg-ground-v2 { background-image: url('assets/sprites/stage/st2/floor.webp'); filter: brightness(0.85); }
+/* 새 기획 구역 3 · 피로 물든 순례길 (D-085, 그림 2026-10-25 — build_bg.py st3/*): 붉은 노을 아래 비틀린 황금 성 / 화형대·천사상·핏자국 기둥 띠 /
+   짓밟혀 붉게 물든 대리석(77px), 보스전 = 스테인드글라스 금빛과 핏빛 판, 악마기사 소환 때 진홍 점멸 (.v2-crimson, enemyField.js crimsonPulse).
+   중간 층 그림 아래 76px가 비어 있어 bottom을 낮춤 */
+#screen-battle-v2.v2-zone-3 #bg-sky-v2 { background-image: url('assets/sprites/stage/st3/far.webp'); filter: brightness(0.62) saturate(0.95); transition: filter 0.25s; }
+#screen-battle-v2.v2-zone-3.v2-stage-boss #bg-sky-v2 { background-image: url('assets/sprites/stage/st3/far_boss.webp'); filter: brightness(0.68) saturate(0.95); }
 #screen-battle-v2.v2-zone-3.v2-crimson #bg-sky-v2 { filter: brightness(0.62) sepia(0.8) saturate(2.6) hue-rotate(-30deg); }
-#screen-battle-v2.v2-zone-3 #bg-city-v2 { background-image: url('assets/sprites/stage/bg3/statues.webp'); bottom: 2px; filter: brightness(0.6) saturate(0.85); }
-#screen-battle-v2.v2-zone-3 #bg-ground-v2 { background-image: url('assets/sprites/stage/bg3/cobble.webp'); filter: brightness(0.85); }
-/* 구역 4 · 진화의 심연 (D-056, 그림 2026-10-24 — MD/구역4_설계안.md 8장): 유기질 막 너머 보라 우주와 거대한 눈 / 짐승이 잠든 알과
-   유기질 기둥 띠 / 점액 배어 나오는 유기질 길, 보스전 = 더 어둡고 눈이 빛나는 판, 2페이즈(.v2-boss-rage)는 진홍 */
-#screen-battle-v2.v2-zone-4 #bg-sky-v2 { background-image: url('assets/sprites/stage/bg4/void.webp'); filter: brightness(0.7) saturate(1); transition: filter 0.6s; }
-#screen-battle-v2.v2-zone-4.v2-stage-boss #bg-sky-v2 { background-image: url('assets/sprites/stage/bg4/void_dark.webp'); filter: brightness(0.75) saturate(1.05); }
+#screen-battle-v2.v2-zone-3 #bg-city-v2 { background-image: url('assets/sprites/stage/st3/mid.webp'); bottom: 1px; filter: brightness(0.6) saturate(0.85); }
+#screen-battle-v2.v2-zone-3 #bg-ground-v2 { background-image: url('assets/sprites/stage/st3/floor.webp'); height: 77px; filter: brightness(0.85); }
+/* 새 기획 구역 4 · 살점의 요람 (D-085, 그림 2026-10-25 — build_bg.py st4/*, 노랑 배경): 지켜보는 눈동자가 떠 있는 보라 심연 /
+   꿈틀대는 살점 기둥 띠 / 피와 점액이 배어 나오는 유기체 바닥(84px), 보스전 = 더 어두운 판, 2페이즈(.v2-boss-rage)는 진홍 */
+#screen-battle-v2.v2-zone-4 #bg-sky-v2 { background-image: url('assets/sprites/stage/st4/far.webp'); filter: brightness(0.7) saturate(1); transition: filter 0.6s; }
+#screen-battle-v2.v2-zone-4.v2-stage-boss #bg-sky-v2 { background-image: url('assets/sprites/stage/st4/far_boss.webp'); filter: brightness(0.75) saturate(1.05); }
 #screen-battle-v2.v2-zone-4.v2-boss-rage #bg-sky-v2 { filter: brightness(0.6) sepia(0.8) saturate(2.6) hue-rotate(-40deg); }
-#screen-battle-v2.v2-zone-4 #bg-city-v2 { background-image: url('assets/sprites/stage/bg4/pillars.webp'); bottom: 12px; filter: brightness(0.5) saturate(0.9); }
-#screen-battle-v2.v2-zone-4 #bg-ground-v2 { background-image: url('assets/sprites/stage/bg4/flesh.webp'); filter: brightness(0.85); }
-/* 구역 6 · 성왕국 변두리 (D-078, MD/구역6_설계안.md) — 임시: 구역 1 그림을 밤의 잿빛·차가운 흰색으로 (Gemini 그림 전까지).
-   거점 = 잿빛 석조 약창고 · 흰 병동 정문, 보스전(대성당 의료원)은 조금 밝은 흰빛 */
-#screen-battle-v2.v2-zone-6 #bg-sky-v2 { filter: brightness(0.38) grayscale(0.75) sepia(0.15) hue-rotate(190deg); }
-#screen-battle-v2.v2-zone-6.v2-stage-boss #bg-sky-v2 { background-image: url('assets/sprites/stage/bg/hall.webp'); filter: brightness(0.62) grayscale(0.8) sepia(0.25); }
-#screen-battle-v2.v2-zone-6 #bg-city-v2 { filter: brightness(0.42) grayscale(0.85) sepia(0.1); }
-#screen-battle-v2.v2-zone-6 #bg-ground-v2 { filter: brightness(0.62) grayscale(0.7) sepia(0.15) hue-rotate(190deg); }
-#screen-battle-v2.v2-zone-6 .building-entity.v2-base { filter: grayscale(0.75) brightness(1.18) sepia(0.12); }
-#screen-battle-v2.v2-zone-6 .v2-barricade { filter: grayscale(0.6) brightness(1.05); }
+#screen-battle-v2.v2-zone-4 #bg-city-v2 { background-image: url('assets/sprites/stage/st4/mid.webp'); bottom: 38px; filter: brightness(0.5) saturate(0.9); }
+#screen-battle-v2.v2-zone-4 #bg-ground-v2 { background-image: url('assets/sprites/stage/st4/floor.webp'); height: 84px; filter: brightness(0.85); }
+/* 새 기획 구역 5 · 해상 요새 포세이돈 (D-085, 그림 2026-10-25 — build_bg.py st5/*): 번개 치는 폭풍 바다와 먼 요새 / 녹슨 크레인·쇠사슬·
+   수송선 띠 / 물이 고인 강철 그릴 갑판(90px), 보스전 = 붉은 비상등과 해저 화산 주황빛 판. 중간 층 그림 아래 32px가 비어 bottom을 낮춤 */
+#screen-battle-v2.v2-zone-5 #bg-sky-v2 { background-image: url('assets/sprites/stage/st5/far.webp'); filter: brightness(0.62) saturate(0.9); }
+#screen-battle-v2.v2-zone-5.v2-stage-boss #bg-sky-v2 { background-image: url('assets/sprites/stage/st5/far_boss.webp'); filter: brightness(0.7) saturate(0.95); }
+#screen-battle-v2.v2-zone-5 #bg-city-v2 { background-image: url('assets/sprites/stage/st5/mid.webp'); bottom: 58px; filter: brightness(0.55) saturate(0.85); }
+#screen-battle-v2.v2-zone-5 #bg-ground-v2 { background-image: url('assets/sprites/stage/st5/floor.webp'); height: 90px; filter: brightness(0.85); }
+/* 새 기획 구역 9 · 무너진 보금자리 (D-085, 그림 2026-10-25 — build_bg.py st9/*): 스모그 너머 네온 방송 타워 / 앙상한 철골·추락한 헬기 띠 /
+   철근이 튀어나온 시멘트 바닥(81px). 중간 층 그림 아래 14px가 비어 바닥 위에 받침이 오게 */
+#screen-battle-v2.v2-zone-9 #bg-sky-v2 { background-image: url('assets/sprites/stage/st9/far.webp'); filter: brightness(0.62) saturate(0.9); }
+#screen-battle-v2.v2-zone-9.v2-stage-boss #bg-sky-v2 { background-image: url('assets/sprites/stage/st9/far_boss.webp'); filter: brightness(0.7) saturate(0.95); }
+#screen-battle-v2.v2-zone-9 #bg-city-v2 { background-image: url('assets/sprites/stage/st9/mid.webp'); bottom: 67px; filter: brightness(0.55) saturate(0.85); }
+#screen-battle-v2.v2-zone-9 #bg-ground-v2 { background-image: url('assets/sprites/stage/st9/floor.webp'); height: 81px; filter: brightness(0.85); }
+/* 새 기획 구역 10 · 거짓된 주파수 (D-085, 그림 2026-10-25 — build_bg.py st10/*): 타워 꼭대기에서 본 무너진 건설 구역 / 네온 전광판·홀로그램 띠 /
+   핑크 네온이 비치는 검은 하이그로시 바닥(76px). 중간 층 그림 아래 16px가 비어 bottom을 낮춤 */
+#screen-battle-v2.v2-zone-10 #bg-sky-v2 { background-image: url('assets/sprites/stage/st10/far.webp'); filter: brightness(0.66) saturate(0.95); }
+#screen-battle-v2.v2-zone-10.v2-stage-boss #bg-sky-v2 { background-image: url('assets/sprites/stage/st10/far_boss.webp'); filter: brightness(0.72) saturate(1.05); }
+#screen-battle-v2.v2-zone-10 #bg-city-v2 { background-image: url('assets/sprites/stage/st10/mid.webp'); bottom: 60px; filter: brightness(0.58) saturate(0.9); }
+#screen-battle-v2.v2-zone-10 #bg-ground-v2 { background-image: url('assets/sprites/stage/st10/floor.webp'); filter: brightness(0.85); }
+/* 폐자재 더미·세뇌 안테나 (새 기획 구역 9·10 보스전) + 그동안 보스 무적 표시 */
+#screen-battle-v2 .v2-barricade.v2-scrapheap { filter: sepia(0.5) saturate(1.6) brightness(1.1) drop-shadow(0 0 8px rgba(255, 170, 40, 0.9)) !important; }
+#screen-battle-v2 .v2-barricade.v2-antenna { filter: saturate(1.8) brightness(1.2) drop-shadow(0 0 10px rgba(255, 60, 200, 0.95)) !important; }
+#screen-battle-v2 .enemy-entity.is-invulnerable .v2-enemy__sprite { filter: drop-shadow(0 0 10px rgba(255, 255, 255, 0.9)) brightness(1.15); }
+/* 새 기획 구역 8 · 얼어붙은 안식 (D-085, 그림 2026-10-25 — build_bg.py st8/*): 눈보라와 얼음 첨탑 / 얼음 조각상이 늘어선 띠 /
+   핏자국이 갇힌 빙판 대리석(72px), 보스전 = 서리 푸른빛과 화로석 붉은빛 판. 중간 층 그림 아래 46px가 비어 bottom을 낮춤 */
+#screen-battle-v2.v2-zone-8 #bg-sky-v2 { background-image: url('assets/sprites/stage/st8/far.webp'); filter: brightness(0.66) saturate(0.9); }
+#screen-battle-v2.v2-zone-8.v2-stage-boss #bg-sky-v2 { background-image: url('assets/sprites/stage/st8/far_boss.webp'); filter: brightness(0.72) saturate(0.95); }
+#screen-battle-v2.v2-zone-8 #bg-city-v2 { background-image: url('assets/sprites/stage/st8/mid.webp'); bottom: 26px; filter: brightness(0.58) saturate(0.85); }
+#screen-battle-v2.v2-zone-8 #bg-ground-v2 { background-image: url('assets/sprites/stage/st8/floor.webp'); height: 72px; filter: brightness(0.85); }
+/* 탐욕의 제단 (새 기획 구역 8 보스전): 장벽 그림을 붉게 달아오르게 */
+#screen-battle-v2 .v2-barricade.v2-altar { filter: sepia(0.6) saturate(2.4) hue-rotate(-20deg) brightness(1.2) drop-shadow(0 0 10px rgba(255, 90, 30, 0.9)) !important; }
+/* 새 기획 구역 7 · 잿빛 인형극 (D-085, 그림 2026-10-25 — build_bg.py st7/*): 연기 솟는 폐허 도시·포격 섬광 / 무너진 벽돌·전차 잔해·철조망 띠 /
+   포탄 구덩이 진흙탕(80px), 보스전 = 조명탄의 핏빛 판. 중간 층 그림 아래 37px가 비어 bottom을 낮춤 */
+#screen-battle-v2.v2-zone-7 #bg-sky-v2 { background-image: url('assets/sprites/stage/st7/far.webp'); filter: brightness(0.62) saturate(0.85); }
+#screen-battle-v2.v2-zone-7.v2-stage-boss #bg-sky-v2 { background-image: url('assets/sprites/stage/st7/far_boss.webp'); filter: brightness(0.7) saturate(0.95); }
+#screen-battle-v2.v2-zone-7 #bg-city-v2 { background-image: url('assets/sprites/stage/st7/mid.webp'); bottom: 43px; filter: brightness(0.55) saturate(0.8); }
+#screen-battle-v2.v2-zone-7 #bg-ground-v2 { background-image: url('assets/sprites/stage/st7/floor.webp'); height: 80px; filter: brightness(0.85); }
+/* 조명탄 (새 기획 구역 7 보스전, enemyField.js tickFlares): 그림 없이 하늘에 뜬 붉은 불덩이 */
+#screen-battle-v2 .enemy-entity.v2-flare { width: 48px !important; height: 48px !important; background: radial-gradient(circle, #fff 0 16%, #ffd0a0 26%, #ff5038 42%, rgba(255, 40, 30, 0.5) 58%, transparent 70%) !important;
+    animation: v2-flare 0.35s ease-in-out infinite alternate !important; filter: drop-shadow(0 0 14px #ff3020); }
+@keyframes v2-flare { to { transform: scale(1.18); filter: drop-shadow(0 0 22px #ff6040); } }
+/* 지뢰 (새 기획 구역 7 지뢰 매설병): 바닥에 반쯤 묻힌 원반 + 깜빡이는 붉은 불 */
+#screen-battle-v2 .v2-puddle.v2-puddle--mine {
+    height: 12px; bottom: 54px; border-radius: 40% 40% 20% 20%;
+    background: radial-gradient(circle at 50% 30%, #ff4030 0 10%, #3a3530 12%, #5a5248 60%, transparent 62%);
+    box-shadow: none; animation: v2-puddle-in 0.3s ease-out, v2-mine-blink 0.6s steps(2) infinite;
+}
+@keyframes v2-mine-blink { to { filter: brightness(1.6); } }
+/* 새 기획 구역 6 · 피에 젖은 성역 (D-085, 그림 2026-10-25 — build_bg.py st6/*): 샹들리에·스테인드글라스 너머 잿빛 첨탑 / 피 마른 수술대·구속복 철창 띠 /
+   피로 얼룩진 대리석(71px), 보스전 = 수술실 무영등과 성배의 금빛 판. 중간 층 그림 아래 33px가 비어 bottom을 낮춤 */
+#screen-battle-v2.v2-zone-6 #bg-sky-v2 { background-image: url('assets/sprites/stage/st6/far.webp'); filter: brightness(0.62) saturate(0.9); }
+#screen-battle-v2.v2-zone-6.v2-stage-boss #bg-sky-v2 { background-image: url('assets/sprites/stage/st6/far_boss.webp'); filter: brightness(0.7) saturate(0.95); }
+#screen-battle-v2.v2-zone-6 #bg-city-v2 { background-image: url('assets/sprites/stage/st6/mid.webp'); bottom: 38px; filter: brightness(0.55) saturate(0.85); }
+#screen-battle-v2.v2-zone-6 #bg-ground-v2 { background-image: url('assets/sprites/stage/st6/floor.webp'); height: 71px; filter: brightness(0.85); }
 /* 축복 성수대 (구역 6, enemyField.js spawnFont): 임시 = 바리케이드 그림을 금빛으로 + 발밑 금빛 축복 띠(범위 = FONT.range) */
 #screen-battle-v2 .v2-barricade.v2-font { filter: sepia(1) saturate(2.6) brightness(1.25) drop-shadow(0 0 8px rgba(255, 215, 110, 0.9)) !important; }
 #screen-battle-v2 .v2-font__aura {
@@ -1067,6 +1118,20 @@
     transition: opacity 0.4s;
 }
 #screen-battle-v2 .v2-puddle.is-fading { opacity: 0; }
+/* 네이팜 불 장판 (새 기획 구역 1 화염방사병): 주황 불길 — 위에 있으면 불 피해 */
+#screen-battle-v2 .v2-puddle.v2-puddle--fire {
+    background: radial-gradient(ellipse at 50% 55%, rgba(255, 236, 140, 0.95), rgba(255, 150, 40, 0.9) 40%, rgba(200, 50, 10, 0.75) 68%, transparent 72%);
+    box-shadow: 0 0 14px rgba(255, 120, 30, 0.75), 0 -6px 18px rgba(255, 90, 20, 0.45);
+    height: 22px;
+    animation: v2-puddle-in 0.3s ease-out, v2-puddle-flicker 0.22s steps(2) infinite alternate;
+}
+@keyframes v2-puddle-flicker { to { filter: brightness(1.3) saturate(1.2); transform: scaleY(1.25); } }
+/* 오염된 성수 장판 (새 기획 구역 6 성수 투척병): 창백한 보랏빛 독 웅덩이 — 위에 있으면 지속 피해 */
+#screen-battle-v2 .v2-puddle.v2-puddle--holy {
+    background: radial-gradient(ellipse at 50% 50%, rgba(250, 230, 255, 0.95), rgba(200, 160, 240, 0.85) 42%, rgba(120, 60, 150, 0.7) 68%, transparent 72%);
+    box-shadow: 0 0 12px rgba(210, 170, 255, 0.7);
+    animation: v2-puddle-in 0.3s ease-out, v2-puddle-bubble 0.7s ease-in-out infinite alternate;
+}
 /* 봉합 성녀: 봉합된 채 쓰러진 적의 시체 — 바닥의 붉은 실 매듭 (battle/saint.js, 억지 부활로 아군) */
 #screen-battle-v2 .v2-corpse {
     position: absolute;
@@ -1166,6 +1231,7 @@
     animation: v2-result-in 0.5s 0.1s cubic-bezier(0.2, 0.9, 0.3, 1) both;
 }
 .v2-result.is-lose .v2-result__panel { --acc: #ff4060; background: linear-gradient(135deg, rgba(255, 64, 96, 0.6), rgba(255, 64, 96, 0.2) 40%, rgba(255, 64, 96, 0.2) 60%, rgba(255, 64, 96, 0.6)); }
+.v2-result__head, .v2-result__body { display: contents; }   /* 휴대폰 배치에서만 두 칸으로 묶음 (ui_v2_mobile.css) */
 .v2-result__stripe { height: 12px; margin: 0 -30px 6px; }
 .v2-result.is-lose .v2-result__stripe { background: repeating-linear-gradient(-45deg, #ff4060 0 8px, #16161a 8px 16px); }
 .v2-result__op { font-family: var(--v2-font-num); font-size: 11px; letter-spacing: 4px; color: var(--v2-dim); }
@@ -1772,18 +1838,9 @@ div.v2-settings__row > span { flex: 1; }
 .v2-radar__locked small { font-size: 12px; }
 .v2-radar__foot { font-family: var(--v2-font-num); font-size: 11px; letter-spacing: 1px; text-align: center; color: var(--v2-dim); }
 .v2-radar__tabs { display: flex; gap: 12px; }
-/* 구역 탭 (레이더 머리, menu_v2.js renderZones): 잠긴 구역은 자물쇠 */
-.v2-zonetabs { display: flex; gap: 6px; margin-left: auto; margin-right: 10px; }
-.v2-zonetab {
-    display: inline-flex; align-items: center; gap: 4px;
-    font: 800 12px var(--v2-font); color: var(--v2-dim); background: rgba(255, 255, 255, 0.04);
-    border: 1px solid rgba(255, 255, 255, 0.12); border-radius: 4px; padding: 3px 10px; cursor: pointer;
-}
-.v2-zonetab:hover { color: var(--v2-text); border-color: var(--v2-amber); }
-.v2-zonetab.is-on { color: #16120a; background: var(--v2-amber); border-color: var(--v2-amber); }
-.v2-zonetab.is-locked { opacity: 0.55; }
-/* 난이도 (D-063, menu_v2.js renderDifficulties): 레이더 화면 오른쪽 위. 색 = 난이도 (--diff: 'r, g, b') */
-.v2-difftabs { position: absolute; top: 8px; right: 8px; z-index: 2; display: flex; gap: 4px; }
+/* 구역은 지도를 좌우로 밀어 넘김 (stageMap_v2.js, D-104 — 예전 구역 번호 탭 없앰) */
+/* 난이도 (D-063, menu_v2.js renderDifficulties): 지도 머리 줄 오른쪽 (예전 구역 탭 자리 — 지도 위 정거장을 가리지 않게, D-104). 색 = 난이도 (--diff: 'r, g, b') */
+.v2-difftabs { display: flex; gap: 4px; align-self: center; margin-left: auto; }
 .v2-difftab {
     --diff: 120, 220, 140;
     display: inline-flex; align-items: center; gap: 3px;
@@ -2174,33 +2231,35 @@ div.v2-settings__row > span { flex: 1; }
 .v2-partgrid::-webkit-scrollbar-thumb { background: rgba(255, 176, 32, 0.4); }
 .v2-partcard {
     --fc: #8b95a8;
+    --grade: 170, 176, 190;
     position: relative;
     display: grid;
     grid-template-columns: 64px 1fr;
     gap: 10px;
     padding: 9px 10px 9px 12px;
     cursor: pointer;
-    background: linear-gradient(180deg, rgba(30, 34, 44, 0.9), rgba(14, 16, 22, 0.95));
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    border-left: 3px solid var(--fc);
+    background: linear-gradient(135deg, rgba(var(--grade), 0.22), rgba(20, 23, 30, 0.95) 58%);
+    border: 1px solid rgba(var(--grade), 0.5);
+    border-left: 4px solid rgb(var(--grade));
     transition: transform 0.1s ease, border-color 0.15s ease, box-shadow 0.15s ease;
 }
-.v2-partcard:hover { transform: translateY(-2px); border-color: rgba(255, 176, 32, 0.4); border-left-color: var(--fc); }
-.v2-partcard.is-selected { border-color: var(--v2-amber); border-left-color: var(--fc); box-shadow: 0 0 0 1px var(--v2-amber), 0 0 18px rgba(255, 176, 32, 0.25); }
+.v2-partcard:hover { transform: translateY(-2px); border-color: rgba(255, 176, 32, 0.4); border-left-color: rgb(var(--grade)); }
+.v2-partcard.is-selected { border-color: var(--v2-amber); border-left-color: rgb(var(--grade)); box-shadow: 0 0 0 1px var(--v2-amber), 0 0 18px rgba(255, 176, 32, 0.25); }
 .v2-partcard__thumb {
     position: relative;
     width: 64px;
     height: 64px;
     display: grid;
     place-items: center;
-    background: radial-gradient(circle at 50% 40%, color-mix(in srgb, var(--fc) 35%, transparent), rgba(0, 0, 0, 0.5) 72%);
-    border: 1px solid color-mix(in srgb, var(--fc) 45%, transparent);
+    overflow: hidden;
+    background: radial-gradient(circle at 50% 38%, rgba(var(--grade), 0.6), rgba(var(--grade), 0.14) 68%, rgba(0, 0, 0, 0.55));
+    border: 2px solid rgb(var(--grade));
 }
-.v2-partcard__thumb img { max-width: 58px; max-height: 58px; object-fit: contain; filter: drop-shadow(0 2px 3px rgba(0, 0, 0, 0.7)); }
-.v2-partcard__thumb .v2-icon { opacity: 0.35; }
+.v2-partcard__thumb img { max-width: 54px; max-height: 48px; margin-bottom: 12px; object-fit: contain; filter: drop-shadow(0 2px 3px rgba(0, 0, 0, 0.7)); }
+.v2-partcard__thumb .v2-icon { opacity: 0.35; margin-bottom: 12px; }
 .v2-partcard__body { min-width: 0; display: flex; flex-direction: column; gap: 2px; }
 .v2-partcard__side { display: flex; flex-direction: column; align-items: stretch; gap: 4px; }
-.v2-partcard__name { font-size: 13px; font-weight: 800; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.v2-partcard__name { font-size: 13px; font-weight: 800; color: color-mix(in srgb, rgb(var(--grade)) 60%, #fff); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .v2-partcard__faction { font-size: 10px; color: var(--fc); }
 .v2-partcard__stats { font-family: var(--v2-font-num); font-size: 10px; color: var(--v2-dim); }
 .v2-partcard__skill { display: flex; align-items: center; gap: 4px; font-size: 11px; color: var(--sk, var(--v2-dim)); white-space: nowrap; overflow: hidden; }
@@ -2283,8 +2342,33 @@ div.v2-settings__row > span { flex: 1; }
 /* 파츠 등급 (Q-006): 색 = growth_v2.js GRADES */
 .v2-gradetag { --grade: 170, 176, 190; display: inline-block; font: 800 10px var(--v2-font); padding: 1px 6px; border-radius: 3px; color: #120d06; background: rgb(var(--grade)); }
 .v2-gradetag:empty { display: none; }
-.v2-partcard.has-grade { border-color: rgba(var(--grade), 0.75); box-shadow: inset 0 0 14px rgba(var(--grade), 0.18); }
-.v2-partcard__name .v2-gradetag { margin-left: 5px; vertical-align: 1px; }
+/* 파츠 카드 등급 (2026-11-03, Q-017 C안 → D-096): 그림 칸·테두리·이름 = 등급 색, 그림 아래 등급 이름 띠 — 휴대폰 크기에서도 색 면으로 보임.
+   캐릭터 색(--fc)은 '세트 · …' 글자에만. 목록은 묶음 머리 줄(모으는 세트 → 레전더리 → … → 커먼) + 부위 탭 아래 등급 거르기 칩 */
+.v2-partcard__grade {
+    position: absolute; left: 0; right: 0; bottom: 0;
+    font: 900 10px var(--v2-font); line-height: 14px; letter-spacing: 0.5px; text-align: center;
+    color: #fff; background: rgb(var(--grade)); text-shadow: 0 1px 0 rgba(0, 0, 0, 0.55);
+}
+.v2-partcard[data-grade="common"] .v2-partcard__grade { color: #1b1f27; text-shadow: none; }
+.v2-partcard[data-grade="common"] .v2-partcard__name { color: #fff; }
+.v2-partgroup {
+    grid-column: 1 / -1; display: flex; align-items: center; gap: 8px; margin-top: 2px;
+    font: 900 12px var(--v2-font); letter-spacing: 1px; color: rgb(var(--grade));
+}
+.v2-partgroup::after { content: ''; flex: 1; height: 1px; background: linear-gradient(90deg, rgba(var(--grade), 0.8), transparent); }
+.v2-partgroup small { font: 700 10px var(--v2-font-num); letter-spacing: 0; color: var(--v2-dim); }
+.v2-partgroup.is-mate { --grade: 255, 209, 102; }   /* 모으는 세트 = 금색 (--v2-gold) */
+.v2-gradebar { display: flex; flex-wrap: wrap; gap: 5px; }
+.v2-gradebar[hidden] { display: none; }
+.v2-gradechip {
+    --grade: 255, 176, 32;
+    display: inline-flex; align-items: center; gap: 5px; padding: 3px 9px; cursor: pointer;
+    font: 800 11px var(--v2-font); color: rgb(var(--grade));
+    background: rgba(var(--grade), 0.08); border: 1px solid rgba(var(--grade), 0.55);
+}
+.v2-gradechip b { font: 800 10px var(--v2-font-num); opacity: 0.85; }
+.v2-gradechip.is-on { color: #16120a; background: rgb(var(--grade)); }
+.v2-gradechip:disabled { opacity: 0.35; cursor: default; }
 .v2-skillup { margin-left: auto; flex: none; display: inline-flex; flex-direction: column; align-items: center; line-height: 1.05;
     font: 800 10px var(--v2-font); padding: 2px 6px; border-radius: 3px; cursor: pointer;
     color: #e9dcff; background: rgba(186, 104, 255, 0.18); border: 1px solid rgba(186, 104, 255, 0.55); }
@@ -2308,8 +2392,12 @@ div.v2-settings__row > span { flex: 1; }
 .v2-upgrade.is-flash { animation: v2-upg-flash 0.5s ease-out; }
 @keyframes v2-upg-flash { 30% { background: rgba(255, 176, 32, 0.35); box-shadow: 0 0 18px rgba(255, 176, 32, 0.6); } }
 .v2-partcard__lv { font-family: var(--v2-font-num); font-size: 9px; color: var(--v2-amber); margin-left: 4px; }
-.v2-partcard__badge.is-owned { background: #4a90c8; color: #fff; }
+.v2-partcard__badge.is-owned { background: #3a4252; color: #dfe6f2; }   /* 레어 파랑과 헷갈리지 않게 회색 (Q-017) */
 .v2-partcard__badge.is-drop { background: rgb(186, 104, 255); color: #fff; }   /* 드랍·조각 전용 (유니크 세트, Q-008) */
+/* 등급 단계 잠김 (11-03, progress_v2.js tierLock): 아래 등급 파츠를 더 가져야 열림 — 그림을 흐리게, 배지에 자물쇠 + 가진 수/필요 수 */
+.v2-partcard__badge.is-tierlock { display: flex; align-items: center; justify-content: center; gap: 3px; background: #2a2f3a; color: var(--v2-amber); }
+.v2-partcard__badge.is-tierlock .v2-icon { width: 10px; height: 10px; }
+.v2-partcard.is-tierlocked .v2-partcard__thumb img { opacity: 0.45; }
 
 /* 화면 크기 맞춤 (js/main_v2.js fitScreens): 창에 맞게 비율 유지 확대·축소, 가운데 정렬 */
 body.v2-fit .screen-v2.landscape {
@@ -2623,3 +2711,299 @@ body.v2-fit .v2-growth__box { width: 940px; max-height: 655px; }
 #screen-battle-v2 .ally-minion.v2-kit-ally.is-attacking { background-image: var(--atk); animation: var(--atk-anim); }
 /* 시간 정지 (공허의 예언자 필살기, sets2/heroSets2.js): 적이 청자색으로 굳어 보임 */
 #screen-battle-v2.v2-timestop #enemies-container-v2 .v2-enemy__sprite { filter: saturate(0.25) hue-rotate(200deg) brightness(0.85) drop-shadow(0 0 6px rgba(150, 130, 255, 0.9)) !important; }
+
+/* ---------- 휴대폰 배치 (ui_v2_mobile.css, D-099 · D-102)와 같이 쓰는 PC 쪽 규칙 ---------- */
+/* 휴대폰 배치 전용 요소 (PC에서는 숨김) */
+.v2-mrail, .v2-mstage, .v2-mparts-row, .v2-mscrim, .v2-mtoast, .v2-mclass, .v2-sortie__ko, .v2-radar__close, .v2-unit__badge,
+.v2-showroom__stats dt .v2-icon, .v2-chip--res em, .v2-mlabskills,
+#select-res-v2, .v2-charcard__stats .is-mobile, .v2-charcard__stats dt .v2-icon, .v2-partcard__totals { display: none; }
+.v2-bar__text small { font-size: inherit; }
+.v2-settings .v2-btn.is-on { color: #16120a; --btn-c: var(--v2-amber); }   /* 설정 '화면 배치'에서 고른 단추 */
+.v2-settings [data-layout] { min-width: 0; padding: 10px 14px; white-space: nowrap; }
+
+/* ---------- 모바일 웹: 가로 화면·전체 화면·앱 안 브라우저 안내 ---------- */
+.v2-mobile-web { font-family: var(--v2-font); color: var(--v2-text); }
+.v2-mobile-web [hidden] { display: none !important; }
+.v2-mobile-web__portrait {
+    position: fixed; inset: 0; z-index: 20000;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 16px; padding: 110px 24px 32px; box-sizing: border-box;
+    background: var(--v2-bg); text-align: center;
+    border-top: 4px solid var(--v2-amber);
+}
+.v2-mobile-web__rotate { width: 72px; height: 72px; flex-shrink: 0; color: var(--v2-amber); }
+.v2-mobile-web__portrait h2 { margin: 0; font-size: 24px; color: var(--v2-amber); }
+.v2-mobile-web__portrait p { margin: 0; font-size: 14px; color: var(--v2-dim); }
+.v2-mobile-web__fullscreen, .v2-mobile-web__external, .v2-mobile-web__close {
+    border: 1px solid var(--v2-edge); border-radius: 4px;
+    background: var(--v2-steel-lo); color: var(--v2-amber);
+    padding: 10px 12px; font: inherit; font-size: 13px; cursor: pointer;
+    text-decoration: none; text-align: center;
+}
+.v2-mobile-web > .v2-mobile-web__fullscreen {
+    position: fixed; right: max(10px, env(safe-area-inset-right));
+    bottom: max(10px, env(safe-area-inset-bottom)); z-index: 19000;
+}
+.v2-mobile-web__banner {
+    position: fixed; top: 0; left: 0; right: 0; z-index: 21000;
+    display: flex; align-items: center; flex-wrap: wrap; gap: 8px;
+    padding: 10px 48px 10px 12px; padding-top: max(10px, env(safe-area-inset-top));
+    background: var(--v2-steel-lo); border-bottom: 1px solid var(--v2-edge);
+    font-size: 13px; line-height: 1.5;
+}
+.v2-mobile-web__banner > span:first-child { flex: 1 1 260px; }
+.v2-mobile-web__close { position: absolute; top: 8px; right: 8px; font-size: 20px; padding: 4px 10px; }
+
+/* ??? ?? ?? ?? (v2) */
+.v2-charcard.is-coming-soon { border-style: dashed; border-color: #aa9063; }
+.v2-charcard__foot .v2-release-date { color: #e5bc79; }
+.v2-dsp-zone.is-coming-soon { border-style: dashed; border-color: #aa9063; }
+.v2-dsp-zone.is-coming-soon small { color: #e5bc79; }
+
+/* 상점·확률 정보 창 (v2) */
+.v2-commerce {
+    position: fixed; inset: 0; z-index: 22000; background: #000b;
+    display: grid; place-items: center; padding: 16px; color: #e2e8f0;
+}
+.v2-commerce__panel {
+    width: min(880px, 100%); max-height: calc(100dvh - 32px); overflow: auto;
+    padding: 20px; background: #151d29; border: 1px solid #46536a; border-radius: 8px;
+    font-size: 14px; line-height: 1.6; box-sizing: border-box;
+}
+.v2-commerce__panel > header { display: flex; justify-content: space-between; align-items: center; gap: 16px; }
+.v2-commerce__panel h2, .v2-commerce__panel h3 { margin: 0; }
+.v2-commerce__panel p { margin: 8px 0; }
+.v2-commerce__panel table { width: 100%; border-collapse: collapse; margin: 14px 0; font-size: 12px; }
+.v2-commerce__panel th, .v2-commerce__panel td { padding: 8px; text-align: left; border: 1px solid #46536a; }
+.v2-commerce__panel select { color: #e2e8f0; background: #222f42; padding: 6px; margin: 8px; }
+.v2-commerce__panel button:disabled { opacity: .55; cursor: default; }
+.v2-commerce__actions { display: flex; flex-wrap: wrap; gap: 8px; margin: 12px 0; }
+.v2-shop__product { display: flex; justify-content: space-between; align-items: center; gap: 16px; padding: 14px 0; border-bottom: 1px solid #46536a; }
+.v2-shop__product > div { flex: 1; }
+.v2-shop__product button { flex-shrink: 0; }
+.v2-prob-info { z-index: 22001; }
+#menu-shop-badge-v2 { color: #ff665c; font-size: 10px; }
+@media (max-width: 640px) {
+    .v2-commerce { padding: 8px; }
+    .v2-commerce__panel { padding: 12px; max-height: calc(100dvh - 16px); }
+    .v2-shop__product { align-items: flex-start; gap: 8px; }
+    .v2-commerce__panel th, .v2-commerce__panel td { padding: 4px; overflow-wrap: anywhere; }
+}
+
+/* 펫 (v2): 임시 도형. art 경로가 지정되면 같은 크기의 그림으로 교체한다. */
+.v2-petgrid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 12px; }
+.v2-petcard { padding: 14px; border: 1px solid #485064; border-radius: 8px; background: #161d2a; }
+.v2-petcard.is-equipped { border-color: var(--pet-color); box-shadow: inset 0 0 14px #a986ff18; }
+.v2-petcard__head { display: flex; align-items: center; gap: 12px; }
+.v2-petcard__head small { display: block; margin-top: 5px; }
+.v2-petcard p { margin: 12px 0 6px; color: #e5def3; font-size: 13px; }
+.v2-petcard small { color: #b5bdcc; line-height: 1.6; }
+.v2-petcard__acts { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 12px; }
+.v2-petcard__acts button { background: #28324a; color: #eee8fa; border: 1px solid #606b86; padding: 7px 10px; border-radius: 4px; cursor: pointer; font-size: 12px; }
+.v2-petcard__acts button:disabled, .v2-growth__tabs button:disabled { opacity: .45; cursor: default; }
+.v2-pet { position: relative; display: inline-block; flex-shrink: 0; width: 40px; height: 40px; box-sizing: border-box; pointer-events: none; }
+.v2-pet img { width: 100%; height: 100%; object-fit: contain; }
+.v2-pet[data-shape]::before { content: ''; position: absolute; inset: 7px 3px; background: #303445; border: 2px solid var(--pet-color); border-radius: 45%; box-shadow: 0 0 8px #b79aff55; }
+.v2-pet[data-shape]::after { content: ''; position: absolute; left: 16px; top: 16px; width: 9px; height: 9px; background: var(--pet-color); border-radius: 50%; box-shadow: 0 0 8px var(--pet-color); }
+.v2-pet[data-shape="drone"]::before { border-radius: 8px; border-bottom-width: 7px; transform: rotate(-8deg); }
+.v2-pet[data-shape="larva"]::before { inset: 13px 1px 3px; border-radius: 45% 70% 25% 30%; border-bottom-width: 6px; }
+.v2-pet[data-shape="eye"]::before { inset: 1px 5px 4px; border-radius: 50%; background: #56366d; }
+.v2-pet[data-shape="lantern"]::before { inset: 2px 7px 8px; border-radius: 50% 50% 15% 15%; border-bottom-width: 8px; }
+.v2-pet[data-shape="keeper"]::before { inset: 3px 8px 9px; border-radius: 0 0 45% 45%; border-top: 12px double var(--pet-color); }
+.v2-pet--battle { position: absolute; z-index: 6; }
+/* 펫 그림(11-03): 카드 52px, 전투는 60px로 키워 캐릭터 등 뒤 조금 위에 (위치 기준점 monsterX − 60은 그대로) */
+.v2-petcard .v2-pet:not([data-shape]) { width: 52px; height: 52px; }
+.v2-pet--battle:not([data-shape]) { width: 60px; height: 60px; transform: translate(-46px, -26px); filter: drop-shadow(0 0 6px var(--pet-color)); }
+.v2-result__pet { margin: 8px 0; color: #d5b1ff; font-size: 13px; }
+@media (max-width: 640px) {
+    .v2-petgrid { grid-template-columns: 1fr; }
+}
+
+/* 방치 보상 (v2): 메뉴 표시와 직접 여는 수령 창. */
+.v2-offlinebtn[hidden] { display: none; }
+.v2-offlinebtn.is-ready { color: var(--v2-green); border-color: var(--v2-green); }
+.v2-offline [data-summary] { white-space: pre-line; line-height: 1.9; padding: 12px; background: #161d2a; border-radius: 6px; }
+.v2-offline [data-result] { min-height: 1.5em; color: var(--v2-green); }
+
+/* 첫 성장 안내 (v2): 화면의 여유 공간에 놓는 비차단 진행 줄. */
+.v2-tutorial { position: absolute; z-index: 25; left: 18px; right: 18px; bottom: 4px; display: flex; align-items: center; justify-content: center; gap: 12px; pointer-events: none; font-size: 12px; color: #cdd8e6; }
+.v2-tutorial[hidden], .v2-tutorial button[hidden] { display: none; }
+.v2-tutorial span { padding: 3px 10px; background: #111926e8; border-radius: 4px; }
+.v2-tutorial button { pointer-events: auto; border: 1px solid #63768b; border-radius: 4px; background: #172334; color: #e4ecf5; padding: 2px 9px; font: inherit; cursor: pointer; }
+.v2-tutorial [data-tutorial="claim"] { color: var(--v2-green); border-color: var(--v2-green); }
+#screen-battle-v2 .v2-tutorial { top: 80px; bottom: auto; }
+
+/* 시험용 전체 스테이지 잠금 해제 중 — 메뉴 왼쪽 위 아이콘 5번 (menu_v2.js initUnlockTaps) */
+.v2-brand__emblem.is-dev-unlocked { filter: drop-shadow(0 0 6px #6dffb0) drop-shadow(0 0 2px #6dffb0); }
+.v2-brand__emblem.is-dev-all { filter: drop-shadow(0 0 6px #ffd166) drop-shadow(0 0 2px #ffd166); }   /* 시험 모드 2단계: 캐릭터·파츠까지 해제, 저장 안 됨 */
+
+/* ==========================================================================
+   스토리 인트로 — 모션 코믹 (js/ui_v2/storyIntro_v2.js · 대본 js/engine_v2/storyIntros_v2.js, D-100)
+   만화 칸(밝은 테두리 + 망점) 안에서 그림·리그·입자가 움직이고, 내레이션·말풍선·효과음 글자가 칸 위에 뜸
+   ========================================================================== */
+.v2-story { position: absolute; left: 0; top: 0; z-index: 900; width: 1280px; height: 720px; overflow: hidden; opacity: 0; transition: opacity 0.3s ease;
+    border: 4px solid var(--neon-pink); border-radius: 16px; box-shadow: 0 0 50px rgba(0, 0, 0, 0.9); background: #050507;
+    cursor: pointer; user-select: none; -webkit-user-select: none; --accent: #ff3b4a; font-family: 'Noto Sans KR', sans-serif; }
+body.v2-fit .v2-story { left: var(--v2-x, 0); top: var(--v2-y, 0); transform: scale(var(--v2-scale, 1)); transform-origin: 0 0; }
+.v2-story-backdrop { position: fixed; inset: 0; z-index: 899; background: #050507; opacity: 0; transition: opacity 0.3s ease; cursor: pointer; }
+.v2-story-backdrop.is-closing { opacity: 0 !important; transition: opacity 0.4s ease; }
+.v2-story.is-closing { opacity: 0 !important; transition: opacity 0.4s ease; }
+.v2-story__stage { position: absolute; inset: 0; overflow: hidden; }
+.v2-story__page { position: absolute; inset: 0; transition: opacity 0.5s ease, transform 0.5s ease; }
+.v2-story__page.is-out { opacity: 0; transform: scale(0.97); }
+
+/* 칸: 바깥 = 테두리 색, 안쪽 3px 들어간 곳이 그림 */
+.v2-story__panel { position: absolute; background: #ebe4d0; opacity: 0; }
+.v2-story__panel.is-in { animation: v2-story-in-fade 0.45s ease-out both; }
+.v2-story__panel.in-left.is-in { animation-name: v2-story-in-left; }
+.v2-story__panel.in-right.is-in { animation-name: v2-story-in-right; }
+.v2-story__panel.in-down.is-in { animation-name: v2-story-in-down; }
+.v2-story__panel.in-up.is-in { animation-name: v2-story-in-up; }
+.v2-story__panel.in-zoom.is-in { animation: v2-story-in-zoom 0.6s cubic-bezier(0.2, 0.8, 0.3, 1) both; }
+@keyframes v2-story-in-fade { from { opacity: 0; } to { opacity: 1; } }
+@keyframes v2-story-in-left { from { opacity: 0; transform: translateX(-70px); } to { opacity: 1; transform: none; } }
+@keyframes v2-story-in-right { from { opacity: 0; transform: translateX(70px); } to { opacity: 1; transform: none; } }
+@keyframes v2-story-in-down { from { opacity: 0; transform: translateY(-46px); } to { opacity: 1; transform: none; } }
+@keyframes v2-story-in-up { from { opacity: 0; transform: translateY(46px); } to { opacity: 1; transform: none; } }
+@keyframes v2-story-in-zoom { from { opacity: 0; transform: scale(1.14); } to { opacity: 1; transform: none; } }
+.v2-story__inner { position: absolute; inset: 3px; overflow: hidden; background: #000; }
+.v2-story__scene { position: absolute; inset: 0; }
+.v2-story__inner.is-sepia .v2-story__scene { filter: sepia(0.85) saturate(0.85) contrast(1.08) brightness(0.88); }
+.v2-story__inner.is-noir .v2-story__scene { filter: grayscale(1) contrast(1.2) brightness(0.8); }
+.v2-story__halftone { position: absolute; inset: 0; z-index: 50; pointer-events: none; opacity: 0.45; mix-blend-mode: multiply;
+    background: radial-gradient(rgba(0, 0, 0, 0.35) 0.9px, transparent 1.3px) 0 0 / 5px 5px; }
+
+/* 층: 크기 0인 점(x, y)에 붙고, 움직임(이동·확대·회전)은 그 점 기준 */
+.v2-story__layer, .v2-story__flip { position: absolute; width: 0; height: 0; transform-origin: 0 0; }
+.v2-story__flip { left: 0; top: 0; }
+.v2-story__img { position: absolute; max-width: none; pointer-events: none; }
+.v2-story__img.is-b { left: 0; bottom: 0; transform: translateX(-50%); }
+.v2-story__img.is-c { left: 0; top: 0; transform: translate(-50%, -50%); }
+.v2-story__img.is-tl { left: 0; top: 0; }
+.v2-story__particles { position: absolute; left: 0; top: 0; pointer-events: none; }
+
+/* 덮개 효과 */
+.v2-story__fx { position: absolute; left: 0; top: 0; pointer-events: none; }
+.v2-story__fx.is-vignette { background: radial-gradient(ellipse at center, transparent 52%, rgba(0, 0, 0, 0.78) 100%); }
+.v2-story__fx.is-glow, .v2-story__fx.is-rays { mix-blend-mode: screen; }
+.v2-story__fx.is-alarm { mix-blend-mode: screen; animation: v2-story-alarm 1.2s ease-in-out infinite;
+    background: radial-gradient(ellipse 55% 90% at 50% -12%, rgba(255, 30, 45, 0.6), transparent 70%), linear-gradient(0deg, rgba(140, 0, 14, 0.3), transparent 55%); }
+.v2-story__fx.is-alarm.is-strong { animation-duration: 0.7s; }
+@keyframes v2-story-alarm { 0%, 100% { opacity: 0.12; } 50% { opacity: 1; } }
+.v2-story__fx.is-speed { mix-blend-mode: screen; animation: v2-story-speed 0.16s steps(2) infinite;
+    background: repeating-conic-gradient(from 0deg at 50% 50%, var(--c, rgba(255, 255, 255, 0.55)) 0deg 0.7deg, transparent 0.7deg 6.5deg);
+    -webkit-mask-image: radial-gradient(circle at center, transparent 32%, #000 78%); mask-image: radial-gradient(circle at center, transparent 32%, #000 78%); }
+@keyframes v2-story-speed { to { transform: rotate(2.5deg) scale(1.02); } }
+.v2-story__fx.is-rays { animation: v2-story-rays 5s ease-in-out infinite alternate;
+    background: repeating-linear-gradient(104deg, var(--c) 0 16px, transparent 16px 64px);
+    -webkit-mask-image: linear-gradient(180deg, #000, transparent 85%); mask-image: linear-gradient(180deg, #000, transparent 85%); }
+@keyframes v2-story-rays { from { opacity: 0.55; background-position-x: 0; } to { opacity: 1; background-position-x: 60px; } }
+.v2-story__flash { position: absolute; inset: 0; z-index: 60; pointer-events: none; background: #fff; animation: v2-story-flash 0.4s ease-out forwards; }
+.v2-story__flash.is-red { background: #ff1e3c; mix-blend-mode: screen; }
+.v2-story__flash.is-black { background: #000; animation-duration: 0.7s; }
+@keyframes v2-story-flash { from { opacity: 0.95; } to { opacity: 0; } }
+
+/* 글자: 내레이션(cap) · 말풍선(say) · 시스템 경고(sys) · 효과음(sfx) — 칸 위에 떠서 칸 밖으로 넘칠 수 있음 */
+.v2-story__texts { position: absolute; inset: 0; z-index: 100; pointer-events: none; }
+.v2-story__text { position: absolute; white-space: pre-line; word-break: keep-all; line-height: 1.45; transform: rotate(var(--r, 0deg)) scale(var(--k, 1)); transform-origin: 0 0;
+    animation: v2-story-pop 0.28s cubic-bezier(0.2, 1.4, 0.4, 1) both; --bg: #fff; --bd: #111; }
+.v2-story__text .is-rest { visibility: hidden; }
+@keyframes v2-story-pop { from { opacity: 0; transform: rotate(var(--r, 0deg)) scale(calc(var(--k, 1) * 0.6)); } to { opacity: 1; transform: rotate(var(--r, 0deg)) scale(var(--k, 1)); } }
+.v2-story__text.is-cap { background: #f2e7c9; color: #17130e; border: 2px solid #111; padding: 7px 12px; font-size: 15.5px; font-weight: 700;
+    box-shadow: 3px 3px 0 rgba(0, 0, 0, 0.85); animation-name: v2-story-cap; animation-duration: 0.32s; animation-timing-function: ease-out; }
+@keyframes v2-story-cap { from { opacity: 0; transform: translateX(-14px) scale(var(--k, 1)); } to { opacity: 1; transform: scale(var(--k, 1)); } }
+.v2-story__text.is-say { background: var(--bg); color: #111; border: 2.5px solid var(--bd); border-radius: 22px; padding: 10px 17px; font-size: 17px; font-weight: 700;
+    box-shadow: 3px 3px 0 rgba(0, 0, 0, 0.55); }
+.v2-story__text.is-say.is-shout { font-size: 19px; font-weight: 900; padding: 12px 19px; border-width: 3px; }
+.v2-story__text.is-say.tone-dark { --bg: #140b18; --bd: var(--accent); color: #f4ecff; box-shadow: 0 0 18px color-mix(in srgb, var(--accent) 45%, transparent), 3px 3px 0 rgba(0, 0, 0, 0.6); }
+.v2-story__text.is-say.tone-gold { --bg: #fbf1d2; --bd: #7a5a12; color: #2b1d05; box-shadow: 0 0 16px rgba(255, 210, 120, 0.5), 3px 3px 0 rgba(0, 0, 0, 0.5); }
+.v2-story__text.is-say.tone-red { --bd: #c0182c; }
+/* 말꼬리: ::before = 테두리 색 삼각형, ::after = 안쪽 색 (풍선 테두리 위를 덮어 이어 붙임) */
+.v2-story__text.is-say[class*="tail-"]::before, .v2-story__text.is-say[class*="tail-"]::after { content: ""; position: absolute; }
+.v2-story__text.is-say[class*="tail-"]::before { background: var(--bd); width: 26px; height: 24px; }
+.v2-story__text.is-say[class*="tail-"]::after { background: var(--bg); width: 18px; height: 16px; }
+.v2-story__text.tail-bl::before { left: 26px; top: calc(100% - 1px); clip-path: polygon(0 0, 100% 0, 0 100%); }
+.v2-story__text.tail-bl::after { left: 29.5px; top: calc(100% - 3.5px); clip-path: polygon(0 0, 100% 0, 0 100%); }
+.v2-story__text.tail-br::before { right: 26px; top: calc(100% - 1px); clip-path: polygon(0 0, 100% 0, 100% 100%); }
+.v2-story__text.tail-br::after { right: 29.5px; top: calc(100% - 3.5px); clip-path: polygon(0 0, 100% 0, 100% 100%); }
+.v2-story__text.tail-tl::before { left: 26px; bottom: calc(100% - 1px); clip-path: polygon(0 100%, 100% 100%, 0 0); }
+.v2-story__text.tail-tl::after { left: 29.5px; bottom: calc(100% - 3.5px); clip-path: polygon(0 100%, 100% 100%, 0 0); }
+.v2-story__text.tail-tr::before { right: 26px; bottom: calc(100% - 1px); clip-path: polygon(0 100%, 100% 100%, 100% 0); }
+.v2-story__text.tail-tr::after { right: 29.5px; bottom: calc(100% - 3.5px); clip-path: polygon(0 100%, 100% 100%, 100% 0); }
+.v2-story__text.tail-l::before { right: calc(100% - 1px); top: calc(50% - 12px); width: 24px; clip-path: polygon(100% 0, 100% 100%, 0 60%); }
+.v2-story__text.tail-l::after { right: calc(100% - 3.5px); top: calc(50% - 8px); width: 17px; clip-path: polygon(100% 0, 100% 100%, 0 60%); }
+.v2-story__text.tail-r::before { left: calc(100% - 1px); top: calc(50% - 12px); width: 24px; clip-path: polygon(0 0, 0 100%, 100% 60%); }
+.v2-story__text.tail-r::after { left: calc(100% - 3.5px); top: calc(50% - 8px); width: 17px; clip-path: polygon(0 0, 0 100%, 100% 60%); }
+.v2-story__who { position: absolute; left: 14px; top: -11px; padding: 1px 8px; border-radius: 3px; background: #111; color: #fff;
+    font-style: normal; font-size: 11px; font-weight: 900; letter-spacing: 0.5px; line-height: 1.6; white-space: nowrap; }
+.v2-story__text.tone-dark .v2-story__who { background: var(--accent); }
+.v2-story__text.tail-tl .v2-story__who { left: auto; right: 14px; }   /* 위쪽 말꼬리와 안 겹치게 */
+.v2-story__text.tone-gold .v2-story__who { background: #7a5a12; }
+.v2-story__text.is-sys { background: rgba(40, 0, 6, 0.9); border: 1.5px solid #ff3b4a; color: #ff6d78; padding: 8px 12px; font-family: var(--v2-font); font-size: 15px; font-weight: 700;
+    letter-spacing: 0.5px; text-shadow: 0 0 8px rgba(255, 40, 60, 0.75); box-shadow: 0 0 18px rgba(255, 30, 50, 0.4); animation: v2-story-pop 0.28s ease-out both, v2-story-sys 0.9s steps(2) 0.3s infinite; }
+@keyframes v2-story-sys { 50% { border-color: rgba(255, 59, 74, 0.25); } }
+.v2-story__text.is-sfx { font-size: 72px; font-weight: 900; font-style: italic; letter-spacing: -2px; line-height: 1; color: var(--c, #ffd23f); white-space: nowrap;
+    text-shadow: 3px 3px 0 #111, -3px 3px 0 #111, 3px -3px 0 #111, -3px -3px 0 #111, 0 4px 0 #111, 4px 0 0 #111, -4px 0 0 #111, 0 -4px 0 #111, 7px 9px 0 rgba(0, 0, 0, 0.45);
+    animation: v2-story-sfx 0.3s cubic-bezier(0.2, 1.5, 0.4, 1) both; }
+@keyframes v2-story-sfx { from { opacity: 0; transform: rotate(var(--r, 0deg)) scale(calc(var(--k, 1) * 2.2)); } to { opacity: 1; transform: rotate(var(--r, 0deg)) scale(var(--k, 1)); } }
+
+/* 위에 뜨는 조작: 건너뛰기 · 계속 안내 · 진행 막대 */
+.v2-story__ui { position: absolute; inset: 0; z-index: 200; pointer-events: none; }
+.v2-story__skip { position: absolute; top: 22px; right: 24px; pointer-events: auto; cursor: pointer; padding: 7px 16px; border-radius: 999px;
+    background: rgba(0, 0, 0, 0.66); border: 1px solid rgba(255, 255, 255, 0.4); color: #fff; font-family: var(--v2-font); font-size: 13px; font-weight: 700; letter-spacing: 1px; }
+.v2-story__skip b { color: var(--accent); }
+.v2-story__skip:hover { background: rgba(0, 0, 0, 0.85); border-color: #fff; }
+.v2-story__hint { position: absolute; left: 26px; bottom: 14px; padding: 3px 10px; border-radius: 999px; background: rgba(0, 0, 0, 0.6);
+    color: rgba(255, 255, 255, 0.75); font-size: 12px; font-weight: 700; animation: v2-story-hint 1.6s ease-in-out infinite; }
+@keyframes v2-story-hint { 50% { opacity: 0.35; } }
+.v2-story__progress { position: absolute; left: 14px; right: 14px; bottom: 4px; height: 3px; background: rgba(255, 255, 255, 0.1); }
+.v2-story__progress i { display: block; height: 100%; width: 0; background: var(--accent); transition: width 0.4s ease; }
+/* 휴대폰 배치(화면 배율 약 0.5): 글자 상자는 왼쪽 위 기준으로 키우고(--k), 단추·안내도 손가락 크기로 */
+body.v2-mobile .v2-story { --k: 1.32; }
+body.v2-mobile .v2-story__skip { zoom: 1.7; }
+body.v2-mobile .v2-story__hint { zoom: 1.6; }
+body.v2-mobile .v2-story__progress { height: 5px; }
+body.v2-mobile .v2-story__title-text { zoom: 1.2; }
+
+/* 마지막 제목 카드 */
+.v2-story__title { position: absolute; inset: 0; z-index: 150; display: flex; align-items: center; gap: 56px; padding: 0 130px;
+    background: radial-gradient(circle at 28% 50%, color-mix(in srgb, var(--c, #ff3b4a) 28%, #050507), #050507 68%); animation: v2-story-in-fade 0.5s ease-out both; }
+.v2-story__title-face { flex: none; width: 260px; height: 260px; border-radius: 50%; overflow: hidden; display: grid; place-items: center;
+    background: radial-gradient(circle, color-mix(in srgb, var(--c, #ff3b4a) 35%, #111), #0b0b10 70%); border: 3px solid var(--c, #ff3b4a);
+    box-shadow: 0 0 40px color-mix(in srgb, var(--c, #ff3b4a) 55%, transparent); animation: v2-story-in-left 0.6s cubic-bezier(0.2, 0.8, 0.3, 1) both; }
+.v2-story__title-face img { width: 100%; height: 100%; object-fit: cover; }
+.v2-story__title-text small { display: block; font-family: 'Orbitron', var(--v2-font); font-size: 18px; font-weight: 800; letter-spacing: 10px; color: var(--c, #ff3b4a); }
+.v2-story__title-text h2 { margin: 6px 0 14px; font-size: 62px; font-weight: 900; color: #fff; letter-spacing: 2px;
+    text-shadow: 0 0 24px color-mix(in srgb, var(--c, #ff3b4a) 70%, transparent), 4px 4px 0 #000; animation: v2-story-in-right 0.55s 0.1s cubic-bezier(0.2, 0.8, 0.3, 1) both; }
+.v2-story__title-text > i { display: block; height: 3px; width: 560px; margin-bottom: 18px; background: linear-gradient(90deg, var(--c, #ff3b4a), transparent);
+    transform-origin: 0 0; animation: v2-story-line 0.6s 0.25s ease-out both; }
+@keyframes v2-story-line { from { transform: scaleX(0); } to { transform: none; } }
+.v2-story__title-text p { display: flex; gap: 16px; margin: 8px 0; animation: v2-story-in-right 0.45s ease-out both; }
+.v2-story__title-text p:nth-of-type(1) { animation-delay: 0.35s; }
+.v2-story__title-text p:nth-of-type(2) { animation-delay: 0.5s; }
+.v2-story__title-text p:nth-of-type(3) { animation-delay: 0.65s; }
+.v2-story__title-text b { flex: none; width: 84px; font-family: var(--v2-font); font-size: 13px; letter-spacing: 1px; color: var(--c, #ff3b4a); line-height: 26px; }
+.v2-story__title-text span { font-size: 18px; font-weight: 700; color: #ece8f4; line-height: 26px; }
+
+/* 소품: 붉은 도장 (is-go로 쾅 찍힘) */
+.v2-story-stamp { position: absolute; left: 0; top: 0; transform: translate(-50%, -50%) rotate(var(--r, -12deg)) scale(2.4); opacity: 0; white-space: nowrap;
+    padding: 2px 12px; border: 4px solid #ff2e45; border-radius: 4px; color: #ff2e45; background: rgba(40, 0, 6, 0.45);
+    font-family: 'Noto Sans KR', sans-serif; font-size: 30px; font-weight: 900; letter-spacing: 3px; text-shadow: 0 0 10px rgba(255, 40, 60, 0.7); box-shadow: 0 0 18px rgba(255, 30, 50, 0.45); }
+.v2-story-stamp.is-go { animation: v2-story-stamp 0.3s cubic-bezier(0.3, 1.6, 0.5, 1) forwards; }
+@keyframes v2-story-stamp { to { opacity: 1; transform: translate(-50%, -50%) rotate(var(--r, -12deg)) scale(1); } }
+/* 그림 속 빛(차원문·모니터·눈·오라)이 숨 쉬듯 */
+.v2-story__fx.is-pulse { animation: v2-story-pulse 1.6s ease-in-out infinite alternate; }
+@keyframes v2-story-pulse { from { filter: brightness(0.75); } to { filter: brightness(1.25); } }
+
+/* 소품: 칼날 섬광 (is-go) */
+.v2-story-slash { position: absolute; top: -3px; height: 6px; opacity: 0; scale: 0 1;
+    background: linear-gradient(90deg, transparent, #fff 18%, #fff 82%, transparent); box-shadow: 0 0 18px #fff, 0 0 42px rgba(255, 60, 80, 0.85); }
+.v2-story-slash.is-go { animation: v2-story-slash 0.6s ease-out forwards; }
+@keyframes v2-story-slash { 0% { opacity: 1; scale: 0 1; } 35% { opacity: 1; scale: 1 1; } 100% { opacity: 0; scale: 1 0.2; } }
+
+/* 메인 레이더 아래 '▶ STORY' — 고른 구역의 스토리 인트로 다시 보기 (menu_v2.js, D-100) */
+.v2-storybtn { flex: none; height: 44px; padding: 0 16px; border: 1px solid rgba(181, 108, 255, 0.55); background: linear-gradient(180deg, rgba(42, 20, 64, 0.9), rgba(14, 8, 20, 0.95));
+    color: #dcbcff; font-family: var(--v2-font-num); font-size: 13px; font-weight: 900; letter-spacing: 1.5px; cursor: pointer;
+    clip-path: polygon(10px 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%, 0 10px); transition: filter 0.15s ease; }
+.v2-storybtn:hover { filter: brightness(1.25); }
+.v2-storybtn[hidden] { display: none; }

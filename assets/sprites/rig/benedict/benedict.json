@@ -1,0 +1,28 @@
+{
+  "frameWidth": 237,
+  "frameHeight": 237,
+  "anchorX": 147.0,
+  "res": 1.5,
+  "clips": {
+    "walk": {
+      "src": "assets/sprites/rig/benedict/benedict_walk.webp",
+      "frames": 16,
+      "duration": 1.5
+    },
+    "attack": {
+      "src": "assets/sprites/rig/benedict/benedict_attack.webp",
+      "frames": 16,
+      "duration": 0.9
+    },
+    "bash": {
+      "src": "assets/sprites/rig/benedict/benedict_bash.webp",
+      "frames": 16,
+      "duration": 1.1
+    },
+    "drain": {
+      "src": "assets/sprites/rig/benedict/benedict_drain.webp",
+      "frames": 16,
+      "duration": 1
+    }
+  }
+}

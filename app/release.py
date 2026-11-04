@@ -1,9 +1,10 @@
 """
-출시용 APK 만들기 + NAS에 올리기 (D-074, NAS 업데이트 D-081)
+개발판 APK 만들기 + NAS에 올리기 / 플레이판 AAB 만들기 (D-074, NAS 업데이트 D-081)
 
 실행: app 폴더에서
   python release.py --notes "바뀐 점" [--notes "또 하나" …] [--required]   빌드 → app/dist → NAS에 올림
   python release.py --no-upload                 빌드만 (app/dist)
+  python release.py --play                      플레이판 AAB만 (app/dist, 업데이트 주소·NAS·GitHub 확인/올리기 없음)
   python release.py upload [--notes …]          이미 만든 app/dist의 지금 버전 APK를 NAS에 올림 (빌드 없이)
   python release.py list                        NAS에 올린 버전과 지금 최신
   python release.py latest 0.2.1-b3             최신을 그 버전으로 되돌림 (잘못 올린 버전 내리기 — 이미 받은 사람은 그대로)
@@ -21,8 +22,10 @@ NAS 폴더:
   index.html      내려받기 페이지 (최신 APK 단추 · 설치 방법 · 올린 버전) — 처음 설치할 사람에게 이 폴더 주소를 알려 줌
 
 순서: js/version_v2.js의 VERSION·BUILD 읽기 → NAS 최신보다 빌드가 높은지 확인 (같거나 낮으면 멈춤 — BUILD를 1 올릴 것)
-→ build_www.py → npx cap sync android → gradlew assembleRelease (서명 키 <사용자 폴더>/.android/madoverlord-release.properties)
+→ build_www.py → npx cap sync android → gradlew assembleDevRelease (서명 키 <사용자 폴더>/.android/madoverlord-release.properties)
 → app/dist/MadOverlord-<VERSION>-b<BUILD>.apk → NAS에 복사 → releases.json·latest.json.
+플레이판(--play): build_www.py --feed "" → 업데이트 주소 없음 확인 → npx cap sync android → bundlePlayRelease
+→ app/dist/MadOverlord-<VERSION>-b<BUILD>-play.aab (구글 플레이에 제출).
 """
 import datetime
 import hashlib
@@ -39,7 +42,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(HERE)
 JBR = r'C:\Program Files\Android\Android Studio\jbr'
 PROPS = os.path.join(os.path.expanduser('~'), '.android', 'madoverlord-release.properties')
-REPO = 'catseye4/selfmovegame'
+REPO = 'DDD-Madoverlord/selfmovegame'   # 2026-11-03 조직 저장소로 옮김
 DIST = os.path.join(HERE, 'dist')
 
 
@@ -204,16 +207,30 @@ def run(cmd, **kw):
     subprocess.run(cmd, check=True, **kw)
 
 
-def build_apk(version, build, config_arg):
+def check_play_index(path):
+    """플레이판에 개발판 업데이트 주소가 섞이면 동기화·빌드 전에 멈춤"""
+    page = open(path, encoding='utf-8').read()
+    if 'madOverlordUpdateFeed' in page:
+        sys.exit('플레이판 index.html에 업데이트 주소 설정이 남아 있습니다. 빌드를 중단합니다.')
+
+
+def build_apk(version, build, config_arg, play=False):
     if not os.path.exists(PROPS):
         sys.exit(f'서명 설정이 없습니다: {PROPS}')
-    run([sys.executable, 'build_www.py'] + config_arg, cwd=HERE)
+    run([sys.executable, 'build_www.py'] + (['--feed', ''] if play else config_arg), cwd=HERE)
+    if play:
+        check_play_index(os.path.join(HERE, 'www', 'index.html'))
     run('npx cap sync android', cwd=HERE, shell=True)
+    if play:
+        check_play_index(os.path.join(HERE, 'android', 'app', 'src', 'main', 'assets', 'public', 'index.html'))
     env = dict(os.environ, JAVA_HOME=JBR)
-    run([os.path.join(HERE, 'android', 'gradlew.bat'), 'assembleRelease', '--console=plain'], cwd=os.path.join(HERE, 'android'), env=env)
-    src = os.path.join(HERE, 'android', 'app', 'build', 'outputs', 'apk', 'release', 'app-release.apk')
+    task = 'bundlePlayRelease' if play else 'assembleDevRelease'
+    run([os.path.join(HERE, 'android', 'gradlew.bat'), task, '--console=plain'], cwd=os.path.join(HERE, 'android'), env=env)
+    outputs = os.path.join(HERE, 'android', 'app', 'build', 'outputs')
+    src = os.path.join(outputs, 'bundle', 'playRelease', 'app-play-release.aab') if play else os.path.join(outputs, 'apk', 'dev', 'release', 'app-dev-release.apk')
     os.makedirs(DIST, exist_ok=True)
-    dst = os.path.join(DIST, apk_name(version, build))
+    name = f'MadOverlord-{tag_of(version, build)}-play.aab' if play else apk_name(version, build)
+    dst = os.path.join(DIST, name)
     shutil.copy2(src, dst)
     return dst
 
@@ -223,8 +240,18 @@ def opt_all(name):
 
 
 def main():
+    if '--help' in sys.argv or '-h' in sys.argv:
+        print(__doc__)
+        return
     args = [a for i, a in enumerate(sys.argv[1:], 1) if not a.startswith('--') and sys.argv[i - 1] not in ('--notes', '--config')]
     cmd = args[0] if args else 'build'
+    if '--play' in sys.argv:
+        if cmd != 'build':
+            sys.exit('--play는 빌드에만 사용할 수 있습니다 (NAS 명령과 함께 사용 불가).')
+        version, build = read_version()
+        aab = build_apk(version, build, [], play=True)
+        print(f'\nAAB: {aab} ({os.path.getsize(aab) / 1048576:.1f} MB)')
+        return
     config_path = opt_all('--config')[-1] if '--config' in sys.argv else os.path.join(HERE, 'update.local.json')
     config_arg = ['--config', os.path.abspath(config_path)] if '--config' in sys.argv else []
     cfg = load_config(config_path)

@@ -1,0 +1,18 @@
+{
+  "frameWidth": 79,
+  "frameHeight": 94,
+  "anchorX": 48.4,
+  "res": 2.0,
+  "clips": {
+    "walk": {
+      "src": "assets/sprites/rig/rocket/rocket_walk.webp",
+      "frames": 16,
+      "duration": 0.75
+    },
+    "attack": {
+      "src": "assets/sprites/rig/rocket/rocket_attack.webp",
+      "frames": 14,
+      "duration": 1
+    }
+  }
+}

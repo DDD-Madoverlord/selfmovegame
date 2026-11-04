@@ -4,11 +4,13 @@
    - 캐릭터 카드: 그 캐릭터의 장착(기억해 둔 장착 / 가진 파츠)으로 조립한 리그 idle, 소개, 능력치, 스킬, 보유 파츠 수
    - 카드를 누르면 바로 그 캐릭터로 바뀜 (지금 장착은 캐릭터마다 기억) → 결정(메인 화면) / 연구소
    - 몸통을 아직 안 산 캐릭터도 고를 수 있음: 흐린 모습으로 보이고, 연구소에서 파츠를 사야 출격
+   - 휴대폰 배치(ui_v2_mobile.css, 11-04 디자인 제안): 아래 줄·[결정] 없이 카드를 누르면 바로 메인으로, 안내는 잠깐 뜨는 알림
    캐릭터 목록은 js/engine_v2/roster_v2.js, 선택·장착 기억은 progress_v2.js
    ========================================================================== */
 
 import { gameState } from '../engine/state.js';
 import { progress } from '../engine_v2/progress_v2.js';
+import { isCharacterReleased, releaseDateOf } from '../engine_v2/contentSchedule_v2.js';
 import { ROSTER, rosterOf, SLOTS } from '../engine_v2/roster_v2.js';
 import { RigAvatar, rigConfigFor } from '../engine_v2/rig/rigAvatar.js';
 import { RIG_CHARACTERS } from '../engine_v2/rig/characters.js';
@@ -16,9 +18,11 @@ import { skillsForParts, legPassiveOf } from '../engine_v2/skills_v2.js';
 import { sound } from '../engine_v2/audio/sound_v2.js';
 import { icon, fillIcons } from './icons.js';
 import { openSettings } from './settingsPanel_v2.js';
+import { resChipHtml } from './growthUi_v2.js';
 
 const $ = id => document.getElementById(id);
-const CARD_RIG = { width: 260, height: 236, rootX: 130, rootY: 226, scale: 0.3, fit: { x: 12, y: 10 }, shadow: true };
+const isMobile = () => document.body.classList.contains('v2-mobile');
+const CARD_RIG = { width: 260, height: 236, rootX: 130, rootY: 226, scale: 0.3, fit: { x: 12, y: 10 }, shadow: true, fitCss: true };   // fitCss: 휴대폰 배치 실제 크기에서도 선명하게 (rigAvatar.js _fitRes)
 
 /** 파츠 id 묶음 → 파츠 객체 묶음 (없는 부위는 [파츠제거] 객체) */
 function objectsOf(ids) {
@@ -115,7 +119,15 @@ export class SelectController {
 
     /** 카드 누름: 그 캐릭터로 바꿈 (지금 장착은 기억). 잠긴 캐릭터는 별로 해금, 파견 중이면 못 고름 (Q-006) */
     pick(id) {
-        if (id === progress.character) return;
+        if (!isCharacterReleased(id)) {
+            sound.play('ui_error');
+            this.renderInfo(`곧 공개 · ${releaseDateOf('characters', id)}`);
+            return;
+        }
+        if (id === progress.character) {
+            if (isMobile()) this.switchScreen('menu');   // 휴대폰 배치: 고른 캐릭터를 다시 누르면 결정
+            return;
+        }
         if (progress.isDispatched(id)) {
             sound.play('ui_error');
             this.renderInfo('파견 중인 캐릭터입니다 — 작전 지원 → 파견에서 받은 뒤 고르세요');
@@ -132,12 +144,16 @@ export class SelectController {
         if (!progress.selectCharacter(id)) return;
         sound.play('ui_equip');
         this.render();
+        // 휴대폰 배치: [결정] 없이 바로 메인으로 (고른 표시가 잠깐 보이게)
+        if (isMobile()) setTimeout(() => { if (gameState.currentScreen === 'select') this.switchScreen('menu'); }, 280);
     }
 
     /** 선택창이 보일 때: 카드 내용 갱신 + 리그 재생 */
     render() {
         const dm = $('select-dm-count-v2');
         if (dm) dm.textContent = gameState.darkMatter.toLocaleString();
+        const res = $('select-res-v2');   // 별·조각·코어 (휴대폰 배치에서만 보임)
+        if (res) res.innerHTML = resChipHtml();
         for (const c of ROSTER) this.renderCard(c);
         this.renderInfo();
         this.showSelected();
@@ -154,14 +170,18 @@ export class SelectController {
         const ready = ids.body !== 'none';
         const on = c.id === progress.character;
         const locked = !progress.isCharacterUnlocked(c.id);
+        const soon = !isCharacterReleased(c.id);
         const away = progress.isDispatched(c.id);
         el.classList.toggle('is-selected', on);
         el.classList.toggle('is-empty', !ready);
         el.classList.toggle('is-locked', locked);
+        el.classList.toggle('is-coming-soon', soon);
+        el.setAttribute('aria-disabled', String(soon));
         el.setAttribute('aria-pressed', String(on));
 
-        el.querySelector('.v2-charcard__stats').innerHTML = [['ARMOR', st.hp], ['POWER', st.dps], ['SPEED', st.speed]]
-            .map(([k, v]) => `<div><dt>${k}</dt><dd>${ready ? Number(v).toLocaleString() : '—'}</dd></div>`).join('');
+        // 아이콘 · 사거리 칸은 휴대폰 배치에서만 (PC는 글자 이름 3칸 그대로)
+        el.querySelector('.v2-charcard__stats').innerHTML = [['ARMOR', 'shield', st.hp], ['POWER', 'bolt', st.dps], ['RANGE', 'aim', st.range], ['SPEED', 'speed', st.speed]]
+            .map(([k, ic, v]) => `<div${k === 'RANGE' ? ' class="is-mobile"' : ''}><dt>${icon(ic, 18)}<span>${k}</span></dt><dd>${ready ? Number(v).toLocaleString() : '—'}</dd></div>`).join('');
 
         const skills = skillsForParts(parts);
         const leg = legPassiveOf(parts.leg);
@@ -174,7 +194,8 @@ export class SelectController {
         el.querySelector('.v2-charcard__skills').innerHTML = chips.join('');
 
         el.querySelector('.v2-charcard__foot').innerHTML = `<span>파츠 <b>${own.owned}</b> / ${own.total} 보유</span>`
-            + (locked ? `<em class="is-lock">${icon('lock', 12)} ★${progress.characterStars(c.id)}로 해금</em>`
+            + (soon ? `<em class="v2-release-date">곧 공개 · ${releaseDateOf('characters', c.id)}</em>`
+                : locked ? `<em class="is-lock">${icon('lock', 12)} ★${progress.characterStars(c.id)}로 해금</em>`
                 : away ? '<em class="is-need">파견 중</em>'
                     : ready ? '<em class="is-ready">출격 가능</em>' : '<em class="is-need">연구소에서 몸통 구매</em>');
 
@@ -194,6 +215,7 @@ export class SelectController {
     }
 
     renderInfo(message = '') {
+        if (message && isMobile()) this.toast(message);   // 휴대폰 배치는 아래 줄이 없어 잠깐 뜨는 알림으로
         const box = $('select-info-v2');
         if (!box) return;
         const c = rosterOf(progress.character);
@@ -206,6 +228,15 @@ export class SelectController {
                 : '몸통 파츠가 없어 아직 출격할 수 없습니다 — 연구소에서 파츠를 구매하세요')}</small>`;
         const lab = $('btn-select-lab-v2');
         if (lab) lab.classList.toggle('is-hint', !ready);
+    }
+
+    toast(message) {
+        const el = $('select-toast-v2');
+        if (!el) return;
+        el.textContent = message;
+        el.hidden = false;
+        clearTimeout(this.toastTimer);
+        this.toastTimer = setTimeout(() => { el.hidden = true; }, 2600);
     }
 
     /** 선택창을 떠날 때: 카드 리그 멈춤 */

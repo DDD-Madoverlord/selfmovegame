@@ -1,0 +1,18 @@
+{
+  "frameWidth": 137,
+  "frameHeight": 79,
+  "anchorX": 65.6,
+  "res": 2.0,
+  "clips": {
+    "walk": {
+      "src": "assets/sprites/rig/sonardrone/sonardrone_walk.webp",
+      "frames": 16,
+      "duration": 1.2
+    },
+    "attack": {
+      "src": "assets/sprites/rig/sonardrone/sonardrone_attack.webp",
+      "frames": 12,
+      "duration": 0.8
+    }
+  }
+}

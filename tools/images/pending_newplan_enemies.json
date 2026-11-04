@@ -1,0 +1,604 @@
+{
+ "_설명": "새 스테이지 기획(D-085) 적·보스 그림 요청 글 — GPT(ChatGPT 웹)로 받음. 스테이지마다 대화 하나에서 차례로(화풍·크기 맞춤). 첫 장만 지금 게임 적(guard_1_gemini.png)을 첨부. 각 적: 전신(_1) → 같은 대화에서 '팔 없는 몸'(_2, 사람형만). 결과는 투명 배경 PNG → assets/sprites/stage/src/st<N>/<이름>_<1|2>_gpt.png",
+ "style_first": "Match the art style of the attached game sprite exactly: 16-bit style pixel art, {mood}, thick dark outlines, limited color palette, subtle rim light from the upper left, chibi proportions with a big head (about 3 heads tall), same pixel size as the attached sprite. Do not copy the attached character; draw a NEW enemy for the same game.",
+ "style_next": "Next enemy for the same game, in exactly the same art style, pixel size and scale as the soldier you drew first (16-bit pixel art, thick dark outlines, chibi proportions about 3 heads tall).",
+ "pose_humanoid": "Pose (important, the sprite will be cut into body parts):\n- Strict side view, facing LEFT\n- Mid-walk neutral pose: legs slightly apart front and back, NOT overlapping each other\n- Both arms held slightly away from the torso so they do not cover it\n- Clear separation between head, torso, arms and legs",
+ "tail": "Background: transparent (or one perfectly flat pure chroma green #00FF00). No shadow, no floor, no background props.\nSquare image, 1:1. Only one subject, fully visible and centered, with generous empty margin on all sides. No text, no logos, no watermark.",
+ "armless": "Edit the last image. Keep this exact character: same head, body, legs, feet, pose, size and position in the image. Remove both arms completely, including the sleeves, the hands and anything they hold:\n- In front of the torso there must be no arm and no weapon\n- Behind the torso there must be no arm hanging down; the torso ends at the shoulder\n- Draw the torso like an armless mannequin, with a clean outline where the arms were\n- Same transparent background, same image size, same pixel style",
+ "stages": {
+  "1": {
+   "faction": "the government's secret strike force \"Black Hound\" (black armor, a small red hound-head emblem)",
+   "mood": "dark and gritty military sci-fi",
+   "units": [
+    {
+     "id": "conscript",
+     "ko": "징집 보병",
+     "kind": "humanoid",
+     "desc": "a \"conscript infantryman\": a shabby, scratched black bulletproof vest over a dark grey uniform, a black helmet with a small red hound-head emblem, cheap knee pads, an assault rifle pointed forward to the LEFT with both hands. Tired, grim face. Colors: black, dark grey, a little blood red."
+    },
+    {
+     "id": "riot",
+     "ko": "진압 방패병",
+     "kind": "humanoid",
+     "desc": "a \"riot shield trooper\": a big heavily armored trooper in black plate armor and a closed helmet with a red visor slit, holding a tall heavy titanium riot shield upright in front (on the LEFT side) with the front arm, a stun baton in the back hand. Colors: black armor, brushed titanium grey shield, red accents."
+    },
+    {
+     "id": "taser",
+     "ko": "테이저 요원",
+     "kind": "humanoid",
+     "desc": "a \"taser agent\": a lean agent in a black tactical bodysuit and night-vision goggles, swinging an electric lasso — a coiled metal cable crackling with blue electricity — in the front hand, a battery pack on the back. Colors: black, dark grey, electric blue."
+    },
+    {
+     "id": "rocket",
+     "ko": "로켓 보병",
+     "kind": "humanoid",
+     "desc": "a \"rocket infantryman\": a soldier in a black armored vest carrying a large anti-tank rocket launcher on the shoulder, aimed forward and slightly upward to the LEFT, spare rockets strapped on the back. Colors: black, olive-grey launcher, red warning stripes."
+    },
+    {
+     "id": "empdrone",
+     "ko": "EMP 드론",
+     "kind": "flying",
+     "desc": "an \"EMP drone\": a hovering black military drone (no legs) with four small rotors, a round EMP emitter dish underneath crackling with blue arcs, and a single red camera eye; seen from the side, nose pointing LEFT. Colors: black, gunmetal, electric blue, red eye."
+    },
+    {
+     "id": "hound",
+     "ko": "전투 군견",
+     "kind": "beast",
+     "desc": "a \"combat attack dog\": a lean muscular doberman-like war dog wearing black tactical armor plates and a spiked collar with a red hound emblem, glowing red eyes, bared fangs, in a running pose facing LEFT (side view, all four legs visible and not overlapping). Colors: black, dark grey, red."
+    },
+    {
+     "id": "flamer",
+     "ko": "화염방사병",
+     "kind": "humanoid",
+     "desc": "a \"flamethrower trooper\": a soldier in a bulky charred fireproof suit and a gas mask with round lenses, two fuel tanks on the back connected by a hose to a flamethrower nozzle pointed to the LEFT with a small pilot flame at its tip. Colors: soot black, scorched grey, orange pilot flame."
+    },
+    {
+     "id": "exo",
+     "ko": "기계화 강화병",
+     "kind": "humanoid",
+     "desc": "a \"mechanized exo-trooper\": a huge soldier, 1.5 times taller and much bulkier than the others, inside a heavy powered exoskeleton built from stolen mad-scientist technology — hydraulic pistons on the legs, massive armored mechanical arms, a glowing red reactor on the chest, a small head in a black helmet. Colors: black, gunmetal, glowing red."
+    }
+   ],
+   "boss": {
+    "id": "wmdalpha",
+    "ko": "WMD-알파",
+    "desc": "the boss \"WMD-Alpha\": a giant bipedal unmanned combat mech, about 2.5 times taller than the soldiers. Originally designed for peaceful work with clean white rounded panels, but the government bolted brutal black armor plates, spikes and weapons all over it: a big plasma laser cannon as the front arm with a glowing red muzzle, a heavy claw as the back arm, a single cold red AI eye in a small armored head, thick digitigrade walker legs. Colors: dirty white, black armor, glowing red."
+   }
+  },
+  "2": {
+   "faction": "the Energy Corporation's heavy-machinery defense force (mercenaries with illegally weaponized industrial machines; hazard-orange and rust colors, a small black-and-orange corporate gear emblem)",
+   "mood": "industrial disaster, smog and magma",
+   "units": [
+    {
+     "id": "merc",
+     "ko": "코퍼레이션 용병",
+     "kind": "humanoid",
+     "desc": "a \"corporation mercenary\": a cheap hired gunman in a dirty hazard-orange work jacket over a grey flak vest, a yellow hard hat with a small black-and-orange gear emblem, a dust mask, holding an assault rifle pointed to the LEFT with both hands. Colors: hazard orange, concrete grey, rust brown."
+    },
+    {
+     "id": "dozer",
+     "ko": "불도저 드로이드",
+     "kind": "other",
+     "desc": "a \"bulldozer droid\": an unmanned tracked robot with a huge battered steel dozer blade in front (on the LEFT side), caterpillar tracks, a small sensor head with an orange eye, hazard stripes, rust. Side view facing LEFT, about as tall as a soldier and twice as wide."
+    },
+    {
+     "id": "harpoon",
+     "ko": "고압 작살포 트럭",
+     "kind": "other",
+     "desc": "a \"high-pressure harpoon truck\": a big armored industrial truck with a heavy harpoon cannon on its bed aimed forward and up to the LEFT, a steel cable reel behind the cannon, rusty orange paint, mud-caked wheels. Side view facing LEFT, about twice as tall as a soldier."
+    },
+    {
+     "id": "sawdrone",
+     "ko": "벌목용 회전톱 드론",
+     "kind": "other",
+     "desc": "a \"logging saw drone\": a flying industrial drone with two rotors and a huge spinning circular saw blade mounted at its front (LEFT side), sparks flying from the blade, hazard stripes. Side view facing LEFT, about as wide as a soldier is tall."
+    },
+    {
+     "id": "acidmech",
+     "ko": "산성액 투척 메카",
+     "kind": "humanoid",
+     "desc": "an \"acid-barrel mech\": a squat bipedal industrial robot with a boxy body, holding up a leaking toxic-waste drum (dripping bright acid) in its front claw-hand ready to throw it to the LEFT, a rack of spare drums on its back. Colors: rust brown, hazard orange, sickly acid yellow. About 1.3 times as tall as a soldier."
+    },
+    {
+     "id": "sonictower",
+     "ko": "음파 차단 탑",
+     "kind": "other",
+     "desc": "a \"sonic jammer tower\": a mobile tower on a small wheeled base with a tall mast topped by several large loudspeaker horns pointing LEFT, visible sound-wave rings coming out, blinking orange warning lights. About 1.8 times as tall as a soldier."
+    },
+    {
+     "id": "spiderwalker",
+     "ko": "대물 포격 워커",
+     "kind": "other",
+     "desc": "a \"siege spider walker\": a four-legged spider-like artillery robot with a long heavy siege cannon on top aimed to the LEFT, thick armored legs not overlapping each other, rusty orange armor, smoke from the muzzle. Side view facing LEFT, about 1.6 times as tall as a soldier."
+    },
+    {
+     "id": "excavator",
+     "ko": "채굴용 엑스카베이터",
+     "kind": "humanoid",
+     "desc": "a \"mining excavator robot\": a huge heavily armored deep-mining robot, 1.6 times taller than a soldier, with massive hydraulic drills instead of both forearms, an extremely thick front armor plate, a small tinted cockpit window as the head, exhaust pipes on the back. Colors: rust brown, hazard orange, dark steel."
+    }
+   ],
+   "boss": {
+    "id": "terraformer",
+    "ko": "기간틱 테라포머",
+    "desc": "the boss \"Gigantic Terraformer\": a colossal multi-jointed planet-terraforming machine forcibly armed to fight a giant monster, about 2.8 times taller than the soldiers: a towering heavy-machinery mech built from fused excavators and cranes, a gigantic hydraulic PILE BUNKER (a huge steel piston spike) as its front arm, a crane claw as its back arm, a cockpit head with orange lights, smokestacks on its back, caterpillar-track feet. Colors: rust brown, hazard orange and black stripes, dark steel."
+   }
+  },
+  "3": {
+   "faction": "the Holy Kingdom's inquisition and fanatic coalition (gaudy gold-and-white holy armor and robes, crosses, but stained and corrupt)",
+   "mood": "dark gothic medieval fantasy, corrupted holiness",
+   "units": [
+    {
+     "id": "zealot",
+     "ko": "광신도 무리",
+     "kind": "humanoid",
+     "desc": "a \"brainwashed zealot\": a ragged commoner in a dirty off-white robe with a crude cross pendant, wild crazed eyes, holding a burning torch in one hand and a pitchfork pointed to the LEFT in the other. Colors: dirty white, brown, torch orange."
+    },
+    {
+     "id": "holyshield",
+     "ko": "신성 방패병",
+     "kind": "humanoid",
+     "desc": "a \"holy shield bearer\": a heavily armored knight in gold-trimmed white plate armor and a closed helmet, holding a giant golden tower shield engraved with a goddess statue in front (on the LEFT side), a short mace in the back hand. Colors: faded gold, white, blood red accents."
+    },
+    {
+     "id": "inquisitor",
+     "ko": "이단심문관",
+     "kind": "humanoid",
+     "desc": "an \"inquisitor torturer\": a gaunt man in a black-and-crimson inquisitor robe with a tall pointed hood, a cross on his chest, swinging a long spiked chain whip to the LEFT. Colors: black, crimson, tarnished silver."
+    },
+    {
+     "id": "lightmage",
+     "ko": "빛의 마법사",
+     "kind": "humanoid",
+     "desc": "a \"mage of light\": a priest-mage in an ornate white-and-gold robe and a tall mitre-like hat, holding a golden staff topped with a glowing cross, a ball of holy light in the front hand ready to throw to the LEFT. Colors: white, gold, pale yellow glow."
+    },
+    {
+     "id": "battlepriest",
+     "ko": "전투 신관",
+     "kind": "humanoid",
+     "desc": "a \"battle priest\": a stout priest in white-and-gold vestments over chainmail, swinging a smoking cross-shaped censer on a chain in the front hand (golden healing smoke), a holy book chained to the belt. Colors: white, gold, healing gold smoke."
+    },
+    {
+     "id": "griffon",
+     "ko": "그리폰 기수",
+     "kind": "other",
+     "desc": "a \"griffon rider\": a knight in white-and-gold armor riding a flying griffon (eagle head, lion body, spread wings), holding a flask of holy water ready to throw down; seen from the side flying to the LEFT. About twice as wide as a soldier is tall."
+    },
+    {
+     "id": "ballista",
+     "ko": "정화의 발리스타",
+     "kind": "other",
+     "desc": "a \"purification ballista\": a large fixed siege ballista on a stone-and-gold base, loaded with a huge silver wedge bolt aimed to the LEFT, golden holy ornaments and a cross on its frame. About 1.5 times as tall as a soldier."
+    },
+    {
+     "id": "executioner",
+     "ko": "처형인 성기사",
+     "kind": "humanoid",
+     "desc": "an \"executioner paladin\": a towering elite knight, 1.5 times taller than a soldier, in heavy gold-and-white plate armor with a red tabard bearing a cross, a bucket helm with a narrow slit, holding a giant two-handed executioner's greatsword. Colors: gold, white, blood red."
+    }
+   ],
+   "boss": {
+    "id": "benedict",
+    "ko": "대주교 베네딕트",
+    "desc": "the boss \"Fallen Archbishop Benedict\": a hypocritical archbishop about 2.2 times taller than the soldiers, wearing splendid holy gold-and-white papal robes and a tall jeweled mitre, but the hems of his robes and his eyes are stained demonic black-red, black tentacles faintly peeking out from under the robe; he wields a man-sized steel cross as a blunt weapon in the front hand. Colors: radiant gold, white, demonic black and blood red."
+   }
+  },
+  "4": {
+   "faction": "the Apostles of the Stars and failed evolutions (mutated flesh, tumors, bioluminescent green, cosmic horror)",
+   "mood": "dark cosmic horror, organic and bioluminescent",
+   "units": [
+    {
+     "id": "mutant",
+     "ko": "진화의 광신도",
+     "kind": "humanoid",
+     "desc": "an \"evolution cultist\": a half-naked mutant who has lost human shape, swollen veins and tumors bulging all over the body, torn purple cult rags, glowing green eyes, clawed hands reaching to the LEFT. Colors: sickly flesh pink, void purple, bioluminescent green."
+    },
+    {
+     "id": "boneshield",
+     "ko": "생체 방패수",
+     "kind": "humanoid",
+     "desc": "a \"bio shield beast\": a hunched beast-like monster with hard chitin plates and overgrown bones, holding a giant shield made of fused bone in front (on the LEFT side). Colors: bone white, fleshy crimson, purple."
+    },
+    {
+     "id": "leechfiend",
+     "ko": "심연 촉수귀",
+     "kind": "humanoid",
+     "desc": "an \"abyss tentacle fiend\": a mutant whose arms have been replaced by huge writhing jet-black cosmic leeches with round toothy mouths, lunging to the LEFT. Colors: jet black, fleshy crimson, purple, green glints."
+    },
+    {
+     "id": "chimeraslime",
+     "ko": "키메라 슬라임",
+     "kind": "other",
+     "desc": "a \"chimera slime\": a large wobbling blob of crimson-and-purple slime with bits of bone, teeth and several eyes floating inside, moving to the LEFT. About as tall as a soldier."
+    },
+    {
+     "id": "sporecaster",
+     "ko": "포자 술사",
+     "kind": "humanoid",
+     "desc": "a \"spore caster\": a robed mutant with tentacle-like plant growths sprouting from its back, each ending in a glowing toxic spore pod, holding a spore ball ready to throw to the LEFT. Colors: purple robe, sickly green spores, fleshy crimson."
+    },
+    {
+     "id": "parasite",
+     "ko": "혈관 기생충",
+     "kind": "other",
+     "desc": "a \"vein parasite\": a disgusting flying parasite creature like a fat leech-insect with small translucent wings, pulsing red veins and a long needle proboscis pointing LEFT. About half as tall as a soldier."
+    },
+    {
+     "id": "eyetower",
+     "ko": "안구 감시탑",
+     "kind": "other",
+     "desc": "an \"eyeball watchtower\": a pulsing pillar of flesh rooted in the ground with one giant eyeball embedded near the top staring to the LEFT, veins and small tentacles around it, a faint purple glow from the pupil. About 2 times as tall as a soldier."
+    },
+    {
+     "id": "fusionbeast",
+     "ko": "광폭화 융합수",
+     "kind": "other",
+     "desc": "a \"berserk fusion beast\": a horrifying huge lump of dozens of failed experiments fused into one walking mass of flesh, many arms, mouths and eyes, dripping acidic green blood, lumbering to the LEFT on several thick legs. About 1.8 times as tall as a soldier."
+    }
+   ],
+   "boss": {
+    "id": "oculus",
+    "ko": "관장자 오큘러스",
+    "desc": "the boss \"Oculus, Overseer of Evolution\": about 2.5 times taller than the soldiers; the upper body is humanoid with a huge exposed brain and a single great eye on the forehead, long thin arms with clawed fingers; the lower body is a giant cosmic worm made of tangled arms and legs. Colors: void purple, fleshy crimson, bioluminescent green, bone white."
+   }
+  },
+  "5": {
+   "faction": "the Abyss Union Navy and special diving corps (dark navy waterproof gear, rusted brass, a small brass anchor emblem)",
+   "mood": "dark stormy naval fortress, rusted brass and the deep sea",
+   "units": [
+    {
+     "id": "marine",
+     "ko": "작살총 해병",
+     "kind": "humanoid",
+     "desc": "a \"harpoon marine\": a navy marine in a dark blue waterproof suit and a brass-rimmed helmet with a small anchor emblem, holding a repeating harpoon gun pointed to the LEFT with both hands. Colors: dark navy, corroded brass, grey."
+    },
+    {
+     "id": "hatchshield",
+     "ko": "격벽 방패수",
+     "kind": "humanoid",
+     "desc": "a \"hatch shield trooper\": a big armored marine holding a thick round submarine hatch door (with its wheel valve) as a shield in front (on the LEFT side), a heavy wrench in the back hand. Colors: dark navy, rusty steel, brass."
+    },
+    {
+     "id": "netgunner",
+     "ko": "그물망 사수",
+     "kind": "humanoid",
+     "desc": "a \"net gunner\": a marine with a bulky net launcher on the shoulder aimed to the LEFT, a folded steel net visible in its muzzle, goggles. Colors: dark navy, brass, steel grey."
+    },
+    {
+     "id": "mineman",
+     "ko": "수뢰 투척병",
+     "kind": "humanoid",
+     "desc": "a \"depth-charge thrower\": a sailor holding up a round spiked naval mine with a blinking red fuse ready to throw to the LEFT, more mines on a belt. Colors: dark navy, black mine, red light."
+    },
+    {
+     "id": "sonardrone",
+     "ko": "소나 드론",
+     "kind": "other",
+     "desc": "a \"sonar drone\": a hovering naval drone shaped like a small torpedo with rotors, a large sonar dish at its front pointing LEFT emitting visible sound rings. Side view facing LEFT. Colors: dark navy, brass, cyan sonar rings."
+    },
+    {
+     "id": "toxicdiver",
+     "ko": "맹독 잠수부",
+     "kind": "humanoid",
+     "desc": "a \"toxic diver\": a crazed deep-sea diver in an old brass diving helmet with a cracked glass porthole, a leaking toxic green oxygen tank on the back, staggering to the LEFT. Colors: corroded brass, dark grey suit, toxic green."
+    },
+    {
+     "id": "deckgun",
+     "ko": "함포 포탑",
+     "kind": "other",
+     "desc": "a \"deck gun turret\": a fixed naval gun turret on a riveted steel base with a long barrel aimed to the LEFT, brass fittings, rust streaks. About 1.4 times as tall as a soldier."
+    },
+    {
+     "id": "subwalker",
+     "ko": "심해 구축 워커",
+     "kind": "other",
+     "desc": "a \"deep-sea walker\": a small submarine hull converted into a heavy bipedal mech, the submarine body as the torso with portholes and a periscope, two thick mechanical legs, a torpedo tube at the front aimed LEFT. About 1.8 times as tall as a soldier. Colors: dark navy, rusty steel, brass."
+    }
+   ],
+   "boss": {
+    "id": "ironclad",
+    "ko": "해군 총사령관 아이언클래드",
+    "desc": "the boss \"Admiral Ironclad\": an arrogant naval commander riding a colossal sea-defense super mech built from an entire nuclear submarine hull stood upright, about 2.8 times taller than the soldiers; a high-pressure water cannon as the front arm, a depth-charge launcher on the shoulders, the admiral in a gold-braided navy uniform visible in a glass cockpit at the top. Colors: dark navy, black steel, brass, red emergency lights."
+   }
+  },
+  "6": {
+   "faction": "the Holy Blood Medical Order (church inquisitors and armed field surgeons in sterile white surgical robes and gold-trimmed armor, dried-blood stains, a small golden chalice emblem)",
+   "mood": "sterile white hospital cathedral, dried blood and hypocritical gold",
+   "units": [
+    {
+     "id": "orderly",
+     "ko": "부패한 간병 보병",
+     "kind": "humanoid",
+     "desc": "a \"corrupt orderly priest\": a low-ranking priest in a blood-stained white surgical robe, a gold-trimmed cap and a surgical mask, holding a huge sharpened scalpel pointed to the LEFT in the front hand and a bone saw in the back hand. Colors: sterile white, dried-blood brown-red, gold."
+    },
+    {
+     "id": "maidenshield",
+     "ko": "철의 처녀 방패수",
+     "kind": "humanoid",
+     "desc": "an \"iron maiden shield knight\": a heavily armored knight holding the spiked door of an iron maiden torture device as a giant shield in front (on the LEFT side), spikes facing outward, a short flail in the back hand. Colors: dark iron, white tabard, gold trim."
+    },
+    {
+     "id": "holywater",
+     "ko": "오염된 성수 투척병",
+     "kind": "humanoid",
+     "desc": "a \"tainted holy water thrower\": a priest in a white robe and a gold-rimmed beaked mask, holding up a glass flask of bubbling murky crimson corrupted holy water ready to throw to the LEFT, more flasks on the belt. Colors: white, gold, murky crimson."
+    },
+    {
+     "id": "anesthetist",
+     "ko": "마취의(Stun) 주술사",
+     "kind": "humanoid",
+     "desc": "an \"anesthetist sorcerer\": a gaunt sorcerer in a long white hooded robe and a surgical mask, swinging a golden censer on a chain to the LEFT, pale lavender sleeping gas pouring out of it. Colors: white, gold, pale lavender gas."
+    },
+    {
+     "id": "bloodbagdrone",
+     "ko": "수혈 팩 드론",
+     "kind": "other",
+     "desc": "a \"blood-bag drone\": a small flying medical drone with two rotors and a white-and-gold body, a transfusion blood bag hanging under it with tubes and a needle, a small golden chalice emblem. Side view facing LEFT, about as wide as a soldier is tall."
+    },
+    {
+     "id": "bloated",
+     "ko": "강제 수혈 실험체",
+     "kind": "humanoid",
+     "desc": "a \"forced-transfusion test subject\": a pitiful poor man grotesquely bloated with forced blood and drugs, pale swollen skin with glowing dark-red veins, IV tubes and needles stuck in his body, stitched bandages, staggering to the LEFT. About 1.3 times as tall as a soldier. Colors: pale skin, dark red, dirty white bandages."
+    },
+    {
+     "id": "ambulance",
+     "ko": "기계화 구급 마차",
+     "kind": "other",
+     "desc": "a \"mechanized ambulance carriage\": a steam-powered armored ambulance carriage with a white-and-gold riveted body, heavy iron wheels, a smokestack venting steam, a rear hatch door, a golden chalice emblem on the side. Side view facing LEFT, about 1.8 times as tall as a soldier and twice as wide."
+    },
+    {
+     "id": "surgeon",
+     "ko": "처형의 군의관",
+     "kind": "humanoid",
+     "desc": "an \"executioner surgeon\": a towering elite inquisitor, 1.5 times taller than a soldier, in a thick padded protective surgical suit and a blood-stained leather apron, a full-face steel mask, wielding a huge cross whose long arm is a running chainsaw. Colors: dirty white, dark leather, steel, dried blood."
+    }
+   ],
+   "boss": {
+    "id": "grailheart",
+    "ko": "기적의 성배 : 탐욕의 심장",
+    "kind": "object",
+    "desc": "the boss \"Grail of Miracles: Heart of Greed\": a non-humanoid boss object, a gigantic rhombus-shaped blood-red gemstone that pulses like a real heart, hundreds of transfusion tubes connected to it like veins, held inside an ornate hypocritical golden chalice frame with angel ornaments, floating in the air. About 2.8 times taller than the soldiers. Colors: blood red glow, polished gold, sterile white."
+   }
+  },
+  "7": {
+   "faction": "the Empire's 1st Artillery Division (a WWI-style ash-grey army: grey greatcoats, steel helmets, gas masks, a small black cannon emblem)",
+   "mood": "ash-covered WWI-style battlefield, gunmetal grey and sickly yellow",
+   "units": [
+    {
+     "id": "trench",
+     "ko": "참호 징집병",
+     "kind": "humanoid",
+     "desc": "a \"trench conscript\": a soldier in a muddy, blood-stained ash-grey greatcoat and a steel helmet, charging with a bolt-action rifle with a fixed bayonet pointed to the LEFT. Colors: ash grey, mud brown, gunmetal."
+    },
+    {
+     "id": "wireshield",
+     "ko": "철조망 방패병",
+     "kind": "humanoid",
+     "desc": "a \"barbed-wire shield soldier\": a big soldier carrying a whole wooden barricade frame wrapped in barbed wire in front of him (on the LEFT side) as a shield, a steel helmet. Colors: ash grey, dark wood, rusty wire."
+    },
+    {
+     "id": "grenadier",
+     "ko": "유산탄 투척병",
+     "kind": "humanoid",
+     "desc": "a \"shrapnel grenadier\": a soldier in a steel helmet and grey greatcoat raising a stick grenade ready to throw to the LEFT, a bandolier of grenades across the chest. Colors: ash grey, gunmetal, dull brown."
+    },
+    {
+     "id": "gassoldier",
+     "ko": "독가스 살포병",
+     "kind": "humanoid",
+     "desc": "a \"gas sprayer\": a soldier in a gas mask and a rubberized coat with a gas tank on the back, spraying sickly yellow mustard gas from a nozzle to the LEFT. Colors: ash grey, dark rubber, sickly yellow gas."
+    },
+    {
+     "id": "officer",
+     "ko": "돌격 장교",
+     "kind": "humanoid",
+     "desc": "an \"assault officer\": a cruel officer in a peaked cap and a long grey coat with medals, blowing a brass whistle, pointing a saber forward to the LEFT. Colors: ash grey, black leather, brass."
+    },
+    {
+     "id": "sapper",
+     "ko": "지뢰 매설병",
+     "kind": "humanoid",
+     "desc": "a \"mine sapper\": a sneaky soldier in a steel helmet holding a round anti-tank mine in front of him, a small shovel on the back, more mines on the belt. Colors: ash grey, gunmetal, mud brown."
+    },
+    {
+     "id": "mgnest",
+     "ko": "야전 기관총 좌",
+     "kind": "other",
+     "desc": "a \"machine-gun nest\": a fixed heavy water-cooled machine gun on a tripod behind a low wall of sandbags and a small concrete pillbox front, the barrel aimed to the LEFT. About as tall as a soldier and twice as wide."
+    },
+    {
+     "id": "steamtank",
+     "ko": "증기기관 전차",
+     "kind": "other",
+     "desc": "a \"steam tank\": an old WWI-style rhomboid steam-engine tank with riveted grey armor, a tall smokestack belching black smoke, a short cannon in a side sponson aimed LEFT, tracks around its whole body. Side view facing LEFT, about 1.8 times as tall as a soldier and 2.5 times as wide."
+    }
+   ],
+   "boss": {
+    "id": "behemoth",
+    "ko": "심판의 구포 : 베헤모스",
+    "kind": "other",
+    "desc": "the boss \"Mortar of Judgment: Behemoth\": the colossal mass-destruction mortar howitzer that destroyed the orphanage, remodeled into a hideous giant turtle-shaped multi-legged siege mech: a huge short fat mortar barrel rising from its riveted armored turtle shell, six thick mechanical legs ending in spiked track-gear wheels, gauges and steam pipes. Side view facing LEFT, about 2.8 times taller than the soldiers. Colors: gunmetal, ash grey, rust, sickly yellow lights."
+   }
+  },
+  "8": {
+   "faction": "the Nordin Royal Guard (frost-kingdom soldiers in fur-lined crimson-and-steel armor who carry stolen furnace-stone heat; glowing red furnace stones, a small flame-crown emblem)",
+   "mood": "eternal blizzard frost kingdom, pale frost blue against greedy furnace red",
+   "units": [
+    {
+     "id": "torch",
+     "ko": "횃불 징집병",
+     "kind": "humanoid",
+     "desc": "a \"torch conscript\": a desperate soldier in a thick fur coat and a steel helmet with frost on it, swinging a huge burning torch to the LEFT. Colors: crimson, steel, white fur, fire orange."
+    },
+    {
+     "id": "furnaceshield",
+     "ko": "화로 방패병",
+     "kind": "humanoid",
+     "desc": "a \"furnace shield guard\": an armored guard holding a heavy steel shield with a small burning furnace stone embedded in its center glowing red in front (on the LEFT side), a short axe in the back hand. Colors: crimson, steel, glowing furnace red."
+    },
+    {
+     "id": "oilthrower",
+     "ko": "끓는 기름 투척병",
+     "kind": "humanoid",
+     "desc": "a \"boiling oil thrower\": a soldier in a fur hat and padded coat holding up a steaming clay jar of boiling oil ready to throw to the LEFT, more jars on the belt. Colors: crimson, brown clay, white fur, orange heat."
+    },
+    {
+     "id": "hunter",
+     "ko": "작살총 사냥꾼",
+     "kind": "humanoid",
+     "desc": "a \"harpoon hunter\": a hunter in a white fur cloak and a fur hood holding a large harpoon crossbow loaded with a steel net bolt aimed to the LEFT, a steel bear trap on the belt. Colors: white fur, steel, crimson."
+    },
+    {
+     "id": "heatshaman",
+     "ko": "열기 주술사",
+     "kind": "humanoid",
+     "desc": "a \"heat shaman\": a shaman in crimson robes and furs, holding a staff topped with a glowing red furnace stone, heat haze rising around the hands. Colors: crimson, black fur, glowing furnace red."
+    },
+    {
+     "id": "frozenstatue",
+     "ko": "얼어붙은 병사 조각상",
+     "kind": "other",
+     "desc": "a \"frozen soldier statue\": a royal guard soldier frozen solid inside a block of pale blue ice, standing in a mid-step pose, frost and icicles on it. Side view facing LEFT, as tall as a soldier. Colors: pale frost blue, white, faint crimson inside the ice."
+    },
+    {
+     "id": "steambomber",
+     "ko": "증기 돌파병",
+     "kind": "humanoid",
+     "desc": "a \"steam breacher\": a reckless soldier with a big high-pressure steam tank strapped to his body, hot white steam leaking from its valves, charging to the LEFT. Colors: crimson, brass, steel, white steam."
+    },
+    {
+     "id": "heatturret",
+     "ko": "열광선 포탑",
+     "kind": "other",
+     "desc": "a \"heat-ray turret\": a fixed iron furnace stove on a riveted base with a big lens cannon at its front aimed LEFT, a red heat ray glowing inside the lens, a chimney on top. About 1.4 times as tall as a soldier. Colors: black iron, glowing furnace red, brass."
+    },
+    {
+     "id": "wolfknight",
+     "ko": "화염 늑대 기사",
+     "kind": "other",
+     "desc": "a \"flame wolf knight\": an elite knight in flaming crimson armor riding a giant frost wolf whose fur is on fire, holding a lance pointed to the LEFT. Side view facing LEFT, about 1.8 times as tall as a soldier. Colors: crimson armor, pale blue-white wolf fur, orange flames."
+    }
+   ],
+   "boss": {
+    "id": "vladimir",
+    "ko": "탐욕의 폭군 블라디미르 국왕",
+    "desc": "the boss \"Tyrant King Vladimir\": an arrogant old king about 2.5 times taller than the soldiers, wearing grotesque massive \"fire dragon armor\" forged from dragon scales and bones with a glowing red furnace-stone core in the chest, a spiked golden crown, a long white beard, holding a huge boiling flaming greatsword. Colors: dark crimson, bone white, gold, glowing furnace red."
+   }
+  },
+  "9": {
+   "faction": "a corrupt construction company's hired demolition thugs and illegally modified construction robots (hazard yellow and concrete grey, a small gold coin emblem)",
+   "mood": "construction demolition site, hazard yellow and concrete grey with distant neon magenta",
+   "units": [
+    {
+     "id": "thug",
+     "ko": "철거 용역 깡패",
+     "kind": "humanoid",
+     "desc": "a \"demolition thug\": a hired thug in a yellow hard hat, a sleeveless safety vest and a scarred face, swinging a steel pipe in the front hand, a nail gun in the back hand. Colors: hazard yellow, concrete grey, dirty denim."
+    },
+    {
+     "id": "concretedrone",
+     "ko": "콘크리트 방패 드론",
+     "kind": "other",
+     "desc": "a \"concrete shield drone\": a tracked robot pushing a thick hardened concrete slab in front of it (on the LEFT side) as a shield, hazard stripes and a small sensor eye. Side view facing LEFT, about as tall as a soldier."
+    },
+    {
+     "id": "cementsprayer",
+     "ko": "시멘트 살수병",
+     "kind": "humanoid",
+     "desc": "a \"cement sprayer\": a worker with a small cement mixer tank on the back, spraying wet grey cement from a thick hose to the LEFT, a dust mask and goggles. Colors: hazard yellow, concrete grey."
+    },
+    {
+     "id": "rivetsniper",
+     "ko": "리벳(Nail) 저격수",
+     "kind": "humanoid",
+     "desc": "a \"rivet sniper\": a worker in a hard hat and welding goggles aiming a long heavy rivet-gun rifle to the LEFT, a belt of steel rivets. Colors: hazard yellow, concrete grey, steel."
+    },
+    {
+     "id": "welderwalker",
+     "ko": "용접기 워커",
+     "kind": "other",
+     "desc": "a \"welder walker\": a small bipedal walker mech with a welder in a welding mask sitting in its open cockpit, a big welding-torch arm spraying bright sparks to the LEFT. Side view facing LEFT, about 1.4 times as tall as a soldier. Colors: hazard yellow, rust, steel, white-blue sparks."
+    },
+    {
+     "id": "dynamite",
+     "ko": "다이너마이트 광부",
+     "kind": "humanoid",
+     "desc": "a \"dynamite miner\": a crazed miner in a headlamp helmet carrying a big bundle of lit dynamite sticks on the back, running to the LEFT. Colors: dirty brown, hazard yellow, red dynamite."
+    },
+    {
+     "id": "warden",
+     "ko": "안전 감시관",
+     "kind": "humanoid",
+     "desc": "a \"safety warden\": a supervisor in a white hard hat and a reflective vest shouting into a megaphone pointed to the LEFT, sound waves coming out, a clipboard in the back hand. Colors: white, hazard yellow, concrete grey."
+    },
+    {
+     "id": "wreckingcrane",
+     "ko": "레킹볼(Wrecking Ball) 크레인",
+     "kind": "other",
+     "desc": "a \"wrecking-ball crane\": a heavy tracked crane vehicle with a short boom swinging a huge steel wrecking ball on a chain in front of it (on the LEFT side), hazard stripes. Side view facing LEFT, about twice as tall as a soldier."
+    }
+   ],
+   "boss": {
+    "id": "panopticon",
+    "ko": "탐욕의 파노프티콘",
+    "kind": "other",
+    "desc": "the boss \"Panopticon of Greed\": a colossal turtle-shaped mobile fortress building, a multi-story command headquarters walking on huge mechanical legs, its front covered with many drills, armor plates and a giant rotating grinder, a lit penthouse office window at the top where a corrupt chairman sits, cranes and steel beams on its back. Side view facing LEFT, about 2.8 times taller than the soldiers. Colors: concrete grey, hazard yellow, gold, neon magenta lights."
+   }
+  },
+  "10": {
+   "faction": "the Media Control Bureau riot police and brainwashed citizens (obsidian black armor with neon magenta lights, a small magenta broadcast-wave emblem)",
+   "mood": "cyberpunk broadcast tower, neon magenta, concrete grey and obsidian black",
+   "units": [
+    {
+     "id": "citizen",
+     "ko": "세뇌된 시민",
+     "kind": "humanoid",
+     "desc": "a \"brainwashed citizen\": a rioter in torn everyday clothes with a radio receiver device implanted on the head, a blinking magenta antenna, blank glowing eyes, lurching to the LEFT. Colors: dull grey clothes, obsidian black, neon magenta."
+    },
+    {
+     "id": "sonicshield",
+     "ko": "음파 방패 경비대",
+     "kind": "humanoid",
+     "desc": "a \"sonic shield guard\": a riot police officer in black armor and a visor helmet, projecting a curved neon-magenta sound-wave energy shield from a gauntlet in front (on the LEFT side), a baton in the back hand. Colors: obsidian black, neon magenta."
+    },
+    {
+     "id": "speakerdrone",
+     "ko": "스피커 드론",
+     "kind": "other",
+     "desc": "a \"speaker drone\": a flying drone with rotors and a big loudspeaker horn pointing LEFT, magenta sound rings coming out. Side view facing LEFT, about as wide as a soldier is tall. Colors: obsidian black, chrome, neon magenta."
+    },
+    {
+     "id": "lasersniper",
+     "ko": "광선 저격 경찰",
+     "kind": "humanoid",
+     "desc": "a \"laser sniper cop\": a police sniper in black tactical armor and a glowing visor, aiming a long laser rifle with a magenta glowing barrel to the LEFT. Colors: obsidian black, concrete grey, neon magenta."
+    },
+    {
+     "id": "jammer",
+     "ko": "주파수 교란기",
+     "kind": "other",
+     "desc": "a \"frequency jammer\": a fixed antenna tower on a heavy base with a dish and coils, emitting a neon-magenta electromagnetic pulse ring, blinking lights. About 1.8 times as tall as a soldier. Colors: obsidian black, chrome, neon magenta."
+    },
+    {
+     "id": "woofermech",
+     "ko": "우퍼(Subwoofer) 메카",
+     "kind": "other",
+     "desc": "a \"subwoofer mech\": an armored riot vehicle with a giant subwoofer speaker mounted on its front facing LEFT, visible sound shockwaves, wheels. Side view facing LEFT, about 1.6 times as tall as a soldier and twice as wide. Colors: obsidian black, concrete grey, neon magenta."
+    },
+    {
+     "id": "enforcer",
+     "ko": "통제국 집행관",
+     "kind": "humanoid",
+     "desc": "a \"bureau enforcer\": a towering cyborg police enforcer, 1.5 times taller than a soldier, with a heavily modified mechanical body under black riot armor, a glowing magenta visor, wielding a long electric stun baton crackling with magenta electricity. Colors: obsidian black, chrome, neon magenta."
+    }
+   ],
+   "boss": {
+    "id": "mothervoice",
+    "ko": "절대 발언권 마더 보이스",
+    "kind": "object",
+    "desc": "the boss \"Mother Voice\": a non-humanoid boss object, a gigantic neon-pink artificial mechanical heart core entangled with tens of thousands of optical fiber cables like a brain, a huge round lens on its front, speaker grilles and antennas around it, hanging in the air on cables. About 2.8 times taller than the soldiers. Colors: neon magenta, obsidian black, chrome."
+   }
+  }
+ }
+}

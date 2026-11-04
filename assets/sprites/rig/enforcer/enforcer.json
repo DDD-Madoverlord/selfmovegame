@@ -1,0 +1,18 @@
+{
+  "frameWidth": 159,
+  "frameHeight": 141,
+  "anchorX": 96.5,
+  "res": 2.0,
+  "clips": {
+    "walk": {
+      "src": "assets/sprites/rig/enforcer/enforcer_walk.webp",
+      "frames": 16,
+      "duration": 0.95
+    },
+    "attack": {
+      "src": "assets/sprites/rig/enforcer/enforcer_attack.webp",
+      "frames": 14,
+      "duration": 0.8
+    }
+  }
+}

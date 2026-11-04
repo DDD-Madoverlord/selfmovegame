@@ -1,6 +1,9 @@
 # Android 앱 (D-073) — 만들어지는 것은 올리지 않음
 node_modules/
 www/
+web/
+# 리그 조각 WebP 변환 캐시
+_webp_cache/
 gradle_build.log
 gradle_build.err
 _drive_upload/

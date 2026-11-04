@@ -1,0 +1,18 @@
+{
+  "frameWidth": 136,
+  "frameHeight": 112,
+  "anchorX": 71.8,
+  "res": 2.0,
+  "clips": {
+    "walk": {
+      "src": "assets/sprites/rig/leechfiend/leechfiend_walk.webp",
+      "frames": 16,
+      "duration": 0.8
+    },
+    "attack": {
+      "src": "assets/sprites/rig/leechfiend/leechfiend_attack.webp",
+      "frames": 14,
+      "duration": 0.85
+    }
+  }
+}

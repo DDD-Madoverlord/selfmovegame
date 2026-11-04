@@ -1,0 +1,18 @@
+{
+  "frameWidth": 170,
+  "frameHeight": 151,
+  "anchorX": 93.8,
+  "res": 2.0,
+  "clips": {
+    "walk": {
+      "src": "assets/sprites/rig/fusionbeast/fusionbeast_walk.webp",
+      "frames": 16,
+      "duration": 1
+    },
+    "attack": {
+      "src": "assets/sprites/rig/fusionbeast/fusionbeast_attack.webp",
+      "frames": 14,
+      "duration": 0.9
+    }
+  }
+}

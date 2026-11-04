@@ -7,6 +7,7 @@
 
 import { monsterControllerV2 } from '../monster_v2.js';
 import { sound } from '../audio/sound_v2.js';
+import { coach } from '../../ui_v2/coach_v2.js';
 import { HERO_VFX, MECH_VFX, KAIJU_VFX, CHIMERA_VFX, BATTLE_VFX } from '../vfx/vfxDefs.js';
 import { aimAt as aimOf, GROUND_SPEED } from '../bases_v2.js';
 import { PHASE2, HERO, PASSIVE, LEG, PLAYER_STATUS, OVERLOAD, FOOT_B, FROST, WALK_SYNC, REACT } from './tuning.js';
@@ -19,8 +20,14 @@ export const PlayerMethods = {
         if (this.overloadT > 0) return;   // 과부하(긴급 수리) 중에는 피해 없음
         if (this.equippedLegId === 'leg_hero_hover') amount *= 1 - LEG.hoverReduce;   // 다리 패시브 '반중력 부양'
         if (this.blizzard) amount *= 1 - FROST.blizzardGuard;                         // 서리의 무희 '눈보라 춤' 동안
+        if (this.pVulnT > 0) amount *= 1 + (this.pVulnMore || 0);   // 약화 (새 기획 구역 3 그리폰 기수 성수): 받는 피해 증가
         amount = this.setIncoming(amount, dt, src);   // A·B 세트: 회피·감소·되돌림 (battle/sets.js)
-        amount *= this.supportEnemyDamageMul(attacker);
+        if (this.dmgTrace && amount > 0) {   // 밸런스 진단 (balance_sim --trace): 적 종류 · 피해를 준 코드 자리별 합계
+            const at = (new Error().stack.split('\n')[2] || '').match(/(\w+)\.js:(\d+)/);
+            const key = `${src?.type || attacker?.type || this.dmgSrcType || '-'} ${at ? at[1] + ':' + at[2] : '?'}`;
+            this.dmgTrace[key] = (this.dmgTrace[key] || 0) + amount;
+        }
+        amount *= this.supportEnemyDamageMul(attacker);   // 협력 모드: 주인공 표식 적의 공격 약화
         if (this.supportShield > 0) {
             const absorbed = Math.min(this.supportShield, amount);
             this.supportShield -= absorbed;
@@ -131,9 +138,28 @@ export const PlayerMethods = {
         this.stats.overloads = (this.stats.overloads || 0) + 1;
         this.applyPlayerStun(OVERLOAD.sec, 'OVERLOAD', true);
         this.director.overload(OVERLOAD.sec);
+        coach('battle_overload', '#hud-hp-v2');   // 처음 한 번: 과부하·긴급 수리 안내
     },
 
     // ---- 주인공 상태 이상 (적 공격) ----
+    /** 약화: sec초 동안 받는 피해 +more (새 기획 구역 3 그리폰 기수 성수 — 방어력 약화). 냉기 저항 옵션 등 상태 이상 줄이기가 그대로 적용 */
+    applyPlayerVuln(sec, more) {
+        sec *= this.ccMul();
+        if (sec <= 0) return;
+        if (!(this.pVulnT > 0)) this.createDamagePopup(this.monsterX + 40, 205, `💧 약화 — 받는 피해 +${Math.round(more * 100)}%`, false);
+        this.pVulnT = Math.max(this.pVulnT || 0, sec);
+        this.pVulnMore = Math.max(this.pVulnT > sec ? this.pVulnMore || 0 : 0, more);
+    },
+
+    /** 공격력 감소: sec초 동안 적에게 주는 피해 -cut (새 기획 구역 10 스피커 드론 — battle/enemyField.js dealDamageToEnemy) */
+    applyPlayerWeak(sec, cut) {
+        sec *= this.ccMul();
+        if (sec <= 0) return;
+        if (!(this.pWeakT > 0)) this.createDamagePopup(this.monsterX + 40, 215, `🔇 소음 — 공격력 -${Math.round(cut * 100)}%`, false);
+        this.pWeakT = Math.max(this.pWeakT || 0, sec);
+        this.pWeakCut = cut;
+    },
+
     applyPlayerSlow(sec, quiet = false) {
         if (this.equippedLegId === 'leg_hero_hover' || this.kitFlag('slowImmune')) {   // 다리 패시브: 감속 무시 (2차 패시브 포함)
             if (!quiet) this.createDamagePopup(this.monsterX + 40, 190, '감속 무효', false);
@@ -241,6 +267,8 @@ export const PlayerMethods = {
         if (this.pSlowT > 0) this.pSlowT = Math.max(0, this.pSlowT - dt);
         if (this.pStunT > 0) this.pStunT = Math.max(0, this.pStunT - dt);
         if (this.pRootT > 0) this.pRootT = Math.max(0, this.pRootT - dt);
+        if (this.pVulnT > 0) this.pVulnT = Math.max(0, this.pVulnT - dt);
+        if (this.pWeakT > 0) this.pWeakT = Math.max(0, this.pWeakT - dt);
         this.updatePlayerStatus();
     },
 
@@ -286,9 +314,7 @@ export const PlayerMethods = {
                         this.fx.play(HERO_VFX.curseTick, aimOf(enemy).x, FOOT_B);
                         this.createDamagePopup(enemy.x, 140, `☠ -${Math.round(HERO.curseDps * HERO.curseTick)}`, false);
                     }
-                    if (enemy.hp <= 0) {
-                        this.dealDamageToEnemy(enemy, 0, false);
-                    }
+                    if (enemy.hp <= 0) this.defeatEnemy(enemy);
                 }
             });
         }
@@ -310,9 +336,7 @@ export const PlayerMethods = {
                         this.fx.play(KAIJU_VFX.sporeTick, aimOf(enemy).x, FOOT_B);
                         this.createDamagePopup(enemy.x, 130, `☣ -${Math.round(PASSIVE.sporeDps * 0.75)}`, false);
                     }
-                    if (enemy.hp <= 0) {
-                        this.dealDamageToEnemy(enemy, 0, false);
-                    }
+                    if (enemy.hp <= 0) this.defeatEnemy(enemy);
                 }
             });
         }
@@ -333,9 +357,7 @@ export const PlayerMethods = {
                         this.fx.play(CHIMERA_VFX.quakeTick, aimOf(enemy).x, FOOT_B);
                         this.createDamagePopup(enemy.x, 130, `💥 -${Math.round(PASSIVE.quakeDps * 0.75)}`, false);
                     }
-                    if (enemy.hp <= 0) {
-                        this.dealDamageToEnemy(enemy, 0, false);
-                    }
+                    if (enemy.hp <= 0) this.defeatEnemy(enemy);
                 }
             });
         }

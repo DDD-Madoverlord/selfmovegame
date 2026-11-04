@@ -1,7 +1,7 @@
 {
-  "frameWidth": 108,
-  "frameHeight": 97,
-  "anchorX": 56.0,
+  "frameWidth": 116,
+  "frameHeight": 98,
+  "anchorX": 68.7,
   "res": 2.0,
   "clips": {
     "walk": {
@@ -12,7 +12,7 @@
     "attack": {
       "src": "assets/sprites/rig/inquisitor/inquisitor_attack.webp",
       "frames": 14,
-      "duration": 0.8
+      "duration": 0.85
     }
   }
 }

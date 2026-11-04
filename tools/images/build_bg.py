@@ -1,7 +1,8 @@
 """
 구역 배경 그림(Gemini) → 게임용 배경 층 (로드맵 C단계)
 
-실행: 프로젝트 루트에서  python tools/images/build_bg.py
+실행: 프로젝트 루트에서  python tools/images/build_bg.py            (전부)
+                         python tools/images/build_bg.py st1/ st2/  (이름 앞부분으로 골라서)
 
 입력: assets/sprites/stage/src/bg/<이름>_gemini.png   (없는 층은 건너뜀)
 출력: assets/sprites/stage/bg/<이름>.png  (무손실 원본) + <이름>.webp (게임·CSS가 읽는 것, 품질 90 — 로딩 단축 2026-10-24)
@@ -53,6 +54,18 @@ LAYERS = {
     'bg4/pillars': {'tile_w': 640, 'seam': 0, 'key': 'yellow'},   # 중간 층: 유기질 기둥과 짐승이 잠든 알
     'bg4/flesh': {'tile_w': 256, 'seam': 0, 'key': 'yellow', 'feet': (250, 60)},   # 바닥: 점액 배어 나오는 유기질 길에 발
 }
+# ---- 새 기획 스테이지 1~10 (D-085, 그림 2026-10-25 Gemini 1024×572) — st<N>/far · far_boss · mid · floor ----
+# 바닥 발 줄(feet 원본 줄)은 스테이지마다 윗면 가운데: 1 철망 · 2 갈라진 암반 · 3 대리석 타일 · 4 유기질 · 5 갑판 철망 ·
+# 6 대리석 · 7 진흙 · 8 얼음 · 9 콘크리트 판 · 10 네온 바닥. 구역 4만 노랑 배경
+NEW_FEET = {1: 160, 2: 240, 3: 250, 4: 200, 5: 260, 6: 185, 7: 240, 8: 275, 9: 200, 10: 215}
+for _n, _row in NEW_FEET.items():
+    _key = 'yellow' if _n == 4 else True
+    LAYERS.update({
+        f'st{_n}/far': {'tile_w': 1280, 'seam': 24},
+        f'st{_n}/far_boss': {'tile_w': 1280, 'seam': 24},
+        f'st{_n}/mid': {'tile_w': 640, 'seam': 0, 'key': _key},
+        f'st{_n}/floor': {'tile_w': 256, 'seam': 0, 'key': _key, 'feet': (_row, 60)},
+    })
 WRAP = 8           # 줄일 때 양 끝에 덧붙이는 반대쪽 픽셀 수
 
 
@@ -117,7 +130,10 @@ def build(name, cfg):
 
 
 def main():
+    only = sys.argv[1:]          # 이름 앞부분으로 골라 굽기 (예: st1/ st2/) — 없으면 전부
     for name, cfg in LAYERS.items():
+        if only and not any(name.startswith(p) for p in only):
+            continue
         if os.path.exists(SRC.format(name=name)):
             build(name, cfg)
         else:

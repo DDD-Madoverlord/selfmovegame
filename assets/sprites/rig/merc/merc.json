@@ -1,0 +1,18 @@
+{
+  "frameWidth": 66,
+  "frameHeight": 92,
+  "anchorX": 40.1,
+  "res": 2.0,
+  "clips": {
+    "walk": {
+      "src": "assets/sprites/rig/merc/merc_walk.webp",
+      "frames": 16,
+      "duration": 0.7
+    },
+    "attack": {
+      "src": "assets/sprites/rig/merc/merc_attack.webp",
+      "frames": 14,
+      "duration": 0.7
+    }
+  }
+}

@@ -309,5 +309,220 @@ export const ZONE_VFX = {
             { type: 'ring', at: 0.02, dur: 0.6, r: 120, ground: true, width: 4, color: HOLY_GOLD },
             { type: 'motes', at: 0.05, count: 12, spread: 50, rise: [50, 110], life: [0.6, 1.1], size: 2.5, color: HOLY_GOLD }
         ]
+    },
+
+    // ======== 새 기획 구역 1 · 블랙 하운드 (D-085): 강철 회색·경보 진홍·합선 푸른 불꽃 ========
+    // 대전차 로켓 착탄: 주황 폭발 + 검은 연기 + 파편
+    rocketBlast: {
+        sfx: 'base_blast',
+        layers: [
+            { type: 'flash', at: 0, dur: 0.16, r: 50, color: EMBER },
+            { type: 'shockwave', at: 0, dur: 0.45, r: 90, ground: true, width: 18, color: FIRE },
+            { type: 'glow', at: 0.02, dur: 0.8, r: 70, color: FIRE },
+            { type: 'streaks', at: 0, count: 10, speed: 320, len: 30, life: [0.25, 0.5], color: EMBER },
+            { type: 'smoke', at: 0.08, count: 5, spread: 40, spreadY: 14, size: 24, life: [0.6, 1.0], rise: 30, color: STONE },
+            { type: 'motes', at: 0.05, count: 8, spread: 40, rise: [30, 70], life: [0.4, 0.8], size: 2.5, color: EMBER }
+        ]
+    },
+    // 네이팜: 바닥에 번지는 불길
+    napalmBurst: {
+        sfx: 'zone_spell_fire',
+        layers: [
+            { type: 'flash', at: 0, dur: 0.12, r: 34, color: EMBER },
+            { type: 'goo', at: 0, count: 7, speed: 150, size: 6.5, life: [0.6, 1.0], splat: true, floor: 0, color: FIRE },
+            { type: 'glow', at: 0, dur: 0.9, r: 60, color: FIRE },
+            { type: 'motes', at: 0.05, count: 10, spread: 55, rise: [30, 80], life: [0.5, 0.9], size: 2.5, color: EMBER },
+            { type: 'smoke', at: 0.1, count: 3, spread: 40, spreadY: 8, size: 18, life: [0.5, 0.9], rise: 25, color: STONE }
+        ]
+    },
+    // EMP 드론 전파: 푸른 고리 + 잔전기
+    empZap: {
+        sfx: 'shield_break',
+        layers: [
+            { type: 'flash', at: 0, dur: 0.12, r: 28, color: WHITE },
+            { type: 'ring', at: 0, dur: 0.5, r: 70, color: '120, 210, 255', width: 4 },
+            { type: 'bolt', jag: 12, branches: 1, width: 2, flicker: 0.05, at: 0, dur: 0.3, count: 4, len: 60, color: '120, 210, 255', layer: 'front' },
+            { type: 'glow', at: 0, dur: 0.6, r: 46, color: '120, 210, 255' }
+        ]
+    },
+    // WMD-알파 플라스마 레이저: 예고(가는 붉은 조준선) → 굵은 진홍 광선
+    plasmaWarn: {
+        layers: [
+            { type: 'beam', at: 0, dur: 1.3, w: 2, color: '255, 60, 60' },
+            { type: 'glow', at: 0, dur: 1.3, r: 30, color: '255, 60, 60', layer: 'front' },
+            { type: 'ring', at: 0.9, dur: 0.4, r: 36, inward: true, width: 2, color: '255, 60, 60', pos: 'to' },
+            { type: 'rune', at: 0, dur: 1.3, r: 24, spin: -2, color: '255, 60, 60', pos: 'to', layer: 'front' }
+        ]
+    },
+    plasmaBeam: {
+        sfx: 'mech_laser',
+        layers: [
+            { type: 'beam', at: 0, dur: 0.55, w: 34, color: '255, 40, 50' },
+            { type: 'beam', at: 0, dur: 0.4, w: 10, color: WHITE },
+            { type: 'flash', at: 0, dur: 0.2, r: 50, color: WHITE, pos: 'to' },
+            { type: 'shockwave', at: 0.03, dur: 0.45, r: 75, width: 18, color: '255, 40, 50', pos: 'to' },
+            { type: 'glow', at: 0.05, dur: 0.9, r: 60, color: '255, 40, 50', pos: 'to', layer: 'front' },
+            { type: 'motes', at: 0.08, count: 8, spread: 40, rise: [30, 80], life: [0.5, 0.9], size: 2.5, color: EMBER, pos: 'to' }
+        ]
+    },
+    // ======== 새 기획 구역 10 · 중앙 방송 타워: 네온 핑크·칠흑 ========
+    neonWarn: {
+        layers: [
+            { type: 'beam', at: 0, dur: 1.3, w: 2, color: '255, 60, 200' },
+            { type: 'glow', at: 0, dur: 1.3, r: 30, color: '255, 60, 200', layer: 'front' },
+            { type: 'ring', at: 0.9, dur: 0.4, r: 36, inward: true, width: 2, color: '255, 120, 220', pos: 'to' }
+        ]
+    },
+    neonBeam: {
+        sfx: 'mech_laser',
+        layers: [
+            { type: 'beam', at: 0, dur: 0.6, w: 38, color: '255, 50, 190' },
+            { type: 'beam', at: 0, dur: 0.45, w: 12, color: WHITE },
+            { type: 'flash', at: 0, dur: 0.2, r: 54, color: WHITE, pos: 'to' },
+            { type: 'shockwave', at: 0.03, dur: 0.45, r: 80, width: 18, color: '255, 60, 200', pos: 'to' },
+            { type: 'glow', at: 0.05, dur: 0.9, r: 64, color: '255, 60, 200', pos: 'to', layer: 'front' }
+        ]
+    },
+    // ======== 새 기획 구역 8 · 노르딘 왕성: 서리 푸른빛과 화로석 붉은빛 ========
+    // 증기 돌파병 자폭: 하얀 수증기 장막
+    steamBurst: {
+        sfx: 'zone_gas',
+        layers: [
+            { type: 'flash', at: 0, dur: 0.14, r: 40, color: WHITE },
+            { type: 'mist', at: 0, r: 120, h: 30, life: 1.6, drift: 18, color: '230, 230, 235', dy: 40 },
+            { type: 'mist', at: 0.15, r: 160, h: 26, life: 1.8, drift: 18, color: '200, 200, 210', dy: 60 },
+            { type: 'smoke', at: 0.05, count: 6, spread: 80, spreadY: 20, size: 28, life: [0.8, 1.3], rise: 40, color: '220, 220, 228' }
+        ]
+    },
+    // 화룡의 숨결: 붉은 조준선 → 불꽃 브레스
+    fireWarn: {
+        layers: [
+            { type: 'beam', at: 0, dur: 1.2, w: 3, color: '255, 120, 40' },
+            { type: 'glow', at: 0, dur: 1.2, r: 34, color: '255, 120, 40', layer: 'front' },
+            { type: 'ring', at: 0.8, dur: 0.4, r: 36, inward: true, width: 2, color: '255, 160, 60', pos: 'to' }
+        ]
+    },
+    fireBreath: {
+        sfx: 'zone_spell_fire',
+        layers: [
+            { type: 'beam', at: 0, dur: 0.6, w: 46, color: '255, 110, 30' },
+            { type: 'beam', at: 0, dur: 0.45, w: 16, color: '255, 230, 140' },
+            { type: 'flash', at: 0, dur: 0.2, r: 56, color: EMBER, pos: 'to' },
+            { type: 'motes', at: 0.05, count: 12, spread: 60, rise: [30, 90], life: [0.5, 0.9], size: 3, color: EMBER, pos: 'to' },
+            { type: 'smoke', at: 0.1, count: 4, spread: 50, spreadY: 10, size: 22, life: [0.6, 1.0], rise: 30, color: STONE, pos: 'to' }
+        ]
+    },
+    // ======== 새 기획 구역 6 · 피에 젖은 성역 ========
+    // 탐욕의 심장 핏빛 파동: 팽창했다 수축하며 붉은 충격파 고리
+    bloodPulse: {
+        sfx: 'zone_judgment',
+        layers: [
+            { type: 'flash', at: 0, dur: 0.18, r: 60, color: '255, 120, 140' },
+            { type: 'ring', at: 0, dur: 0.6, r: 420, color: CRIMSON, width: 10 },
+            { type: 'ring', at: 0.1, dur: 0.6, r: 300, color: '255, 90, 110', width: 4 },
+            { type: 'glow', at: 0, dur: 0.9, r: 90, color: CRIMSON },
+            { type: 'motes', at: 0.05, count: 10, spread: 70, rise: [30, 80], life: [0.6, 1.0], size: 2.5, color: CRIMSON }
+        ]
+    },
+    // ======== 새 기획 구역 5 · 해상 요새 포세이돈: 심해 흑청색·부식된 황동·탁한 주황 ========
+    // 심해 압축포: 푸른 조준선 → 굵은 물기둥 + 물보라
+    waterWarn: {
+        layers: [
+            { type: 'beam', at: 0, dur: 1.1, w: 2, color: '120, 210, 255' },
+            { type: 'glow', at: 0, dur: 1.1, r: 30, color: '120, 210, 255', layer: 'front' },
+            { type: 'ring', at: 0.7, dur: 0.4, r: 36, inward: true, width: 2, color: '120, 210, 255', pos: 'to' }
+        ]
+    },
+    waterBeam: {
+        sfx: 'mech_laser',
+        layers: [
+            { type: 'beam', at: 0, dur: 0.55, w: 40, color: '90, 170, 230' },
+            { type: 'beam', at: 0, dur: 0.4, w: 12, color: WHITE },
+            { type: 'flash', at: 0, dur: 0.2, r: 50, color: WHITE, pos: 'to' },
+            { type: 'shockwave', at: 0.03, dur: 0.45, r: 80, width: 18, color: '120, 210, 255', pos: 'to' },
+            { type: 'goo', at: 0.03, count: 8, speed: 220, size: 6, life: [0.5, 0.9], splat: true, floor: 60, color: '150, 210, 240', pos: 'to' }
+        ]
+    },
+    // 맹독 간헐천: 주황·독녹 물기둥이 솟구침
+    geyserBurst: {
+        sfx: 'zone_venom',
+        layers: [
+            { type: 'pillar', at: 0, dur: 0.7, h: 220, w: 40, color: '255, 140, 50' },
+            { type: 'pillar', at: 0.03, dur: 0.5, h: 200, w: 14, color: '200, 230, 60' },
+            { type: 'goo', at: 0.02, count: 8, speed: 210, size: 6.5, life: [0.6, 1.0], splat: true, floor: 0, color: FIRE },
+            { type: 'mist', at: 0.1, r: 60, h: 12, life: 1.2, drift: 14, color: '120, 140, 40', dy: 30 },
+            { type: 'glow', at: 0, dur: 1.0, r: 60, color: FIRE }
+        ]
+    },
+    // ======== 새 기획 구역 3 · 피로 물든 순례길 ========
+    // 그리폰 기수 성수: 바랜 금빛 물보라 + 가라앉는 약화 표식
+    holyWaterSplash: {
+        sfx: 'zone_heal_holy',
+        layers: [
+            { type: 'flash', at: 0, dur: 0.12, r: 26, color: HOLY_WHITE },
+            { type: 'goo', at: 0, count: 7, speed: 150, size: 6, life: [0.6, 1.0], splat: true, floor: 80, color: HOLY_GOLD },
+            { type: 'ring', at: 0.02, dur: 0.5, r: 56, width: 3, color: HOLY_GOLD },
+            { type: 'chevrons', at: 0.08, count: 3, spread: 14, fall: 26, life: [0.7, 1.0], size: 7, color: CRIMSON, dy: -40 }
+        ]
+    },
+    // ======== 새 기획 구역 2 · 해안 시추 단지: 용암 적색·시멘트 회색·녹슨 적갈색 ========
+    // 음파 차단 탑 고주파: 노란 음파 고리 여러 겹
+    sonicRing: {
+        sfx: 'shield_break',
+        layers: [
+            { type: 'ring', at: 0, dur: 0.45, r: 50, color: '255, 220, 120', width: 4 },
+            { type: 'ring', at: 0.1, dur: 0.5, r: 75, color: '255, 200, 90', width: 3 },
+            { type: 'ring', at: 0.2, dur: 0.55, r: 100, color: '255, 180, 70', width: 2 },
+            { type: 'glow', at: 0, dur: 0.6, r: 46, color: '255, 220, 120' }
+        ]
+    },
+    // 파일벙커 대지 분쇄: 예고(땅의 금빛 균열) → 솟구치는 암반·용암
+    quakeWarn: {
+        layers: [
+            { type: 'cracks', at: 0, dur: 1.3, count: 4, len: 50, color: '255, 160, 60' },
+            { type: 'glow', at: 0, dur: 1.3, r: 46, color: '255, 120, 40' },
+            { type: 'mist', at: 0, r: 46, h: 8, life: 1.3, drift: 0, rim: true, color: '255, 120, 40' }
+        ]
+    },
+    quakeSpike: {
+        sfx: 'chimera_slam',
+        layers: [
+            { type: 'pillar', at: 0, dur: 0.45, h: 150, w: 36, color: '255, 110, 40' },
+            { type: 'shards', at: 0, count: 6, speed: 260, size: 7, spin: 7, life: [0.6, 1.0], shape: 'rock', floor: 0, color: STONE },
+            { type: 'flash', at: 0, dur: 0.12, r: 36, color: EMBER },
+            { type: 'shockwave', at: 0.02, dur: 0.4, r: 70, ground: true, width: 14, color: FIRE },
+            { type: 'smoke', at: 0.08, count: 3, spread: 30, spreadY: 8, size: 18, life: [0.5, 0.8], rise: 25, color: STONE }
+        ]
+    },
+    // 폐기물 컨테이너 투하: 떨어지는 그림자 경고 → 쿵 (먼지·쇳물)
+    containerWarn: {
+        layers: [
+            { type: 'glow', at: 0, dur: 2.0, r: 60, color: '20, 18, 24' },
+            { type: 'ring', at: 0, dur: 2.0, r: 70, ground: true, inward: true, width: 3, color: '255, 190, 60' },
+            { type: 'mist', at: 0, r: 70, h: 10, life: 2.0, drift: 0, rim: true, color: '255, 170, 50' }
+        ]
+    },
+    containerSlam: {
+        sfx: 'chimera_slam',
+        layers: [
+            { type: 'flash', at: 0, dur: 0.14, r: 50, color: EMBER },
+            { type: 'shockwave', at: 0, dur: 0.5, r: 120, ground: true, width: 22, color: '255, 170, 60' },
+            { type: 'smoke', at: 0.03, count: 6, spread: 70, spreadY: 10, size: 26, life: [0.6, 1.1], rise: 30, color: STONE },
+            { type: 'goo', at: 0.02, count: 6, speed: 170, size: 6, life: [0.6, 1.0], splat: true, floor: 0, color: FIRE },
+            { type: 'cracks', at: 0.02, dur: 1.0, count: 5, len: 80, color: EMBER }
+        ]
+    },
+    // 궤도 폭격: 하늘에서 내리꽂히는 붉은·흰 빛기둥 + 폭발
+    orbitalStrike: {
+        sfx: 'base_blast',
+        layers: [
+            { type: 'pillar', at: 0, dur: 0.6, h: 640, w: 54, color: '255, 70, 60' },
+            { type: 'pillar', at: 0.02, dur: 0.4, h: 640, w: 14, color: WHITE },
+            { type: 'flash', at: 0.04, dur: 0.22, r: 80, color: WHITE },
+            { type: 'shockwave', at: 0.05, dur: 0.5, r: 130, ground: true, color: '255, 90, 60', width: 28 },
+            { type: 'cracks', at: 0.05, dur: 1.1, count: 6, len: 90, color: EMBER },
+            { type: 'glow', at: 0.05, dur: 1.0, r: 80, color: FIRE },
+            { type: 'smoke', at: 0.15, count: 5, spread: 55, spreadY: 10, size: 22, life: [0.6, 1.0], rise: 30, color: STONE }
+        ]
     }
 };

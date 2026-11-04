@@ -1,0 +1,449 @@
+{
+ "_note": "새 캐릭터 6명 세트 9개 외형 (sets2/<id>Sets2.js 파츠 look을 영어로) — make_newchar_set_prompts.py가 Gemini 요청 글로 만듦. arm = 앞팔 무기, back = 뒷팔",
+ "diver": {
+  "a": {
+   "name": "Deep-sea Submersible",
+   "head": "round diving helmet with a periscope and a searchlight",
+   "body": "diving suit with a bubble generator and glass dome on the back",
+   "arm": "arm-mounted triple torpedo launcher tubes",
+   "back": "keeps the anchor, restyled in matching metal",
+   "leg": "diving boots with small propulsion propellers on the heels"
+  },
+  "b": {
+   "name": "Abyss Lamp-keeper",
+   "head": "diving helmet with a big teal lantern on top and light leaking from the window",
+   "body": "diving suit with teal ghost flames behind a glass chest window",
+   "arm": "a big anchor hanging from a thick chain",
+   "back": "keeps the anchor, with a teal glow",
+   "leg": "heavy boots with lead weights"
+  },
+  "u": {
+   "name": "Ghost Ship Captain",
+   "head": "brass diving helmet wearing an old captain hat, teal ghost light in the window",
+   "body": "old captain coat over the diving suit, teal ghost flames from the sleeves",
+   "arm": "a large whaling harpoon cannon on the forearm with coiled rope",
+   "back": "keeps the anchor, wrapped with old rope",
+   "leg": "boots with a short anchor chain wrapped around the ankles"
+  },
+  "c": {
+   "name": "Coral Guardian",
+   "head": "diving helmet overgrown with pink and orange coral",
+   "body": "diving suit with coral plate armor",
+   "arm": "a spear covered with coral spikes",
+   "back": "coral-encrusted anchor",
+   "leg": "boots with coral footplates"
+  },
+  "d": {
+   "name": "Jellyfish Glow",
+   "head": "translucent jellyfish-bell diving helmet",
+   "body": "suit with a cape of glowing jellyfish tentacles",
+   "arm": "an electric tentacle arm crackling with sparks",
+   "back": "glowing tentacle wrapped around the anchor",
+   "leg": "legs wrapped in floating jellyfish tentacles (same stance)"
+  },
+  "v": {
+   "name": "Hydrothermal Expedition",
+   "head": "exploration helmet with glowing orange heating coils",
+   "body": "pressure diving suit with steam vents",
+   "arm": "a steam piston hammer arm",
+   "back": "anchor with steam pipes",
+   "leg": "boots wrapped in red heating coils"
+  },
+  "w": {
+   "name": "Ancient Sea-God Knight",
+   "head": "gold and teal ancient sea-god helmet",
+   "body": "golden ancient scale armor",
+   "arm": "a golden trident",
+   "back": "small golden shield-anchor",
+   "leg": "golden ancient greaves"
+  },
+  "l": {
+   "name": "Leviathan",
+   "head": "helmet made from a giant sea serpent skull",
+   "body": "armor of whale bones and black-navy scales",
+   "arm": "an anchor shaped like a giant fang",
+   "back": "bone anchor",
+   "leg": "black-scaled lord boots"
+  },
+  "m": {
+   "name": "Star-sea Navigator",
+   "head": "glass helmet reflecting a galaxy inside",
+   "body": "indigo-violet starlight diving suit",
+   "arm": "a meteor harpoon gun with swirling starlight",
+   "back": "star-shaped anchor",
+   "leg": "floating zero-gravity boots with a faint glow (same stance)"
+  }
+ },
+ "saint": {
+  "a": {
+   "name": "Bell-ringer Nun",
+   "head": "white veil decorated with small golden bells",
+   "body": "habit with candle holders and candles at the waist",
+   "arm": "a bell-shaped mace hanging on a chain",
+   "back": "small brass bell in the back hand",
+   "leg": "old pilgrim boots tied with straps"
+  },
+  "b": {
+   "name": "Red Thread Seamstress",
+   "head": "red balls of yarn floating above the head",
+   "body": "dress wrapped in layers of red thread like a cocoon",
+   "arm": "a spear-long sewing needle with a thread spool on the arm",
+   "back": "small thread spool in the back hand",
+   "leg": "shoes with red threads unraveling from the toes"
+  },
+  "u": {
+   "name": "Thousand-thread Wings",
+   "head": "veil with a golden thread ring circling above the head, unraveling into red threads",
+   "body": "dress with a pair of large wings woven from red thread on the back, gold embroidery",
+   "arm": "a small crossbow on the forearm that shoots long needles",
+   "back": "golden thimble claw",
+   "leg": "shoes with a few short red threads hanging from them",
+   "_note": "hovering이라고 쓰면 키가 커지고 발이 내려감 → 뺌 (10-25)"
+  },
+  "c": {
+   "name": "Herbal Healer",
+   "head": "veil with a crown of herbs and flowers",
+   "body": "habit with herb pouches",
+   "arm": "arm holding a potion bottle ready to throw, potion bottles on the belt",
+   "back": "small herb bundle in the back hand",
+   "leg": "muddy gardening boots"
+  },
+  "d": {
+   "name": "Weeping Statue",
+   "head": "veil turned to white marble",
+   "body": "white marble-veined habit",
+   "arm": "a giant marble hand",
+   "back": "small marble hand",
+   "leg": "legs like a marble statue pedestal (same stance)"
+  },
+  "v": {
+   "name": "Butterfly Thread Nun",
+   "head": "veil with a red butterfly resting on it",
+   "body": "dress with red butterfly-wing patterns",
+   "arm": "gauntlet wrapped in golden thread",
+   "back": "glove with a small red butterfly",
+   "leg": "shoes decorated with butterfly wings"
+  },
+  "w": {
+   "name": "Black Iron Sewing Machine",
+   "head": "black steel helmet with a sewing-machine needle",
+   "body": "steel body armor with turning gears and thread spools",
+   "arm": "a needle gatling cannon arm",
+   "back": "steel gear claw",
+   "leg": "boots with cogwheels"
+  },
+  "l": {
+   "name": "Weaver of Fate",
+   "head": "crown with circling gold and crimson balls of yarn",
+   "body": "dress with golden loom-like wings on the back",
+   "arm": "a spear-sized golden needle",
+   "back": "golden spindle",
+   "leg": "shoes woven from gold thread"
+  },
+  "m": {
+   "name": "Crimson Rose Saint",
+   "head": "crown of crimson roses and thorn vines",
+   "body": "dress made of crimson rose petals",
+   "arm": "a thorny vine whip",
+   "back": "single crimson rose in the back hand",
+   "leg": "shoes with roots spreading from them"
+  }
+ },
+ "frost": {
+  "a": {
+   "name": "Snowfield Blade Dance",
+   "head": "ice hair ornament shaped like blades",
+   "body": "armor with an ice mirror plate on the chest",
+   "arm": "an ice dagger in the front hand",
+   "back": "an ice dagger in the back hand (twin daggers)",
+   "leg": "boots with ice skate blades under the feet"
+  },
+  "b": {
+   "name": "Blizzard Witch",
+   "head": "a small snow cloud crown floating above the head",
+   "body": "fur cape inhabited by little snow spirits",
+   "arm": "a staff with a swirling ice crystal at the tip",
+   "back": "small snow-cloud orb in the back hand",
+   "leg": "furry boots with snowflake ornaments"
+  },
+  "u": {
+   "name": "Ice Queen",
+   "head": "tall ice crystal crown with sky-blue glow",
+   "body": "royal frost dress with a long ice cape",
+   "arm": "an ice scepter with a big ice crystal at the tip",
+   "back": "ice crystal fan in the back hand",
+   "leg": "ice glass slippers with frost flowers"
+  },
+  "c": {
+   "name": "Aurora Songstress",
+   "head": "headband of green and pink aurora light ribbons",
+   "body": "dress wrapped in aurora light ribbons",
+   "arm": "a fan streaming aurora ribbons",
+   "back": "a second aurora fan in the back hand",
+   "leg": "shoes leaving trails of light"
+  },
+  "d": {
+   "name": "Frost Wolf Hunter",
+   "head": "white wolf-head hood",
+   "body": "white fur cape with blue-gray armor",
+   "arm": "an ice dagger shaped like a wolf fang",
+   "back": "small ice hatchet in the back hand",
+   "leg": "snowshoe boots"
+  },
+  "v": {
+   "name": "Glacier Giant Summoner",
+   "head": "crown of teal glacier chunks",
+   "body": "dress armored with thick glacier plates",
+   "arm": "a staff topped with a chunk of glacier ice",
+   "back": "glacier shard in the back hand",
+   "leg": "heavy glacier-ice shoes"
+  },
+  "w": {
+   "name": "Swan of the Night",
+   "head": "black swan feather crown",
+   "body": "black feather dress",
+   "arm": "a fan with feather blades",
+   "back": "a second feather fan in the back hand",
+   "leg": "ballet pointe shoes with silver ribbons"
+  },
+  "l": {
+   "name": "Empress of Eternal Winter",
+   "head": "crown with towering white and blue crystals",
+   "body": "long cape dress with snowflake patterns",
+   "arm": "a scepter with a swirling snowflake crystal",
+   "back": "snowflake crystal fan in the back hand",
+   "leg": "shoes decorated like a crystal throne"
+  },
+  "m": {
+   "name": "Moonlight Swordswoman",
+   "head": "silver crescent moon hair ornament",
+   "body": "violet night dress with silver moon patterns",
+   "arm": "a crescent-moon shaped sword",
+   "back": "a second crescent sword in the back hand",
+   "leg": "shoes leaving moonlight footprints"
+  }
+ },
+ "doll": {
+  "a": {
+   "name": "Wind-up Toy Workshop",
+   "head": "a big wind-up key stuck in the hat",
+   "body": "a big wind-up box on the back",
+   "arm": "a colorful toy cannon built into the arm",
+   "back": "wooden toy hand",
+   "leg": "small wind-up keys on the calves"
+  },
+  "b": {
+   "name": "Puppet Show Director",
+   "head": "two-faced laughing and crying theater mask",
+   "body": "coat with a folded stage curtain and pulleys on the back",
+   "arm": "a puppet control bar with many strings hanging",
+   "back": "small marionette cross in the back hand",
+   "leg": "high-heeled theater shoes"
+  },
+  "u": {
+   "name": "Eternal Family",
+   "head": "cream bonnet with bear ears and button decorations",
+   "body": "doll-mending apron with pincushion, spools and cloth scraps",
+   "arm": "a conductor baton with dozens of threads hanging from the tip",
+   "back": "small sewing needle in the back hand",
+   "leg": "boots with tiny dolls hanging from the ankles"
+  },
+  "c": {
+   "name": "Music Box Girl",
+   "head": "pink and gold music box crown",
+   "body": "music box wind-up key on the back",
+   "arm": "a tiny ballerina doll standing on the front hand",
+   "back": "small music box in the back hand",
+   "leg": "legs with music box wind-up decorations"
+  },
+  "d": {
+   "name": "Paper Doll Magician",
+   "head": "white folded paper hat",
+   "body": "cape of white paper with black ink",
+   "arm": "arm with big scissors and an ink pen",
+   "back": "paper doll chain in the back hand",
+   "leg": "origami-folded paper legs"
+  },
+  "v": {
+   "name": "Shadow Puppet Theater",
+   "head": "black hat with a small lamp",
+   "body": "coat with candle lamps",
+   "arm": "arm wearing a shadow hand puppet",
+   "back": "small shadow puppet in the back hand",
+   "leg": "legs with flowing shadows"
+  },
+  "w": {
+   "name": "Porcelain Doll Queen",
+   "head": "white porcelain tiara with golden cracks",
+   "body": "white porcelain dress with golden seams",
+   "arm": "arm holding a porcelain teapot",
+   "back": "porcelain teacup in the back hand",
+   "leg": "white porcelain shoes"
+  },
+  "l": {
+   "name": "Marionette Emperor",
+   "head": "black and gold crown with thousands of hanging threads",
+   "body": "black cape embroidered with gold thread",
+   "arm": "a golden control scepter wrapped in golden threads",
+   "back": "golden marionette cross in the back hand",
+   "leg": "black shoes with golden heels"
+  },
+  "m": {
+   "name": "Witch of the Clockwork Tower",
+   "head": "midnight-purple hat with turning clock gears",
+   "body": "dress with turning cogwheels",
+   "arm": "a giant clock-hand spear",
+   "back": "small pocket watch in the back hand",
+   "leg": "shoes with wind-up keys"
+  }
+ },
+ "architect": {
+  "a": {
+   "name": "Site Foreman",
+   "head": "foreman hard hat with a yellow stripe and a whistle",
+   "body": "fluorescent orange safety vest",
+   "arm": "a huge steel wrench as long as the arm",
+   "back": "work glove holding a clipboard",
+   "leg": "steel-toe safety boots"
+  },
+  "b": {
+   "name": "Demolition Crew",
+   "head": "safety goggles with red lenses",
+   "body": "work vest with red cartoon cylinders in the pockets",
+   "arm": "holding a big T-shaped plunger box handle",
+   "back": "a coil of red cable in the back hand",
+   "leg": "thick heavy work boots",
+   "_note": "다이너마이트·기폭 장치라고 쓰면 Gemini가 거절 → 순화한 말 (10-25)"
+  },
+  "c": {
+   "name": "Crane Operator",
+   "head": "crane operator helmet with a radio",
+   "body": "operator suit wrapped with hook cables",
+   "arm": "arm with a steel wrecking ball on a chain",
+   "back": "radio controller in the back hand",
+   "leg": "legs with outrigger support stands (same stance)"
+  },
+  "d": {
+   "name": "Survey Designer",
+   "head": "surveying goggles with measuring lenses",
+   "body": "cape made of blue blueprints",
+   "arm": "a surveying laser ruler",
+   "back": "rolled blueprint in the back hand",
+   "leg": "shoes with small measuring wheels"
+  },
+  "u": {
+   "name": "Bulldozer Armor",
+   "head": "cockpit helmet with a glass canopy",
+   "body": "thick yellow-orange bulldozer body armor",
+   "arm": "a bulldozer blade mounted on the arm",
+   "back": "hydraulic arm piston",
+   "leg": "small tank-tread legs (same stance)"
+  },
+  "v": {
+   "name": "Tower Crane Titan",
+   "head": "control cap with a warning light on top",
+   "body": "huge crane counterweight on the back",
+   "arm": "a long arm like a crane jib",
+   "back": "hook block in the back hand",
+   "leg": "concrete foundation block legs (same stance)"
+  },
+  "w": {
+   "name": "Hydraulic Demolition Claw",
+   "head": "helmet with hydraulic hoses",
+   "body": "body armor with a boiling hydraulic pump",
+   "arm": "a big steel-blue hydraulic claw arm",
+   "back": "hydraulic piston fist",
+   "leg": "piston legs"
+  },
+  "l": {
+   "name": "King of Great Reconstruction",
+   "head": "crown with floating golden blueprints",
+   "body": "golden scaffolding wings on the back",
+   "arm": "a golden scepter with a drill tip",
+   "back": "golden blueprint scroll in the back hand",
+   "leg": "shoes like cornerstone blocks"
+  },
+  "m": {
+   "name": "Doomsday Demolition Titan",
+   "head": "demolition robot helmet with red warning lights",
+   "body": "fire-breathing demolition engine on the back",
+   "arm": "a giant excavation drill as big as the body",
+   "back": "heavy mechanical fist",
+   "leg": "boots with tread plates (keep the same legs and stance)"
+  }
+ },
+ "broadcaster": {
+  "a": {
+   "name": "Street Busker",
+   "head": "fedora with a feather and a small microphone",
+   "body": "small guitar amp worn as a backpack",
+   "arm": "arm shaped like a guitar neck",
+   "back": "tambourine in the back hand",
+   "leg": "rhythm boots with heels"
+  },
+  "b": {
+   "name": "Pirate Radio DJ",
+   "head": "big violet DJ headset",
+   "body": "vest with a turntable on the chest",
+   "arm": "arm holding a vinyl record disc",
+   "back": "small mixer pad in the back hand",
+   "leg": "shoes with glowing stage lights"
+  },
+  "c": {
+   "name": "Signal Tracker",
+   "head": "hat with a rotating radar",
+   "body": "transmitter backpack with antennas",
+   "arm": "a dish antenna arm",
+   "back": "handheld signal detector in the back hand",
+   "leg": "boots with grounding wires"
+  },
+  "d": {
+   "name": "Megaphone Protester",
+   "head": "helmet with a megaphone",
+   "body": "armor made of overlapping picket signs",
+   "arm": "a huge megaphone arm",
+   "back": "small picket sign in the back hand",
+   "leg": "sturdy marching boots"
+  },
+  "u": {
+   "name": "Ghost of Midnight Radio",
+   "head": "crown with a glowing rotating radio dial",
+   "body": "coat with glowing vacuum tubes",
+   "arm": "a translucent vacuum tube microphone",
+   "back": "old radio set in the back hand",
+   "leg": "shoes with a faint ghostly glow (same stance)"
+  },
+  "v": {
+   "name": "Giant Speaker Tower",
+   "head": "crown ringed with small speakers",
+   "body": "a tower of speakers carried on the back",
+   "arm": "arm with a big subwoofer",
+   "back": "small speaker in the back hand",
+   "leg": "boots with vibrating speaker plates"
+  },
+  "w": {
+   "name": "Signal Hacker",
+   "head": "glitch visor with broken-screen patterns",
+   "body": "coat with blinking server lights",
+   "arm": "arm with cables reaching out",
+   "back": "hacking tablet in the back hand",
+   "leg": "boots with data patterns"
+  },
+  "l": {
+   "name": "The Last Live Show",
+   "head": "golden crown with stage spotlights",
+   "body": "stage coat with golden tassels",
+   "arm": "a golden stand microphone",
+   "back": "golden spotlight in the back hand",
+   "leg": "golden stage boots"
+  },
+  "m": {
+   "name": "Empress of Silence",
+   "head": "black-silver crown that swallows sound",
+   "body": "black cape that swallows light",
+   "arm": "a dark silver tuning fork",
+   "back": "small black silver bell in the back hand",
+   "leg": "silent soft shoes"
+  }
+ }
+}

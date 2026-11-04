@@ -88,7 +88,7 @@ export const KAIJU_SETS2 = packOf('kaiju', [
                 desc: '등에서 용암탄이 솟아 앞쪽에 떨어짐 — 범위 피해 + 4초 용암 장판', p: { count: 8 },
                 steps: [{ at: 0, do: 'fx', on: 'self', vfx: V.blast(0, 220, { anchorY: 0.9 }), b: FOOT_B + 120 },
                     { at: 0.4, do: 'rain', count: '$count', x: [60, 520], every: 0.16, radius: 70, dmg: 2.2, delay: 0.25, vfx: V.sheet('lava_burst', 210, { anchorY: 0.85, dur: 0.6 }), shake: 4,
-                        zone: { w: 90, sec: 4, dps: 0.5, puff: V.embers(LAVA), puffEvery: 0.35 }, sfx: 'missile_blast' }] },
+                        zone: { w: 90, sec: 4, dps: 0.5, puff: V.embers(LAVA), puffEvery: 0.35 }, sfx: 'mech_missile_blast' }] },
             kjLavaSkin: { name: '용암 갑옷', slot: 'body', cd: 14, icon: 'shield', color: '#ff7a1a', target: 'self', clip: 'brace', cast: true,
                 desc: '6초간 받는 피해 -30%, 근접으로 때린 적은 화상',
                 steps: [{ do: 'buff', sec: 6, mods: { def: 0.3, reflectStatus: { burn: [3, 0.3] } }, vfx: V.aura(-140, 230) }] },
@@ -109,7 +109,7 @@ export const KAIJU_SETS2 = packOf('kaiju', [
         leg: { name: '물갈퀴 다리', look: '넓은 물갈퀴 발', desc: '늪지 적응: 장판(늪·독 구름·오물) 감속 무시, 장판 위 진격 속도 +20%',
             passive: { name: '늪지 적응', desc: '장판 감속 무시, 장판 위에서 진격 속도 +20%', flags: ['ignoreHazard'], self: [{ when: 'hazard', mods: { move: 0.2 } }] } },
         skills: {
-            kjSwamp: { name: '늪 삼키기', slot: 'head', ult: true, cd: 0, icon: 'acid', color: '#7a9a30', target: 'enemy', range: 400, clip: 'slam', sfx: 'kaiju_slam',
+            kjSwamp: { name: '늪 삼키기', slot: 'head', ult: true, cd: 0, icon: 'acid', color: '#7a9a30', target: 'enemy', range: 400, clip: 'slam', sfx: 'chimera_slam',
                 desc: '앞쪽 바닥이 8초간 늪으로 — 적이 느려지고 초당 피해',
                 steps: [{ at: 0.4, do: 'zone', tag: 'swamp', x: 20, w: 380, sec: 8, dps: 0.4, slow: true, puff: V.sheet('swamp_bubble', 110, { anchorY: 0.85, dur: 0.8 }), puffEvery: 0.22, puffB: 0, scale: 1 },
                     { at: 0.4, do: 'fx', x: 200, vfx: V.impact(-40, 260) }] },

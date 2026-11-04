@@ -1,0 +1,18 @@
+{
+  "frameWidth": 190,
+  "frameHeight": 112,
+  "anchorX": 116.1,
+  "res": 2.0,
+  "clips": {
+    "walk": {
+      "src": "assets/sprites/rig/deckgun/deckgun_walk.webp",
+      "frames": 12,
+      "duration": 1.6
+    },
+    "attack": {
+      "src": "assets/sprites/rig/deckgun/deckgun_attack.webp",
+      "frames": 14,
+      "duration": 1
+    }
+  }
+}

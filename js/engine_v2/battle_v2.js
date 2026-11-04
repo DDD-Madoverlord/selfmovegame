@@ -47,8 +47,10 @@ import { SaintMethods } from './battle/saint.js';
 import { FrostMethods } from './battle/frost.js';
 import { DollMethods } from './battle/doll.js';
 import { GrowthBattleMethods } from './battle/growth.js';
+import { PetBattleMethods } from './battle/pets.js';
 import { predecodeStageArt } from './enemies_v2.js';
 import { runReport } from './battle/runReport.js';
+import { track } from './analytics_v2.js';
 import { SupportMethods } from './battle/support.js';
 
 export class BattleEngine {
@@ -158,12 +160,12 @@ export class BattleEngine {
         this.difficulty = difficultyUnlocked(progress.difficulty, progress) ? progress.difficulty : DEFAULT_DIFFICULTY;
         this.stage = this.growthStage(stageFor(stageById(progress.selectedStage || defaultStage(progress).id), this.difficulty));   // + 계정 연구 DM (growth.js)
         predecodeStageArt(this.stage);   // 이 스테이지 적 그림을 미리 풂 (enemies_v2.js — 처음 나올 때 멈칫하지 않게)
-        // 구역 배경 (ui_v2.css .v2-zone-2 ~ 4 · 6), 보스전은 경보 조명·불길 판 (.v2-stage-boss)
+        // 구역 배경 (ui_v2.css .v2-zone-1 ~ 4 · 6), 보스전은 경보 조명·불길 판 (.v2-stage-boss)
         // .v2-boss-rage(구역 4 보스 2페이즈)·.v2-crimson(구역 3 악마기사 소환 점멸)은 전투 중에 붙음
         const screen = document.getElementById('screen-battle-v2');
         screen?.classList.toggle('v2-stage-boss', !!this.stage.boss);
         if (screen) screen.dataset.difficulty = this.difficulty;   // HUD 난이도 표시 색 (ui_v2.css [data-difficulty])
-        [2, 3, 4, 6].forEach(z => screen?.classList.toggle(`v2-zone-${z}`, this.stage.zone === z));
+        [1, 2, 3, 4, 5, 6, 7, 8, 9, 10].forEach(z => screen?.classList.toggle(`v2-zone-${z}`, this.stage.zone === z));
         screen?.classList.remove('v2-boss-rage', 'v2-crimson');
         this.maxDistance = this.stage.distance;
         this.spawnInterval = this.stage.enemy.spawn;
@@ -171,6 +173,7 @@ export class BattleEngine {
         this.pSlowT = 0;
         this.pStunT = 0;
         this.pRootT = 0;
+        this.pVulnT = 0;          // 약화 (새 기획 구역 3 그리폰 기수 성수 — battle/player.js applyPlayerVuln)
         this.hazards = [];        // 늪 장판 (구역 2)
         this.gasTimer = 0;
         this.gasWarned = false;
@@ -179,6 +182,16 @@ export class BattleEngine {
         this.timeUp = false;
         this.timeWarned = false;
         this.artTimer = 0;
+        this.orbitalTimer = 0;   // 새 기획 구역 1 보스전 궤도 폭격 (enemyField.js tickOrbital)
+        this.containerTimer = 0; // 새 기획 구역 2 보스전 폐기물 컨테이너 투하 (enemyField.js tickContainers)
+        this.geyserTimer = 0;    // 새 기획 구역 5 보스전 해저 화산 간헐천 (enemyField.js tickGeysers)
+        this.donorTimer = 0;     // 새 기획 구역 6 보스전 강제 헌혈 (enemyField.js tickDonors)
+        this.flareTimer = 0;     // 새 기획 구역 7 보스전 조명탄 (enemyField.js tickFlares)
+        this.altarTimer = 0;     // 새 기획 구역 8 보스전 탐욕의 제단 (enemyField.js tickAltars)
+        this.altarsUp = false;
+        this.bossShieldTimer = 0; // 새 기획 구역 9·10 보스전 폐자재 더미·세뇌 안테나 (enemyField.js tickBossShields)
+        this.shieldFuseAt = 0;
+        this.pWeakT = 0;          // 소음 공격력 감소 (새 기획 구역 10 스피커 드론 — battle/player.js applyPlayerWeak)
         this.artWarned = false;
         this.boss = null;
         this.bossPhase = false;   // 구역 3: 정문을 부숴 보스전에 들어감 (enemyField.js openBossGate)
@@ -250,6 +263,9 @@ export class BattleEngine {
 
         // 몬스터 비주얼 렌더링 및 위치 리셋
         monsterControllerV2.renderVisuals(equippedObjs);
+        track('stage_start', { stageId: this.stage.id, zone: this.stage.zone, difficulty: this.difficulty, character: monsterControllerV2.getCharacterId() });
+        progress.tutorialBattleStart(this.stage.id, this.difficulty);
+        if (this.autoSkills) progress.tutorialDone('combat');
         monsterControllerV2.updateHpBar(this.playerHp, this.maxPlayerHp);
         monsterControllerV2.setMonsterPosition(this.monsterX);
         monsterControllerV2.setState('walking');
@@ -267,6 +283,7 @@ export class BattleEngine {
         if (this.domEnemies) this.domEnemies.innerHTML = '';
         if (this.domProjectiles) this.domProjectiles.innerHTML = '';
         if (this.domDamage) this.domDamage.innerHTML = '';
+        this.setupPet();
 
         if (this.domTargetLabel) this.domTargetLabel.textContent = '적 수비대 거점 HP (탐색 중)';
         this.updateHud();
@@ -276,7 +293,7 @@ export class BattleEngine {
         this.director.clear();
         const run = this.runId;
         this.director.intro(this.stage).then(() => {   // 처음 한 번: 스킬 안내 (coach_v2.js)
-            if (this.isActive && this.runId === run) coach('battle_skills', '#battle-hud-v2 .v2-skills');
+            if (this.isActive && this.runId === run) coach('battle_skills', '.v2-mobile #battle-hud-v2 .v2-skill-wrap, #battle-hud-v2 .v2-skills');
         });
         sound.playBgm('battle');
 
@@ -287,6 +304,7 @@ export class BattleEngine {
     // 전투 정지 및 퇴각
     stopBattle() {
         this.isActive = false;
+        this.clearPet();
         this.clearSupport();
         this.pSlowT = 0;
         this.pStunT = 0;
@@ -425,6 +443,7 @@ export class BattleEngine {
             prevStars,
             newStars: record.newStars,
             bonus: record.bonus,
+            pets: record.pets,
             next,
             timeUp: !victory && this.timeUp,
             overloads: this.stats.overloads || 0,
@@ -436,6 +455,8 @@ export class BattleEngine {
         };
         this.stopBattle();
         setTimeout(() => { if (!this.isActive) sound.playBgm('menu', 2.5); }, 1200);
+        track('stage_end', { stageId: result.stage.id, result: result.victory ? 'victory' : 'defeat', time: result.time, stars: result.starFlags.filter(Boolean).length, dm: result.dm });
+        progress.tutorialBattleResult(result.stage.id, diff, victory);
         this.director.showResult(result, act => {
             if (act === 'next' && next) progress.selectStage(next.id);
             if (this.onNavigate) this.onNavigate(act === 'retry' || act === 'next' ? 'battle' : act);
@@ -495,19 +516,21 @@ export class BattleEngine {
         // 스킬: 예약 실행, 쿨다운/게이지/자동 사용, HUD
         this.tickTimers(dt);             // attacks.js
         this.tickSkills(dt);             // attacks.js
+        if (this.autoSkills || this.skillCd.arm > 0 || this.skillCd.body > 0) progress.tutorialDone('combat');
         this.hud.update(dt);
         this.checkPhase2();              // player.js
 
         // 진격·공격, 아군, 적
         this.tickAdvance(dt, frontX);
         this.tickAllies(dt);             // allies.js
+        this.tickPet(dt);                // pets.js (추종·작은 자동 공격)
         this.tickEnemies(dt, frontX);    // enemyField.js
 
         this.loopId = requestAnimationFrame((t) => this.loop(t));
     }
 
     /**
-     * 주인공 진격: 사거리 안에 적이 있으면 공격 / 거점이 나와 있으면 거점까지 직접 걸어감 /
+     * 주인공 진격: 사거리 안에 적이 있으면 공격 / 거점이 나와 있거나 아군이 앞에서 싸우면 거기까지 직접 걸어감 /
      * 요새가 무너지는 동안 승리 자세 / 아니면 배경을 흘리며 거리 누적(거점 출현)
      */
     tickAdvance(dt, frontX) {
@@ -537,7 +560,9 @@ export class BattleEngine {
             if (minDistance <= 70 && closestEnemy.isBuilding) {
                 this.damagePlayer(closestEnemy.dps * dt, dt, null, closestEnemy);
             }
-        } else if (activeBuilding) {
+        } else if (activeBuilding || this.allies.some(a => a.attacking)) {
+            // 거점이 있거나 아군(소환수)이 앞에서 싸우는 중이면 그 자리까지 직접 걸어감 — 아군이 붙잡은 적은 다가오지 않으므로
+            // 제자리걸음으로 거리만 쌓지 않음 (11-03 QA: 소환수가 떨어져 싸우는데 주인공은 계속 전진)
             monsterControllerV2.setState('walking-forward');
             this.syncWalk(true);
             this.monsterX += this.playerSpeed * dt * this.moveMul();
@@ -598,6 +623,7 @@ attachMethods(BattleEngine.prototype, {
     'battle/frost.js': FrostMethods,
     'battle/doll.js': DollMethods,
     'battle/growth.js': GrowthBattleMethods,
+    'battle/pets.js': PetBattleMethods,
     'battle/support.js': SupportMethods
 });
 

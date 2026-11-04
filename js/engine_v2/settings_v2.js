@@ -4,12 +4,15 @@
    settings.get(key) / settings.set(key, value) / settings.subscribe(fn)
    ========================================================================== */
 
+import * as saveStore from './saveStore_v2.js';
+
 const KEY = 'mo_v2_settings';
-export const DEFAULT_SETTINGS = { master: 0.8, sfx: 0.9, bgm: 0.5, mute: false, shake: true, sharp: true };
+// layout: 화면 배치 'auto'(휴대폰·태블릿이면 휴대폰 배치, PC는 예전 배치) | 'mobile' | 'pc' — main_v2.js fitScreens (Q-015)
+export const DEFAULT_SETTINGS = { master: 0.8, sfx: 0.9, bgm: 0.5, mute: false, shake: true, sharp: true, layout: 'auto' };
 
 function load() {
     try {
-        const raw = JSON.parse(localStorage.getItem(KEY) || '{}');
+        const raw = JSON.parse(saveStore.load(KEY) || '{}');
         return { ...DEFAULT_SETTINGS, ...raw };
     } catch (e) {
         return { ...DEFAULT_SETTINGS };
@@ -27,7 +30,7 @@ export const settings = {
     set(key, value) {
         if (this.values[key] === value) return;
         this.values[key] = value;
-        try { localStorage.setItem(KEY, JSON.stringify(this.values)); } catch (e) { /* 저장 불가(사생활 보호 모드 등) — 이번 실행에서만 적용 */ }
+        saveStore.save(KEY, JSON.stringify(this.values));
         this.listeners.forEach(fn => fn(key, value));
     },
 
