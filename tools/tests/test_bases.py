@@ -10,11 +10,11 @@ def state(g, final=False):
 
 
 def run(ctx):
-    run_bases(ctx)
-    run_hero_wave(ctx)
-    run_guard(ctx)
-    run_roster(ctx)
-    run_background(ctx)
+    for part in (run_bases, run_hero_wave, run_guard, run_roster, run_background):
+        part(ctx)
+        # 끝난 창의 전투를 멈춤 — 창들이 함께 열려 있어 앞 창의 전투가 계속 돌면 다음 창 로딩이 30초를 넘김(11-04, 혼자 열면 4초)
+        for g in ctx.games:
+            g.js("if (b.isActive) b.stopBattle();")
 
 
 def run_hero_wave(ctx):
