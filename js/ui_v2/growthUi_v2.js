@@ -120,7 +120,7 @@ function render(preserveScroll = true) {
     const body = tab === 'coop' ? supportHtml() : tab === 'dispatch' ? '' : tab === 'research' ? researchHtml() : tab === 'pets'
         ? petUnlocked ? petsHtml() : '<p class="v2-growth__hint">노말 1-1을 클리어하면 펫이 열립니다.</p>' : modulesHtml();
     panel.innerHTML = `<div class="v2-growth__box v2-panel">
-        <div class="v2-growth__head">
+        <div class="v2-growth__head" data-currency>
             <h2>작전 지원</h2>
             <div class="v2-chip v2-chip--res">${resChipHtml()}</div>
             <div class="v2-chip v2-chip--dm">${icon('gem', 16)}<strong>${gameState.darkMatter.toLocaleString()}</strong><small>DM</small></div>

@@ -2190,6 +2190,26 @@ div.v2-settings__row > span { flex: 1; }
 .v2-setrow__head b { min-width: 0; font-size: 13px; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .v2-setrow__head small { font-size: 10px; color: var(--v2-dim); white-space: nowrap; }
 .v2-setrow__take { flex: none; margin-left: auto; min-width: 0; padding: 4px 12px; font-size: 11px; letter-spacing: 0; white-space: nowrap; }
+.v2-setrow__skills { flex: none; margin-left: auto; min-width: 0; padding: 4px 10px; font-size: 11px; letter-spacing: 0; white-space: nowrap; }
+.v2-setrow__skills + .v2-setrow__take { margin-left: 0; }
+/* [세트 스킬] 창 (lab_v2.js openSetSkills, 11-05 피드백 6번) */
+.v2-setskill { position: absolute; inset: 0; z-index: 40; display: grid; place-items: center; background: rgba(4, 6, 10, 0.66); }
+.v2-setskill__box { width: min(560px, calc(100% - 32px)); max-height: calc(100% - 32px); overflow-y: auto; box-sizing: border-box; padding: 14px 16px;
+    background: linear-gradient(180deg, rgba(24, 27, 36, 0.98), rgba(10, 11, 16, 0.98)); border: 1px solid var(--grade); border-radius: 10px; box-shadow: 0 10px 40px rgba(0, 0, 0, 0.6); }
+.v2-setskill__box header { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+.v2-setskill__box header .v2-setmark { position: static; }
+.v2-setskill__box h3 { flex: 1; min-width: 0; margin: 0; font-size: 16px; color: #fff; }
+.v2-setskill__bonus, .v2-setskill__list { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 6px; }
+.v2-setskill__bonus { margin-bottom: 10px; }
+.v2-setskill__bonus li { padding: 5px 8px; font-size: 12px; color: #c9d1de; background: rgba(255, 255, 255, 0.04); border-left: 2px solid var(--grade); }
+.v2-setskill__bonus b { color: var(--v2-amber); margin-right: 4px; }
+.v2-setskill__list li { display: grid; grid-template-columns: 36px minmax(0, 1fr); gap: 10px; align-items: start; padding: 8px; background: rgba(0, 0, 0, 0.3); border-radius: 6px; }
+.v2-setskill__icon { width: 36px; height: 36px; display: grid; place-items: center; color: var(--sk); background: color-mix(in srgb, var(--sk) 16%, transparent); border-radius: 8px; }
+.v2-setskill__list b { display: flex; align-items: baseline; gap: 6px; font-size: 14px; color: #fff; }
+.v2-setskill__list b em { font-style: normal; font-size: 11px; padding: 0 5px; color: #16120a; background: var(--sk); border-radius: 3px; }
+.v2-setskill__list b i { margin-left: auto; font-style: normal; font-size: 11px; color: var(--v2-dim); white-space: nowrap; }
+.v2-setskill__list small { display: block; font-size: 11px; color: var(--v2-dim); }
+.v2-setskill__list p { margin: 4px 0 0; font-size: 12px; line-height: 1.45; color: #c9d1de; }
 .v2-setrow__parts { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; }
 .v2-setrow__part {
     display: flex;
@@ -2716,9 +2736,9 @@ body.v2-fit .v2-growth__box { width: 940px; max-height: 655px; }
 
 /* ---------- 휴대폰 배치 (ui_v2_mobile.css, D-099 · D-102)와 같이 쓰는 PC 쪽 규칙 ---------- */
 /* 휴대폰 배치 전용 요소 (PC에서는 숨김) */
-.v2-mrail, .v2-mstage, .v2-mparts-row, .v2-mscrim, .v2-mtoast, .v2-mclass, .v2-sortie__ko, .v2-radar__close, .v2-unit__badge,
+.v2-mrail, .v2-mstage, .v2-mmaps, .v2-radar__money, .v2-mparts-row, .v2-mscrim, .v2-mtoast, .v2-mclass, .v2-sortie__ko, .v2-radar__close, .v2-unit__badge,
 .v2-showroom__stats dt .v2-icon, .v2-chip--res em, .v2-mlabskills,
-#select-res-v2, .v2-charcard__stats .is-mobile, .v2-charcard__stats dt .v2-icon, .v2-partcard__totals { display: none; }
+.v2-charcard__stats .is-mobile, .v2-charcard__stats dt .v2-icon, .v2-partcard__totals { display: none; }
 .v2-bar__text small { font-size: inherit; }
 .v2-settings .v2-btn.is-on { color: #16120a; --btn-c: var(--v2-amber); }   /* 설정 '화면 배치'에서 고른 단추 */
 .v2-settings [data-layout] { min-width: 0; padding: 10px 14px; white-space: nowrap; }
@@ -2773,6 +2793,8 @@ body.v2-fit .v2-growth__box { width: 940px; max-height: 655px; }
     font-size: 14px; line-height: 1.6; box-sizing: border-box;
 }
 .v2-commerce__panel > header { display: flex; justify-content: space-between; align-items: center; gap: 16px; }
+.v2-commerce__panel > header .v2-currency { display: flex; align-items: center; gap: 8px; margin-left: auto; }   /* 상점 머리 재화 표시줄 (currencyBar_v2.js) — display는 여기만: 일반 .v2-currency에 넣으면 PC 지도 칸의 숨김(.v2-radar__money)을 덮음 */
+.v2-shop__probnote { font-size: 12px; color: var(--v2-dim); }
 .v2-commerce__panel h2, .v2-commerce__panel h3 { margin: 0; }
 .v2-commerce__panel p { margin: 8px 0; }
 .v2-commerce__panel table { width: 100%; border-collapse: collapse; margin: 14px 0; font-size: 12px; }

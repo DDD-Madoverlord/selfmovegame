@@ -263,7 +263,7 @@
                             <span>TACTICAL COMMAND v2</span>
                         </div>
                     </div>
-                    <div class="v2-topbar__right">
+                    <div class="v2-topbar__right" data-currency>   <!-- 재화 표시줄 (currencyBar_v2.js, 11-05 피드백 12번) -->
                         <!-- 작전 지원 (Q-006): 전술 모듈 · 파견 · 계정 연구 (growthUi_v2.js) -->
                         <button class="v2-supportbtn" id="btn-menu-support-v2" title="전술 모듈 · 파견 · 계정 연구"><span data-icon="orbital" data-icon-size="18"></span>작전 지원<i id="menu-support-badge-v2"></i></button>
                         <div class="v2-chip v2-chip--res" id="menu-res-v2"></div>
@@ -280,6 +280,10 @@
                     <button class="v2-mrail__btn" id="btn-rail-support-v2"><span data-icon="orbital" data-icon-size="44"></span>지원<i id="rail-support-dot-v2" hidden></i></button>
                     <button class="v2-mrail__btn" id="btn-rail-pets-v2"><span data-icon="paw" data-icon-size="44"></span>펫</button>
                 </nav>
+                <div class="v2-mmaps" role="group" aria-label="지도 고르기">   <!-- 11-05 피드백 14번: 스토리·스페셜 맵은 메인에서 고름 (지도 창 아래 탭은 휴대폰에서 숨김) -->
+                    <button class="v2-mmap is-on" data-map="story"><span data-icon="map" data-icon-size="30"></span>스토리 맵</button>
+                    <button class="v2-mmap" data-map="special"><span data-icon="orbital" data-icon-size="30"></span>스페셜 맵</button>
+                </div>
                 <section class="v2-mstage" id="menu-stage-card-v2" aria-label="출격할 스테이지"></section>
                 <ul class="v2-mparts-row" id="menu-parts-list-v2" aria-label="장착 파츠·스킬"></ul>   <!-- 11-04 디자인 제안: [파츠·스킬] 창 대신 화면 아래 4칸 -->
                 <div class="v2-mscrim" id="menu-scrim-v2" hidden></div>
@@ -335,6 +339,7 @@
                         </div>
                         <div class="v2-radar__foot" id="menu-map-foot-v2">SECTOR MAP 07 · 목표: 중간 요새 → 최종 핵심 기지</div>
                         <div class="v2-radar__tabs">
+                            <div class="v2-currency v2-radar__money" data-currency></div>   <!-- 휴대폰 지도 창: 위 줄이 가려져 여기에 재화 (11-05 피드백 12번) -->
                             <button class="v2-maptab is-on" data-map="story">STORY MAP</button>
                             <button class="v2-maptab" data-map="special">SPECIAL MAP</button>
                             <button id="btn-story-intro-v2" class="v2-storybtn" type="button" title="이 구역의 스토리 인트로 다시 보기" hidden>▶ STORY</button>
@@ -374,7 +379,7 @@
                             <span>카드를 누르면 그 캐릭터로 바뀝니다 · 장착한 파츠는 캐릭터마다 따로 기억합니다</span>
                         </div>
                     </div>
-                    <div class="v2-topbar__right">
+                    <div class="v2-topbar__right" data-currency>   <!-- 재화 표시줄 (currencyBar_v2.js, 11-05 피드백 12번) -->
                         <div class="v2-chip v2-chip--res" id="select-res-v2"></div>   <!-- 휴대폰 배치에서만 (ui_v2_mobile.css) -->
                         <div class="v2-chip v2-chip--dm"><strong id="select-dm-count-v2">0</strong><small>DM</small></div>
                         <button class="v2-iconbtn v2-iconbtn--lg" id="btn-select-settings-v2" title="설정" data-icon="gear"></button>
@@ -411,7 +416,7 @@
                             <span>파츠를 골라 개조한 뒤 확정하면 바로 장착됩니다</span>
                         </div>
                     </div>
-                    <div class="v2-topbar__right">
+                    <div class="v2-topbar__right" data-currency>   <!-- 재화 표시줄 (currencyBar_v2.js, 11-05 피드백 12번) -->
                         <div class="v2-chip v2-chip--res" id="lab-res-v2"></div>
                         <div class="v2-chip v2-chip--dm"><strong id="lab-dm-count-v2">0</strong><small>DM</small></div>
                         <button class="v2-iconbtn v2-iconbtn--lg" id="btn-lab-settings-v2" title="설정" data-icon="gear"></button>

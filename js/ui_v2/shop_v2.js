@@ -4,19 +4,20 @@ import { PRODUCTS, productOf } from '../engine_v2/shopCatalog_v2.js';
 import { payment, setMockResult, completeMockPurchase } from '../engine_v2/commerceProviders_v2.js';
 import { isMockCommerce, commerceEnvironment } from '../engine_v2/commerceDev_v2.js';
 import { track } from '../engine_v2/analytics_v2.js';
-import { commerceDialog, openProbInfo } from './probInfo_v2.js';
+import { commerceDialog } from './probInfo_v2.js';
+import { currencyChipsHtml } from './currencyBar_v2.js';
 
 export function openShop(entry = 'menu', onChange = () => {}) {
     if (document.querySelector('.v2-shop')) return;
     const dialog = commerceDialog('v2-shop', '상점');
     let confirming = null, busy = false, message = '', pendingOrder = null;
     track('shop_open', { entry, tab: 'products', provider: payment.id, environment: commerceEnvironment().environment });
-    dialog.panel.innerHTML = `<header><h2>상점</h2><button class="v2-btn v2-btn--ghost" data-act="close">닫기</button></header>
+    dialog.panel.innerHTML = `<header><h2>상점</h2><div class="v2-currency" data-currency>${currencyChipsHtml()}</div><button class="v2-btn v2-btn--ghost" data-act="close">닫기</button></header>
         <p data-mode></p><div data-products></div><section data-confirm hidden></section>
         <p data-result role="status" aria-live="polite"></p><div class="v2-commerce__actions">
         <button class="v2-btn" data-act="claim">오늘 패스 받기</button>
-        <button class="v2-btn v2-btn--ghost" data-act="restore">구매 복원</button>
-        <button class="v2-btn v2-btn--ghost" data-act="prob">확률 정보</button></div>
+        <button class="v2-btn v2-btn--ghost" data-act="restore">구매 복원</button></div>
+        <p class="v2-shop__probnote">확률 정보는 <b>설정 › 정보</b>에서 볼 수 있습니다.</p>
         ${isMockCommerce() ? '<label>시험 구매 결과 <select data-mock><option value="success">성공</option><option value="cancelled">취소</option><option value="failed">실패</option><option value="pending">대기</option></select></label><button class="v2-btn v2-btn--ghost" data-act="complete" hidden>대기 주문 성공 통지</button>' : ''}`;
     const render = () => {
         if (!dialog.overlay.isConnected) return;
@@ -57,7 +58,6 @@ export function openShop(entry = 'menu', onChange = () => {}) {
             render(); box.querySelector('[data-act="back"]').focus();
         } else if (btn.dataset.act === 'close') dialog.close();
         else if (btn.dataset.act === 'back' && !busy) { confirming = null; render(); }
-        else if (btn.dataset.act === 'prob') openProbInfo();
         else if (btn.dataset.act === 'purchase') run(async () => {
             btn.disabled = true;
             setMockResult('purchase', dialog.panel.querySelector('[data-mock]').value);

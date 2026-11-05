@@ -18,7 +18,7 @@ import { skillsForParts, legPassiveOf } from '../engine_v2/skills_v2.js';
 import { sound } from '../engine_v2/audio/sound_v2.js';
 import { icon, fillIcons } from './icons.js';
 import { openSettings } from './settingsPanel_v2.js';
-import { resChipHtml } from './growthUi_v2.js';
+import { refreshCurrency } from './currencyBar_v2.js';
 import { fmtK } from './fmt_v2.js';
 
 const $ = id => document.getElementById(id);
@@ -153,10 +153,7 @@ export class SelectController {
 
     /** 선택창이 보일 때: 카드 내용 갱신 + 리그 재생 */
     render() {
-        const dm = $('select-dm-count-v2');
-        if (dm) dm.textContent = gameState.darkMatter.toLocaleString();
-        const res = $('select-res-v2');   // 별·조각·코어 (휴대폰 배치에서만 보임)
-        if (res) res.innerHTML = resChipHtml();
+        refreshCurrency();   // 별·조각·코어 · DM — PC·휴대폰 같은 표시줄 (currencyBar_v2.js)
         for (const c of ROSTER) this.renderCard(c);
         this.renderInfo();
         this.showSelected();

@@ -44,7 +44,7 @@ def run(ctx):
     ctx.check(not st['radar'] and not st['running'], '메인: 지도는 접혀 있고 멈춤')
     ctx.check(abs(st['width'] - 800) < 2, '메인: 창 전체 폭 사용 (20:9 양옆 빈칸 없음)', str(st['width']))
     t = g.page.evaluate(SMALL_TEXT, '#screen-menu-v2')
-    ctx.check(t['all'] < 230 and t['small'] <= t['all'] * 0.05, '메인: 보이는 글자 230자 미만(파츠 4칸 포함), 실제 11px 미만 5% 이하 (예전 497자 · 87%)', str(t))
+    ctx.check(t['all'] < 230 and t['small'] <= t['all'] * 0.05, '메인: 보이는 글자 230자 미만, 실제 11px 미만 5% 이하 (예전 497자 · 87%)', str(t))
     g.shot('mobile_menu')
 
     # 스테이지 선택 = 지도 전체 화면 → 닫기 (D-104)
@@ -57,15 +57,30 @@ def run(ctx):
     g.wait(200)
     ctx.check(g.js(vis + "return !vis('.v2-smap') && !window.madOverlordGameV2.menuController.stageMap.active;"), '스테이지 선택: 닫으면 접히고 멈춤')
 
-    # 파츠 4칸 (머리·팔·몸통·다리): 화면 아래에 바로, 능력치는 캐릭터 오른쪽 세로 (11-04 디자인 제안)
-    st = g.js(vis + """const rows = [...document.querySelectorAll('#menu-parts-list-v2 li')];
-        const r = s => document.querySelector(s).getBoundingClientRect();
-        const stats = [...document.querySelectorAll('#menu-stats-v2 > div')].map(n => n.getBoundingClientRect());
-        return { rows: rows.map(li => li.innerText.replace(/\\s+/g, ' ')), shown: rows.every(li => li.getClientRects().length),
-            column: stats.length === 4 && stats.every((b, i) => !i || (Math.abs(b.left - stats[0].left) < 2 && b.top > stats[i - 1].top)),
-            right: stats[0].left > r('#menu-sprite-canvas-v2').left };""")
-    ctx.check(len(st['rows']) == 4 and st['shown'] and '팔 · 스킬 1' in st['rows'][1] and '연타 러시' in st['rows'][1], '메인: 파츠 4칸이 화면에 바로 (부위·역할 · 파츠 이름 · 스킬)', str(st['rows']))
-    ctx.check(st['column'] and st['right'], '메인: 능력치 4칸은 캐릭터 오른쪽에 세로로', str(st))
+    # 메인 = 캐릭터만 크게 (11-05 피드백 1) · 협력 출격은 왼쪽 아래 (15) · 스토리·스페셜 맵 단추는 메인 오른쪽 위 (14)
+    st = g.js(vis + """const r = s => document.querySelector(s).getBoundingClientRect();
+        const cv = r('#menu-sprite-canvas-v2'), coop = r('#btn-menu-coop-v2'), maps = r('.v2-mmaps'), card = r('#menu-stage-card-v2'), sortie = r('#btn-to-battle-v2');
+        return { parts: vis('#menu-parts-list-v2 li'), stats: vis('#menu-stats-v2 > div'), canvasH: Math.round(cv.height), screenH: innerHeight,
+            coopLeft: coop.right < card.left && coop.bottom > innerHeight * 0.75 && coop.left < innerWidth * 0.35,
+            coopUnderChar: coop.top >= r('.v2-showroom__stage').bottom - 1,
+            maps: [...document.querySelectorAll('.v2-mmap')].map(b => b.innerText.trim()), mapsAbove: maps.bottom <= card.top + 1 && Math.abs(maps.left - card.left) < 2,
+            sortieUnder: sortie.top >= card.bottom - 1 };""")
+    ctx.check(not st['parts'] and not st['stats'] and st['canvasH'] >= st['screenH'] * 0.75, '메인: 능력치·파츠 칸 없이 캐릭터만 크게 (그림 높이 화면의 75% 이상)', str(st))
+    ctx.check(st['coopLeft'] and st['coopUnderChar'], '메인: 협력 출격 단추는 왼쪽 아래 (캐릭터 발밑, 오른쪽 칸 밖)', str(st))
+    ctx.check(st['maps'] == ['스토리 맵', '스페셜 맵'] and st['mapsAbove'] and st['sortieUnder'], '메인 오른쪽: [스토리 맵]·[스페셜 맵] → 스테이지 카드 → 출격', str(st))
+    # [스페셜 맵]을 누르면 그 모드로 지도 창, 지도 창 아래 STORY/SPECIAL 탭은 휴대폰에서 없음
+    g.page.click('.v2-mmap[data-map="special"]')
+    g.wait(400)
+    st = g.js(vis + "return { open: !!document.querySelector('.v2-menu.is-stages-open'), map: window.madOverlordGameV2.menuController.map, tabs: vis('.v2-radar__tabs .v2-maptab'), on: document.querySelector('.v2-mmap.is-on').dataset.map };")
+    ctx.check(st['open'] and st['map'] == 'special' and not st['tabs'] and st['on'] == 'special', '메인 [스페셜 맵]: 스페셜 맵으로 지도 창이 열림 · 지도 창 아래 탭 없음', str(st))
+    g.page.click('#btn-radar-close-v2')
+    g.wait(200)
+    g.page.click('.v2-mmap[data-map="story"]')
+    g.wait(400)
+    st = g.js(vis + "return { open: !!document.querySelector('.v2-menu.is-stages-open'), map: window.madOverlordGameV2.menuController.map, smap: vis('.v2-smap') };")
+    ctx.check(st['open'] and st['map'] == 'story' and st['smap'], '메인 [스토리 맵]: 스토리 지도 창', str(st))
+    g.page.click('#btn-radar-close-v2')
+    g.wait(200)
     g.shot('mobile_parts')
 
     # 메뉴 줄: 캐릭터 → 선택창, 돌아와서 몸통 없는 캐릭터로 출격하면 알림

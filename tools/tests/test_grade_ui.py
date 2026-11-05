@@ -73,14 +73,22 @@ def run(ctx):
     st = g.js("return document.querySelectorAll('#parts-grid-v2 .v2-partcard').length;")
     ctx.check(st > 3, '전체 칩: 다시 모든 카드', str(st))
 
-    # 세트 탭: 거르기 칩 숨김 → 부위 탭으로 돌아오면 다시 보임
+    # 세트 탭에도 거르기 칩 (11-05 피드백 8) — 세트 줄 등급(레어·유니크·레전더리 세트 · 커먼 줄)으로 세고 거름
     g.page.click('.v2-slottab[data-slot="set"]')
+    g.wait(250)
+    st = g.js("""const bar = document.getElementById('parts-gradebar-v2');
+        const chips = Object.fromEntries([...bar.querySelectorAll('.v2-gradechip')].map(c => [c.dataset.grade, Number(c.querySelector('b').textContent)]));
+        return { shown: !bar.hidden && bar.getClientRects().length > 0, chips, rows: document.querySelectorAll('#parts-grid-v2 .v2-setrow').length };""")
+    ctx.check(st['shown'] and st['chips'].get('all') == st['rows'] and st['chips'].get('rare', 0) >= 1 and st['chips'].get('common', 0) >= 1,
+              '세트 탭에도 등급 거르기 칩 (전체 = 세트 줄 수, 레어·커먼 줄 셈)', str(st))
+    g.page.click('.v2-gradechip[data-grade="rare"]')
     g.wait(200)
-    hidden = g.js("return document.getElementById('parts-gradebar-v2').hidden;")
+    st2 = g.js("return [...document.querySelectorAll('#parts-grid-v2 .v2-setrow')].map(r => r.querySelector('.v2-setmark').textContent);")
+    ctx.check(len(st2) == st['chips']['rare'] and all(m.startswith('R') for m in st2), '세트 탭 레어 칩: 레어 세트 줄만', str(st2))
+    g.page.click('.v2-gradechip[data-grade="all"]')
     g.page.click('.v2-slottab[data-slot="arm"]')
     g.wait(200)
-    shown = g.js("return !document.getElementById('parts-gradebar-v2').hidden;")
-    ctx.check(hidden and shown, '세트 탭에서는 거르기 칩 숨김, 부위 탭에서 다시 보임')
+    ctx.check(g.js("return !document.getElementById('parts-gradebar-v2').hidden;"), '부위 탭으로 돌아와도 거르기 칩')
 
     # 모으는 세트(레어 ① 포격 사령부 — 레일건)를 고르면 그 짝이 '모으는 세트' 묶음으로 맨 앞, 나머지는 등급 순
     g.page.locator('.v2-partcard', has_text='레일건').click()

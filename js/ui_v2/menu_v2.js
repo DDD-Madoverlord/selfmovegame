@@ -24,7 +24,8 @@ import { icon, fillIcons } from './icons.js';
 import { openSettings } from './settingsPanel_v2.js';
 import { TacticalRadar } from './radar_v2.js';
 import { StageMap, stageNpcs, plainName } from './stageMap_v2.js';
-import { resChipHtml, openGrowthPanel } from './growthUi_v2.js';
+import { openGrowthPanel } from './growthUi_v2.js';
+import { refreshCurrency, currencyChipsHtml } from './currencyBar_v2.js';
 import { MUTATORS } from '../engine_v2/growth_v2.js';
 import { openShop } from './shop_v2.js';
 import { createOfflineRewardButton, updateOfflineRewardButton } from './offlineRewardUi_v2.js';
@@ -153,6 +154,13 @@ export class MenuController {
         $('btn-menu-support-v2')?.addEventListener('click', () => openGrowthPanel('modules', changed));
         $('btn-menu-coop-v2')?.addEventListener('click', () => openGrowthPanel('coop', changed));
         this.root?.querySelectorAll('.v2-maptab').forEach(tab => tab.addEventListener('click', () => this.setMap(tab.dataset.map)));
+        const money = this.root?.querySelector('.v2-radar__money');
+        if (money) money.innerHTML = currencyChipsHtml();
+        // 휴대폰 메인의 [스토리 맵]·[스페셜 맵]: 그 지도로 바꾸고 지도 창을 엶 (11-05 피드백 14번)
+        this.root?.querySelectorAll('.v2-mmap').forEach(btn => btn.addEventListener('click', () => {
+            this.setMap(btn.dataset.map);
+            this.openStages(true);
+        }));
 
         // 휴대폰 배치 (메인 시안 B): 메뉴 줄 · 스테이지 선택 창
         $('btn-rail-select-v2')?.addEventListener('click', toSelect);
@@ -198,7 +206,7 @@ export class MenuController {
     setMap(map) {
         this.map = map;
         this.radar.setMode(map);
-        this.root.querySelectorAll('.v2-maptab').forEach(t => t.classList.toggle('is-on', t.dataset.map === map));
+        this.root.querySelectorAll('.v2-maptab, .v2-mmap').forEach(t => t.classList.toggle('is-on', t.dataset.map === map));
         const story = map === 'story';
         $('menu-radar-locked-v2').hidden = story;
         $('menu-map-name-v2').textContent = story ? plainName(chapterOf(this.currentStage()).name) : 'SPECIAL · 무한 파밍 / 엘리트 챌린지';
@@ -360,9 +368,7 @@ export class MenuController {
         this.updateOfflineReward();
         window.madOverlordGameV2?.tutorialUi?.update();
         if ($('menu-shop-badge-v2')) $('menu-shop-badge-v2').textContent = progress.canClaimPass() ? '●' : '';
-        if (this.domDmCount) this.domDmCount.textContent = gameState.darkMatter.toLocaleString();
-        const res = $('menu-res-v2');
-        if (res) res.innerHTML = resChipHtml();   // 별·조각·코어 (Q-006)
+        refreshCurrency();   // 별·조각·코어 · DM — 모든 화면 같은 표시줄 (currencyBar_v2.js)
         const badge = $('menu-support-badge-v2');   // 받을 파견이 있으면 빨간 점
         const dispatchDone = progress.dispatch.some(d => d.end <= Date.now());
         if (badge) badge.textContent = dispatchDone ? ' ' : '';

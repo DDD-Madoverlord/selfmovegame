@@ -28,7 +28,14 @@ def run(ctx):
     ctx.check(all(st), '공개 웹·플레이판 강제 시험 거부, 준비 중·무지급, 후보 주소 제한', str(st))
     g.page.click('#btn-menu-shop-v2')
     ctx.check('결제 준비 중' in g.page.locator('.v2-shop').inner_text(), '일반판 상점 상품은 결제 준비 중')
-    g.page.click('.v2-shop [data-act="prob"]')
+    # 확률 정보는 설정 › 정보로 옮김 (11-05 피드백 12) — 상점에는 안내 한 줄과 재화 표시줄, 연구소에는 단추 없음
+    st = g.js("""const shop = document.querySelector('.v2-shop');
+        return { btn: !!shop.querySelector('[data-act="prob"]'), note: shop.querySelector('.v2-shop__probnote')?.textContent || '',
+            dm: shop.querySelector('[data-currency] .v2-chip--dm strong')?.textContent, real: gameState.darkMatter.toLocaleString() };""")
+    ctx.check(not st['btn'] and '설정' in st['note'] and st['dm'] == st['real'], '상점: 확률 정보 단추 없이 "설정 › 정보" 안내 · 머리에 같은 재화 표시줄', str(st))
+    g.key('Escape')
+    g.page.click('#btn-menu-settings-v2')
+    g.page.click('.v2-settings [data-act="prob"]')
     st = g.js("""
         const { OPTIONS, DROP, RESEARCH } = await import('/js/engine_v2/growth_v2.js');
         const { percent } = await import('/js/ui_v2/probInfo_v2.js');
@@ -41,12 +48,12 @@ def run(ctx):
     """)
     ctx.check(all(st), '확률 정보 창의 옵션·등급·드랍 수치가 실제 데이터와 일치', str(st))
     g.key('Escape')
-    ctx.check(g.page.locator('.v2-prob-info').count() == 0 and g.page.locator('.v2-shop').count() == 1, '겹친 확률 창 Escape는 맨 위 창만 닫음')
+    g.wait(250)
+    ctx.check(g.page.locator('.v2-prob-info').count() == 0 and g.page.locator('.v2-settings').count() == 1, '설정 위 확률 창: Escape는 맨 위 확률 창만 닫음')
     g.key('Escape')
+    g.wait(250)
     g.page.click('#btn-to-lab-v2')
-    g.page.click('#btn-lab-prob-info-v2')
-    ctx.check(g.page.locator('.v2-prob-info').is_visible(), '연구소의 작은 단추에서 확률 정보 열림')
-    g.key('Escape')
+    ctx.check(g.page.locator('#btn-lab-prob-info-v2').count() == 0, '연구소 위 줄에 확률 정보 단추 없음 (설정으로 옮김)')
     g.page.click('#btn-lab-back-v2')
 
     # 메모리 격리 전 일반 진행을 보관한다.
