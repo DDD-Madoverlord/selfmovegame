@@ -10,7 +10,7 @@ import { PARTS_DB } from '../../js/data/parts.js';
 import { ROSTER, characterOfPart, partSetLabel } from '../../js/engine_v2/roster_v2.js';
 
 // 2차 세트·새 캐릭터 기본 파츠는 main_v2.js처럼 registerV2Parts() 전에 한 번 등록한다.
-// 표에는 모두 싣지만, 테스트 화면(rig_test.html)은 이 파츠들의 미리보기가 없어 목록에서 뺀다.
+// 표에도 테스트 화면(rig_test.html) 목록에도 싣는다 — 이 파츠들은 손으로 짠 미리보기 대신 스킬 단계(steps)를 읽는 미리보기(kit: true, 11-05 피드백 11번)
 // (registerAllSets2는 V2_PARTS에 더하고, registerV2Parts가 그것을 PARTS_DB로 옮긴다)
 const partIds = () => Object.values(V2_PARTS).flat().map(part => part.id);
 const beforeSets2 = new Set(partIds());
@@ -135,11 +135,12 @@ for (const [slot, label, kind] of slots) {
             skill?.name ?? '', skill?.cd ?? '', skill?.desc ?? part.skillDesc ?? ''
         ]);
         const character = characterOfPart(part);
-        if (catalog[character] && !sets2Ids.has(part.id)) catalog[character].push({
+        if (catalog[character]) catalog[character].push({
             slot, id: part.id, name: part.name, set: partSetLabel(part), variant: part.rigVariant || null,
             upgrade: !!part.rigUpgrade, attackType: slot === 'arm' ? part.attackType || 'melee' : null,
             skill: slot === 'leg' ? part.id : partSkills.get(part.id) || null, kind,
-            skillName: skill?.name ?? '', cd: skill?.cd ?? '', desc: skill?.desc ?? part.skillDesc ?? ''
+            skillName: skill?.name ?? '', cd: skill?.cd ?? '', desc: skill?.desc ?? part.skillDesc ?? '',
+            ...(sets2Ids.has(part.id) ? { kit: true } : {})
         });
     }
 }

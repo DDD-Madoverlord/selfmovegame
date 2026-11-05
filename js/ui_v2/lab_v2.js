@@ -257,6 +257,7 @@ export class LabController {
         if (!this.domPartsGrid) return;
         const slot = this.activeSlot;
         this.renderTabDots();
+        this.renderReplay();
         if (slot === 'set') { this.renderSetGrid(); return; }   // 세트 탭도 등급 칩 (11-05 피드백 8번 — 세트 줄 등급으로 셈)
         this.domPartsGrid.classList.remove('is-sets');
         const focus = this.focusSet();
@@ -325,6 +326,7 @@ export class LabController {
                 if (sid) this.lastSet = sid;
                 this.renderPartsGrid();
                 this.updateMvvmFeedback();
+                this.previewSkill(slot, part);
             });
             this.domPartsGrid.appendChild(card);
         });
@@ -418,6 +420,75 @@ export class LabController {
             }));
             grid.appendChild(row);
         }
+    }
+
+    /**
+     * 파츠를 고르면 그 파츠 스킬을 캐릭터 칸에서 재생 (11-05 피드백 11번): 리그 확인 페이지 무대(rig_test.html?embed=1 — 스킬 미리보기
+     * skillPreviews.js, 적 더미·같은 이펙트)를 캐릭터 칸 위 iframe으로 띄우고 { char, equip, part }를 보냄. 끝나면 사라지고 [▶ 스킬]로 다시
+     */
+    previewSkill(slot, part) {
+        const sk = skillOf(slot, part);
+        const stage = this.root?.querySelector('.v2-lab__stage');
+        if (!sk || !stage) return;
+        if (!this.skillPrev) {
+            const box = this.skillPrev = document.createElement('div');
+            box.className = 'v2-skillprev';
+            box.hidden = true;
+            box.innerHTML = '<iframe src="rig_test.html?embed=1" title="스킬 미리보기" tabindex="-1"></iframe><b class="v2-skillprev__name"></b>';
+            box.addEventListener('click', () => this.hideSkillPreview());
+            stage.appendChild(box);
+            window.addEventListener('message', e => {
+                if (e.origin !== location.origin || !e.data) return;
+                if (e.data.type === 'mo-skill-preview-ready') { this.prevReady = true; this.sendSkillPreview(); }
+                else if (e.data.type === 'mo-skill-preview-done') this.prevDone = e.data;
+            });
+        }
+        this.prevWant = { slot, part };
+        this.skillPrev.querySelector('.v2-skillprev__name').innerHTML = `<em style="--sk:${sk.color}">${ROLE[slot].tag}</em>${sk.name}`;
+        this.skillPrev.hidden = false;
+        this.skillPrev.classList.add('is-on');
+        clearTimeout(this.prevTimer);
+        this.prevTimer = setTimeout(() => this.hideSkillPreview(), 12000);   // 무대가 안 뜨면(불러오는 중 오류) 그래도 닫힘
+        if (this.prevReady) this.sendSkillPreview();
+    }
+
+    sendSkillPreview() {
+        const w = this.prevWant;
+        const win = this.skillPrev?.querySelector('iframe')?.contentWindow;
+        if (!w || !win) return;
+        this.prevWant = null;
+        const cart = gameState.getCartObjects();
+        const equip = Object.fromEntries(SLOTS4.map(s => [s, cart[s]?.id]).filter(([, id]) => id && id !== 'none'));
+        win.postMessage({ type: 'mo-skill-preview', char: characterOfPart(w.part) || progress.character, equip, part: w.part.id }, location.origin);
+        clearTimeout(this.prevTimer);
+        this.prevTimer = setTimeout(() => this.hideSkillPreview(), w.slot === 'head' ? 6500 : 4500);   // 필살기는 길게
+    }
+
+    /** 캐릭터 칸 [▶ 스킬]: 지금 부위에 담은 파츠의 스킬을 다시 (스킬 없는 파츠·세트 탭에서는 숨김) */
+    renderReplay() {
+        const stage = this.root?.querySelector('.v2-lab__stage');
+        if (!stage) return;
+        if (!this.replayBtn) {
+            const b = this.replayBtn = document.createElement('button');
+            b.className = 'v2-btn v2-btn--ghost v2-skillprev__again';
+            b.textContent = '▶ 스킬';
+            b.title = '고른 파츠의 스킬 보기';
+            b.addEventListener('click', () => {
+                const part = gameState.getCartObjects()[this.activeSlot];
+                this.previewSkill(this.activeSlot, part);
+            });
+            stage.appendChild(b);
+        }
+        const part = this.activeSlot === 'set' ? null : gameState.getCartObjects()[this.activeSlot];
+        this.replayBtn.hidden = !skillOf(this.activeSlot, part);
+    }
+
+    hideSkillPreview() {
+        const box = this.skillPrev;
+        if (!box || box.hidden) return;
+        clearTimeout(this.prevTimer);
+        box.classList.remove('is-on');
+        setTimeout(() => { if (!box.classList.contains('is-on')) box.hidden = true; }, 250);
     }
 
     /** [세트 스킬] 창: 세트 효과(2·4부위) + 네 파츠가 주는 스킬 (11-05 피드백 6번) — 닫기·바깥·Escape로 닫음 */
@@ -640,5 +711,6 @@ export class LabController {
     onLeave() {
         if (this.rig) this.rig.stop();
         this.rigOn = false;
+        this.hideSkillPreview();
     }
 }

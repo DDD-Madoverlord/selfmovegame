@@ -34,7 +34,8 @@ WEBP_CACHE = os.path.join(HERE, '_webp_cache')
 WEBP_SETTINGS = {'quality': 90, 'alpha_quality': 100, 'method': 6}
 WEBP_WORKERS = min(8, os.cpu_count() or 1)
 
-FILES = ['index.html', 'index.css', 'ui_v2.css', 'ui_v2_mobile.css']
+FILES = ['index.html', 'index.css', 'ui_v2.css', 'ui_v2_mobile.css',
+         'rig_test.html']   # 연구소 스킬 미리보기가 iframe으로 씀 (11-05 피드백 11번, lab_v2.js previewSkill)
 DIRS = ['js', 'assets']
 SKIP_DIRS = {'src', 'png', '_sets_tmp', '__pycache__'}
 SKIP_SUFFIX = ('_raw.png', '_gemini.png', '.psd', '.md')

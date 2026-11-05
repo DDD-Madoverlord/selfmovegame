@@ -13,7 +13,8 @@
 
 import { MECH_VFX, KAIJU_VFX, CHIMERA_VFX, DIVER_VFX, SAINT_VFX, FROST_VFX, DOLL_VFX } from '../engine_v2/vfx/vfxDefs.js';
 import { SET_VFX } from '../engine_v2/vfx/setVfx.js';
-import { LEG, SET } from '../engine_v2/battle/tuning.js';
+import { LEG, SET, FOOT_B } from '../engine_v2/battle/tuning.js';
+import { SKILLS } from '../engine_v2/skills_v2.js';
 
 // 전투에 별도 이펙트가 없는 수치 패시브: 발밑에 작은 팩션 색 고리와 빛가루만.
 const passiveMark = color => ({ layers: [
@@ -72,6 +73,89 @@ function dash(api, trail, impact, sec, stun) {
 }
 
 const allyX = (api, i) => api.CHAR_X + (88 + i * 35) * api.VFX_SCALE * 0.56;
+
+// ---- 2차 세트 스킬 (skillKit_v2.js 단계 데이터): 손으로 짠 미리보기가 없으면 단계를 읽어 무대에서 흉내 (11-05 피드백 11번 — 게임 연구소 미리보기) ----
+// 전투 좌표 → 무대: 가로 px는 거의 1:1(k = VFX_SCALE × 0.56, 적 자리와 같은 비율), 세로는 발 기준(FOOT_B) 높이를 GROUND_Y 위로
+const rgbOf = hex => (/^#?([0-9a-f]{6})$/i.test(hex || '') ? [0, 2, 4].map(i => parseInt(hex.replace('#', '').slice(i, i + 2), 16)).join(', ') : '62, 230, 255');
+const valOf = (sk, v, d) => (typeof v === 'string' && v.startsWith('$') ? Number(sk.p?.[v.slice(1)]) || d : Number(v) || d);
+
+export function kitPreview(key, slot) {
+    const sk = SKILLS[key];
+    if (!sk || !Array.isArray(sk.steps)) return null;
+    return api => {
+        const k = api.VFX_SCALE * 0.56;
+        const front = api.CHAR_X + 100 * k;
+        const yOf = b => api.GROUND_Y - ((b ?? FOOT_B) - FOOT_B) * k;
+        const chestY = api.enemyChestY();
+        const far = api.dummies[api.dummies.length - 1].x;
+        const aura = passiveMark(rgbOf(sk.color));   // 이펙트가 없는 단계(버프·실드·회복…)는 스킬 색 고리
+        const play = (def, x, y, o = {}) => { if (def) api.vfx.play(def, x, y, { scale: api.VFX_SCALE * (o.scale || 1), ...(o.to ? { to: o.to } : {}) }); };
+        const run = s => {
+            const v = s.vfx;
+            switch (s.do) {
+                case 'fx': play(v, (s.on === 'self' ? api.CHAR_X : front) + (s.x || 0) * k, yOf(s.b), s); break;
+                case 'hit':
+                    for (let t = 0; t < Math.min(6, s.times || 1); t++) api.later(t * (s.every ?? 0.12), () => api.dummies.slice(0, s.n || 1).forEach((d, i) => {
+                        play(v, d.x, s.ground ? api.GROUND_Y : chestY); api.hit(i);
+                    }));
+                    break;
+                case 'screen': api.dummies.forEach((d, i) => { play(v, d.x, s.ground ? api.GROUND_Y : chestY); api.hit(i); }); break;
+                case 'line': {
+                    const m = api.muzzle();
+                    play(v, m[0], m[1], { to: [far + 60, chestY] });
+                    api.dummies.forEach((d, i) => api.later(i * 0.05, () => api.hit(i)));
+                    break;
+                }
+                case 'rain': {
+                    const n = Math.max(1, Math.min(12, Math.round(valOf(sk, s.count, 6))));
+                    for (let i = 0; i < n; i++) api.later(i * (s.every ?? 0.15), () => {
+                        const d = api.dummies[i % api.dummies.length];
+                        play(v, d.x + (Math.random() - 0.5) * 60, s.vfxB != null ? yOf(s.vfxB) : api.GROUND_Y, s);
+                        api.later(s.delay ?? 0, () => api.hit(i % api.dummies.length));
+                    });
+                    break;
+                }
+                case 'wave':
+                    for (let i = 0; i < 5; i++) api.later(i * 0.12, () => play(v || s.trail, front + i * (far - front) / 4, api.GROUND_Y - 30 * k, s));
+                    api.dummies.forEach((d, i) => api.later(0.2 + i * 0.12, () => api.hit(i)));
+                    break;
+                case 'chain': {
+                    let from = api.muzzle();
+                    api.dummies.slice(0, Math.round(valOf(sk, s.n, 3))).forEach((d, i) => {
+                        const a = from;
+                        api.later(i * (s.gap ?? 0.08), () => { play(v, a[0], a[1], { to: [d.x, chestY] }); api.hit(i); });
+                        from = [d.x, chestY];
+                    });
+                    break;
+                }
+                case 'zone':
+                    for (let t = 0; t < 4; t++) api.later(t * 0.45, () => {
+                        play(v || s.tickVfx, api.dummies[1].x, api.GROUND_Y - 10 * k, s);
+                        api.dummies.forEach((_, i) => api.hit(i, 0.4));
+                    });
+                    break;
+                case 'pull': case 'push': api.dummies.forEach((d, i) => { play(v, d.x, chestY); api.hit(i); }); break;
+                case 'dash': case 'blink':
+                    for (let i = 0; i < 6; i++) api.later(i * 0.05, () => play(v || s.trail, api.CHAR_X + i * (far - api.CHAR_X) / 5, api.GROUND_Y - 40 * k));
+                    break;
+                case 'summon': for (let i = 0; i < Math.min(3, Math.round(valOf(sk, s.n, 1))); i++) play(v || aura, api.CHAR_X + (70 + i * 24) * k, api.GROUND_Y); break;
+                case 'shake': api.shake(Math.min(10, s.power ?? 6), (s.ms ?? 250) / 1000); break;
+                case 'custom': play(v, api.dummies[0].x, chestY); break;
+                default: play(v || aura, api.CHAR_X, api.GROUND_Y);   // buff · shield · heal · cleanse · transform · gauge
+            }
+        };
+        const start = () => sk.steps.forEach(s => {
+            for (let r = 0; r < Math.min(4, s.repeat || 1); r++) api.later((s.at || 0) + r * (s.repeatGap || 1), () => run(s));
+        });
+        api.playClip(sk.clip || (slot === 'head' ? 'ult' : 'attack'), start);   // 동작이 없으면 바로 (previewApi.playClip)
+    };
+}
+
+/** 2차 세트 다리 패시브: 발밑 팩션 색 고리 세 번 */
+export function kitPassivePreview(char) {
+    const def = PASSIVE_VFX[char] || passiveMark('62, 230, 255');
+    return api => [0, 0.5, 1].forEach(t => api.later(t, () => api.atSelf(def)));
+}
 
 export const SKILL_PREVIEWS = {
     // ---- 거대로봇 ----
