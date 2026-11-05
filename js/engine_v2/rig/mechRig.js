@@ -16,12 +16,13 @@ const BEAM = '215, 90, 255';
 // 부모가 먼저 오도록 나열. z가 클수록 앞에 그림.
 // 다리는 root의 자식 → 몸통이 흔들려도 딛고 있는 발은 땅에 고정.
 // 머리(돔)와 캐니스터는 몸통 뒤에 그려서 목 링/고정 클램프가 이음새를 가린다.
+// 머리는 캐니스터 앞 (11-05 피드백 18번): 세트 머리 장비(A 조준경·d 렌즈·m 볏)를 돔 오른쪽(앞)으로 옮겼더니 캐니스터에 가려서 — z 2 → 3.5
 export const MECH_BONES = [
     { name: 'root', parent: null },
     { name: 'legL', parent: 'root', part: 'legL', z: 0 },
     { name: 'legR', parent: 'root', part: 'legR', z: 1 },
     { name: 'body', parent: 'root', part: 'body', z: 4 },
-    { name: 'head', parent: 'body', part: 'head', z: 2 },
+    { name: 'head', parent: 'body', part: 'head', z: 3.5 },
     { name: 'canister', parent: 'body', part: 'canister', z: 3 },
     { name: 'armL', parent: 'body', part: 'armL', z: 5 },
     { name: 'armR', parent: 'body', part: 'armR_cannon', z: 6 }
