@@ -360,7 +360,7 @@ body.v2-fit.v2-mobile #screen-lab-v2 { left: 0; top: 0; width: var(--v2-aw, 100v
 .v2-mobile .v2-mlabskills { display: inline-flex; }
 /* 파츠 칸: 왼쪽 세로 부위 탭 | 위 등급 칩(+ 오른쪽 [초기화]) · 파츠 목록 / 아래 강화 줄 */
 .v2-mobile #screen-lab-v2 .v2-lab__parts { grid-column: 2; grid-row: 1 / span 2; padding: 8px 10px; min-height: 0;
-    display: grid; grid-template-columns: 88px minmax(0, 1fr); grid-template-rows: auto minmax(0, 1fr) auto; gap: 6px 8px; }
+    display: grid; grid-template-columns: 88px minmax(0, 1fr); grid-template-rows: auto minmax(0, 1fr) minmax(58px, auto); gap: 6px 8px; }   /* 아래 줄은 늘 [확정] 자리 — 강화 줄이 없는 세트 탭에서도 목록이 단추 밑으로 안 들어감 (피드백 7번) */
 .v2-mobile #screen-lab-v2 .v2-slottabs { grid-column: 1; grid-row: 1 / span 2; min-height: 0; display: flex; flex-direction: column; gap: 4px; }
 .v2-mobile #screen-lab-v2 .v2-slottab { flex: 1 1 0; height: auto; min-height: 0; }
 .v2-mobile #screen-lab-v2 .v2-slottab b { font-size: 14px; }
@@ -397,7 +397,7 @@ body.v2-fit.v2-mobile #screen-lab-v2 { left: 0; top: 0; width: var(--v2-aw, 100v
 .v2-mobile #screen-lab-v2 .v2-partcard:not(.is-selected) .v2-partcard__stats,
 .v2-mobile #screen-lab-v2 .v2-partcard:not(.is-selected) .v2-partcard__skill { display: none; }
 /* 강화 줄: 등급 표 · 이름 · 효과 / [등급·만들기] [강화] — 오른쪽 끝에 [확정] 자리 */
-.v2-mobile #screen-lab-v2 .v2-upgrade { grid-column: 1 / -1; grid-row: 3; position: relative; padding: 12px 136px 6px 10px; gap: 8px; }
+.v2-mobile #screen-lab-v2 .v2-upgrade { grid-column: 1 / -1; grid-row: 3; position: relative; padding: 12px 148px 6px 10px; gap: 8px; }
 .v2-mobile #screen-lab-v2 #lab-upg-grade-v2 { position: absolute; left: 10px; top: -9px; font-size: 12px; padding: 2px 8px; }
 .v2-mobile #screen-lab-v2 .v2-upgrade__info strong { font-size: 15px; }
 .v2-mobile #screen-lab-v2 .v2-upgrade__info small { font-size: 11px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -413,9 +413,12 @@ body.v2-fit.v2-mobile #screen-lab-v2 { left: 0; top: 0; width: var(--v2-aw, 100v
     display: inline-flex; align-items: center; justify-content: center; gap: 5px; font-size: 0; }
 .v2-mobile #screen-lab-v2 #btn-cart-reset-v2::before { content: ''; width: 9px; height: 9px; border: 2px solid currentColor; border-radius: 50%; }
 .v2-mobile #screen-lab-v2 #btn-cart-reset-v2::after { content: '초기화'; font-size: 13px; }
-.v2-mobile #screen-lab-v2 #btn-equip-confirm-v2 { position: absolute; right: 26px; bottom: 22px; z-index: 3; width: 120px; height: 48px; background-size: 22px 100%, 22px 100%, auto; }
-.v2-mobile #screen-lab-v2 #btn-equip-confirm-v2 strong { font-size: 0; letter-spacing: 0; }
+.v2-mobile #screen-lab-v2 #btn-equip-confirm-v2 { position: absolute; right: 26px; bottom: 22px; z-index: 3; width: 132px; height: 48px; gap: 0; background-size: 22px 100%, 22px 100%, auto; }
+.v2-mobile #screen-lab-v2 #btn-equip-confirm-v2 strong { font-size: 0; letter-spacing: 0; line-height: 1; }
 .v2-mobile #screen-lab-v2 #btn-equip-confirm-v2 strong::after { content: '확정'; font-size: 18px; letter-spacing: 2px; }
+.v2-mobile #screen-lab-v2 #btn-equip-confirm-v2 .v2-confirm__cost { display: block; font: 800 12px/1.2 var(--v2-font-num); font-style: normal; white-space: nowrap; }   /* 드는 DM (피드백 9번) */
+.v2-mobile #screen-lab-v2 #btn-equip-confirm-v2 .v2-confirm__cost:empty { display: none; }
+.v2-mobile #screen-lab-v2 #btn-equip-confirm-v2 .v2-confirm__cost.is-poor { color: #8a0016; }
 .v2-mobile #screen-lab-v2 #btn-equip-confirm-v2 small { display: none; }   /* 값은 파츠 카드 값표에 */
 
 /* ---------- 캐릭터 선택창 (2026-11-03, 11-04 디자인 제안 반영): 연구소처럼 실제 크기(--v2-lz배)로 창 전체, 한 화면에 3장 + 가로로 넘김 ----------
@@ -452,7 +455,7 @@ body.v2-fit.v2-mobile #screen-select-v2 { left: 0; top: 0; width: var(--v2-aw, 1
 .v2-mobile #screen-select-v2 .v2-select__pager.is-prev { left: 12px; }
 .v2-mobile #screen-select-v2 .v2-select__pager.is-next { right: 12px; }
 .v2-mobile #screen-select-v2 .v2-charcard { min-height: 0; overflow: hidden; padding: 8px 10px; gap: 6px 6px;
-    display: grid; grid-template-columns: minmax(0, 1fr) 80px; grid-template-rows: auto minmax(0, 1fr) auto auto;
+    display: grid; grid-template-columns: minmax(0, 1fr) 64px; grid-template-rows: auto minmax(0, 1fr) auto auto;   /* 능력치 칸: K 표기(피드백 2번)로 80 → 64px */
     border: 2px solid color-mix(in srgb, var(--cc) 55%, transparent); border-radius: 10px; clip-path: none; }
 .v2-mobile #screen-select-v2 .v2-charcard.is-locked { border-color: rgba(255, 224, 138, 0.6); }
 .v2-mobile #screen-select-v2 .v2-charcard.is-selected { border-color: var(--cc); }

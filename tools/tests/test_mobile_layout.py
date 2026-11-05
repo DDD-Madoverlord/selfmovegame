@@ -122,6 +122,26 @@ def run(ctx):
             cart: getComputedStyle(document.querySelector('#screen-lab-v2 .v2-lab__cart')).display };""")
     ctx.check(st['vertical'] and st['totals'] == 4 and st['compact'], '연구소: 부위 탭 세로 · 고른 파츠 카드에 개조 후 능력치 4칸 · 나머지 파츠는 한 줄 (11-04 디자인 제안)', str(st))
     ctx.check(st['reset'] and st['confirm'] and st['cart'] == 'none', '연구소: [초기화]는 파츠 칸 오른쪽 위, [확정]은 강화 줄 오른쪽, 아래 비용 줄 없음', str(st))
+    # [확정] 자리 = 목록과 안 겹침 (부위 탭·세트 탭 모두 — 세트 탭은 강화 줄이 없어 단추가 목록을 덮던 것, 피드백 7) · 단추에 드는 DM (피드백 9)
+    OVERLAP = """const ok = document.getElementById('btn-equip-confirm-v2').getBoundingClientRect(), grid = document.getElementById('parts-grid-v2').getBoundingClientRect();
+        return { under: ok.top >= grid.bottom - 1, ok: [ok.top, ok.bottom].map(Math.round), grid: [grid.top, grid.bottom].map(Math.round) };"""
+    st = g.js(OVERLAP)
+    ctx.check(st['under'], '연구소 부위 탭: [확정] 단추가 파츠 목록 아래 (안 겹침)', str(st))
+    cost0 = g.js("return document.getElementById('lab-confirm-cost-v2').textContent;")
+    priced = g.js("""const c = [...document.querySelectorAll('#parts-grid-v2 .v2-partcard')].find(c => /DM/.test(c.querySelector('.v2-partcard__badge')?.textContent || ''));
+        if (!c) return null; c.click(); return c.querySelector('.v2-partcard__badge').textContent.replace(/\s+/g, ' ').trim();""")
+    g.wait(200)
+    st = g.js("""const em = document.getElementById('lab-confirm-cost-v2'); return { text: em.textContent, shown: em.getClientRects().length > 0, cost: progress.cartCost() };""")
+    ctx.check(cost0 == '' and priced and st['shown'] and st['cost'] > 0 and st['text'] == f"{st['cost']:,} DM",
+              '연구소 [확정]: 바꾼 것이 없으면 금액 없음, DM 파츠를 담으면 단추 아래 줄에 드는 DM', f'{cost0!r} → {priced} → {st}')
+    g.page.click('#screen-lab-v2 .v2-slottab[data-slot="set"]')
+    g.wait(300)
+    st = g.js(OVERLAP)
+    ctx.check(st['under'], '연구소 세트 탭: [확정] 단추가 세트 목록 아래 (강화 줄이 없어도 자리 유지)', str(st))
+    g.shot('mobile_lab_set')
+    g.js("gameState.resetCartToEquipped(); window.madOverlordGameV2.labController?.refresh?.();")
+    g.page.click('#screen-lab-v2 .v2-slottab[data-slot="head"]')
+    g.wait(200)
     g.shot('mobile_lab')
     g.page.click('#btn-lab-skills-v2')
     g.wait(200)
@@ -146,6 +166,15 @@ def run(ctx):
     ctx.check(n == 3 and not st['confirm'] and not st['info'] and st['labTop'] and st['res'], '선택창: 한 화면에 카드 3장 · 아래 줄·[결정] 없음 · [연구소]·재화는 위 줄', str((n, st)))
     ctx.check('선택' in st['badge'] and st['stats'] == 4, "선택창: 고른 카드 표시 '선택' · 능력치 4칸(사거리 포함)", str(st))
     ctx.check(t['all'] > 100 and t['small'] <= t['all'] * 0.1, '선택창: 실제 11px 미만 10% 이하 (예전 98%)', str(t))
+    # 능력치 = 1000 단위 K 표기 (11-05 피드백 2) · 휴대폰 카드 캐릭터는 배율 상한을 올려 칸을 거의 채움 (피드백 3)
+    st = g.js("""const { fmtK } = await import('/js/ui_v2/fmt_v2.js');
+        const cases = [[999, '999'], [1000, '1K'], [3300, '3.3K'], [12345, '12.3K'], [99999, '99.9K'], [100000, '100K'], [123456, '123K'], [999999, '999K'], [1000000, '1M'], [1234567, '1.2M']];
+        const bad = cases.filter(([n, s]) => fmtK(n) !== s).map(([n, s]) => `${n}→${fmtK(n)}≠${s}`);
+        const card = document.querySelector('#select-grid-v2 .v2-charcard.is-selected');
+        const hp = card.querySelector('.v2-charcard__stats dd').textContent;
+        const rig = window.madOverlordGameV2.selectController?.cards?.find?.(c => c.el === card)?.rig;
+        return { bad, hp, scale: rig ? rig.scale ?? rig.stageScale ?? null : null };""")
+    ctx.check(not st['bad'] and st['hp'] == '3.3K', '선택창 능력치: 1000 단위 K (3,300 → 3.3K, 경계값 10개)', str(st))
     g.shot('mobile_select')
     # 잠긴 캐릭터를 누르면 잠깐 뜨는 알림 (아래 줄 대신), 고른 캐릭터를 누르면 [결정] 없이 바로 메인으로
     g.page.click('#select-grid-v2 .v2-charcard.is-locked')

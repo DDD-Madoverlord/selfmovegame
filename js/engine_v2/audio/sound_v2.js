@@ -296,7 +296,7 @@ class SoundManager {
     /** opts: { vol(배율), rate(음높이 배율), x(화면 위치 -1 ~ 1, 전투 소리 좌우) } */
     play(name, opts = {}) {
         const def = SFX[name];
-        if (!def || !this.unlocked) return;
+        if (!def || !this.unlocked || this.away) return;
         const now = this.ctx.currentTime;
         if (def.gap && now - (this.lastAt.get(name) ?? -9) < def.gap) return;
         const count = this.playing.get(name) || 0;
@@ -394,7 +394,7 @@ class SoundManager {
         gain.gain.value = 0;
         node.connect(gain).connect(this.bgmDuck);
         gain.gain.setTargetAtTime(1, this.ctx.currentTime, fade / 3);
-        el.play().catch(() => { /* 재생 실패(파일 없음 등): 무음 */ });
+        if (!this.away) el.play().catch(() => { /* 재생 실패(파일 없음 등): 무음 */ });   // 앱이 뒤에 있으면 돌아올 때(resume) 재생
         this.bgm = { name, el, gain };
     }
 
@@ -416,6 +416,22 @@ class SoundManager {
         const until = t + sec;
         this.duckUntil = Math.max(this.duckUntil, until);
         g.setTargetAtTime(1, this.duckUntil, 0.35);
+    }
+
+    /** 앱·탭이 뒤로 가면 소리를 통째로 멈춤 (11-05 피드백 22번) — 효과음·반복음은 AudioContext를 세우고, 배경음은 재생기를 일시정지. 그동안 새 효과음은 안 냄 */
+    suspend() {
+        if (this.away) return;
+        this.away = true;
+        this.bgm?.el.pause();
+        this.ctx?.suspend().catch(() => {});
+    }
+
+    /** 돌아오면 다시 (설정에서 끈 소리는 그대로 꺼져 있음 — 음량은 따로) */
+    resume() {
+        if (!this.away) return;
+        this.away = false;
+        this.ctx?.resume().catch(() => {});
+        this.bgm?.el.play().catch(() => {});
     }
 
     /** 일시정지 중에는 배경음을 낮춰 둠 */

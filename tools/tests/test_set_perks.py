@@ -65,10 +65,12 @@ def run(ctx):
     g.js("progress.selectCharacter('mech'); gameState.cartParts = { ...gameState.equippedParts, head: 'head_mech_a', arm: 'arm_mech_a' };"
          "window.madOverlordGameV2.switchScreen('lab');")
     g.wait(800)
-    st = g.js("""const box = document.getElementById('lab-setbonus-v2');
-        return { panel: box ? box.innerText : '' };""")
+    hidden_on_part = g.js("const box = document.getElementById('lab-setbonus-v2'); return !!box && box.getClientRects().length === 0;")
+    ctx.check(hidden_on_part, '연구소 부위 탭(머리): 스킬 칸의 세트 효과 줄 숨김 (11-05 피드백 5)')
     g.page.click('.v2-slottab[data-slot="set"]')
     g.wait(300)
+    st = g.js("""const box = document.getElementById('lab-setbonus-v2');
+        return { panel: box && box.getClientRects().length ? box.innerText : '' };""")
     st['tab'] = g.js("""const row = [...document.querySelectorAll('.v2-setrow')].find(r => r.textContent.includes('포격 사령부'));
         return row ? row.querySelector('.v2-setrow__bonus').innerText : '';""")
     ctx.check('협력 출격 시간 +3초' in st['panel'] and '2부위' in st['tab'] and '협력 출격 시간 +3초' in st['tab'],

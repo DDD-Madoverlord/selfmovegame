@@ -2127,6 +2127,7 @@ div.v2-settings__row > span { flex: 1; }
 
 /* 세트 효과 (Q-008): 스킬 구성 아래 한 줄씩 — 켜지면 밝게, 마우스를 올리면 전체 설명 */
 .v2-setbonus { margin-top: 4px; display: flex; flex-direction: column; gap: 2px; }
+.v2-setbonus[hidden] { display: none; }
 .v2-setbonus__row { display: flex; align-items: baseline; gap: 6px; padding: 3px 8px; font-size: 11px; color: var(--v2-dim);
     background: rgba(255, 255, 255, 0.025); border-left: 2px solid #3a4150; white-space: nowrap; min-width: 0; }
 .v2-setbonus__row b { flex: none; font-size: 11px; font-weight: 800; color: #aab3c4; }
@@ -2297,6 +2298,7 @@ div.v2-settings__row > span { flex: 1; }
 .v2-lab__cart strong.is-poor { color: #ff5a6e; }
 .v2-lab__foot .v2-btn { min-width: 130px; }
 .v2-hazard-btn--confirm { width: 300px; height: 64px; }
+.v2-confirm__cost { display: none; }   /* 휴대폰 [확정] 아래 줄에만 (PC는 small·아래 비용 줄) */
 .v2-toast {
     position: absolute;
     top: 86px;

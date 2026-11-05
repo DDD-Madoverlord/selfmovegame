@@ -19,10 +19,13 @@ import { sound } from '../engine_v2/audio/sound_v2.js';
 import { icon, fillIcons } from './icons.js';
 import { openSettings } from './settingsPanel_v2.js';
 import { resChipHtml } from './growthUi_v2.js';
+import { fmtK } from './fmt_v2.js';
 
 const $ = id => document.getElementById(id);
 const isMobile = () => document.body.classList.contains('v2-mobile');
 const CARD_RIG = { width: 260, height: 236, rootX: 130, rootY: 226, scale: 0.3, fit: { x: 12, y: 10 }, shadow: true, fitCss: true };   // fitCss: 휴대폰 배치 실제 크기에서도 선명하게 (rigAvatar.js _fitRes)
+// 휴대폰: 카드 그림 칸에 캐릭터를 더 크게 — 배율 상한을 올리고 여백을 줄여 기본 자세 범위가 캔버스를 거의 채움 (fit이 머리·꼬리가 안 잘리게 맞춤, 11-05 피드백 3번)
+const CARD_RIG_MOBILE = { ...CARD_RIG, scale: 0.5, fit: { x: 4, y: 4 } };
 
 /** 파츠 id 묶음 → 파츠 객체 묶음 (없는 부위는 [파츠제거] 객체) */
 function objectsOf(ids) {
@@ -181,7 +184,7 @@ export class SelectController {
 
         // 아이콘 · 사거리 칸은 휴대폰 배치에서만 (PC는 글자 이름 3칸 그대로)
         el.querySelector('.v2-charcard__stats').innerHTML = [['ARMOR', 'shield', st.hp], ['POWER', 'bolt', st.dps], ['RANGE', 'aim', st.range], ['SPEED', 'speed', st.speed]]
-            .map(([k, ic, v]) => `<div${k === 'RANGE' ? ' class="is-mobile"' : ''}><dt>${icon(ic, 18)}<span>${k}</span></dt><dd>${ready ? Number(v).toLocaleString() : '—'}</dd></div>`).join('');
+            .map(([k, ic, v]) => `<div${k === 'RANGE' ? ' class="is-mobile"' : ''}><dt>${icon(ic, 18)}<span>${k}</span></dt><dd>${ready ? fmtK(v) : '—'}</dd></div>`).join('');
 
         const skills = skillsForParts(parts);
         const leg = legPassiveOf(parts.leg);
@@ -206,7 +209,7 @@ export class SelectController {
         const card = this.cards[id];
         const config = rigConfigFor(parts, id);
         if (!config) return;
-        if (!card.rig) card.rig = new RigAvatar(card.el.querySelector('canvas'), { ...CARD_RIG, character: id });
+        if (!card.rig) card.rig = new RigAvatar(card.el.querySelector('canvas'), { ...(isMobile() ? CARD_RIG_MOBILE : CARD_RIG), character: id });
         if (config.arm) card.rig.setArm(config.arm);
         card.rig.setPartFilters(config.filters);
         card.rig.setVariants(config.variants);   // A·B 세트 부위 그림 (D-050)

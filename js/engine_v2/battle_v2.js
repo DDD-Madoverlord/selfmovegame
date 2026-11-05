@@ -32,7 +32,7 @@ import { BattleDirector } from '../ui_v2/battleDirector_v2.js';
 import { coach } from '../ui_v2/coach_v2.js';
 import { sound } from './audio/sound_v2.js';
 import { progress } from './progress_v2.js';
-import { stageById, defaultStage, nextStageOf } from './stages_v2.js';
+import { stageById, defaultStage, nextStageOf, isUnlocked } from './stages_v2.js';
 import { stageFor, difficultyOf, difficultyUnlocked, nextDifficultyOf, FINAL_STAGE_ID, DEFAULT_DIFFICULTY } from './difficulty_v2.js';
 import { aimAt as aimOf } from './bases_v2.js';
 import { HERO, POPUP, FOOT_B, OVERLOAD } from './battle/tuning.js';
@@ -429,6 +429,15 @@ export class BattleEngine {
         const firstClear = victory && !progress.stage(this.stage.id, diff).cleared;
         const record = progress.recordStage(this.stage.id, { stars: this.starFlags, cleared: victory, time: this.stats.time }, diff);
         const next = victory ? nextStageOf(this.stage.id) : null;
+        // 고른 판을 깨면 '진행해야 할 판'(아직 안 깬 가장 앞 판, 다 깼으면 바로 다음 판)을 골라 둠 — 결과에서 [메인 메뉴]·[연구소]로 나와도 (11-05 피드백 13번).
+        // [다시 출격]은 깬 판을 다시 고름, [다음]은 바로 다음 판
+        const clearedId = this.stage.id;
+        const front = defaultStage(progress);
+        const target = !victory ? null
+            : !progress.stage(front.id).cleared && isUnlocked(front.id, progress) ? front
+            : next && isUnlocked(next.id, progress) ? next : null;
+        const advance = !!target && target.id !== clearedId && progress.selectedStage === clearedId;
+        if (advance) progress.selectStage(target.id);
         // 마지막 스테이지(4-B)를 처음 깨면 다음 난이도가 열림 + 강화 한도 상승 (D-063)
         const unlocked = victory && this.stage.id === FINAL_STAGE_ID && wasLocked && difficultyUnlocked(nextDiff.id, progress) ? nextDiff : null;
         const loot = this.finishGrowth(victory, firstClear);   // 스킬 코어 + 파츠 드랍 (battle/growth.js)
@@ -459,6 +468,7 @@ export class BattleEngine {
         progress.tutorialBattleResult(result.stage.id, diff, victory);
         this.director.showResult(result, act => {
             if (act === 'next' && next) progress.selectStage(next.id);
+            if (act === 'retry' && advance) progress.selectStage(clearedId);
             if (this.onNavigate) this.onNavigate(act === 'retry' || act === 'next' ? 'battle' : act);
         });
     }

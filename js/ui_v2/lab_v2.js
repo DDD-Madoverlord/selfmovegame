@@ -128,6 +128,7 @@ export class LabController {
             if (upg) upg.hidden = this.activeSlot === 'set';   // 세트 탭: 강화 칸 대신 목록을 길게
             this.renderPartsGrid();
             this.renderUpgrade();
+            this.renderSetBonus(gameState.getCartObjects());
         }));
 
         // 등급 거르기 칩 (소리는 main_v2.js가 연구소 버튼마다 냄)
@@ -477,7 +478,7 @@ export class LabController {
         if (!box) return;
         // 자리가 좁아 2부위 이상 모은 세트만, 두 줄까지: 켜진 효과 먼저, 그다음 많이 모은 세트
         const list = setBonusList(cart).filter(b => b.count >= 2).sort((p, q) => (q.on - p.on) || (q.count - p.count)).slice(0, 2);
-        box.hidden = !list.length;
+        box.hidden = !list.length || this.activeSlot !== 'set';   // 부위 탭에서는 세트 효과 줄을 뺌 — 세트 탭에서만 (11-05 피드백 5번)
         box.innerHTML = list.map(b => `<div class="v2-setbonus__row${b.on ? ' is-on' : ''}" title="${b.label} — ${b.need}부위: ${b.desc}">`
             + `<b>${b.on ? '◆' : '◇'} ${b.name} ${Math.min(b.count, b.need)}/${b.need}</b><span>${b.desc}</span></div>`).join('');
     }
@@ -497,6 +498,12 @@ export class LabController {
             this.btnEquip.querySelector('small').textContent = changes === 0 ? '변경한 파츠 없음'
                 : locked.length ? '드랍·조각 전용 파츠가 있음'
                     : remain < 0 ? 'DM 부족' : cost ? `구매 ${cost.toLocaleString()} DM · ${changes}개 장착` : `${changes}개 장착 (보유 파츠)`;
+            // 휴대폰 [확정] 아래 줄 = 드는 DM (11-05 피드백 9번 — 휴대폰은 small·비용 줄이 없음)
+            const em = $('lab-confirm-cost-v2');
+            if (em) {
+                em.textContent = changes === 0 ? '' : locked.length ? '조각 전용' : `${remain < 0 ? '부족 ' : ''}${cost.toLocaleString()} DM`;
+                em.classList.toggle('is-poor', remain < 0);
+            }
         }
     }
 
@@ -547,8 +554,12 @@ export class LabController {
         const cart = gameState.getCartObjects();
         const config = rigConfigFor(cart, progress.character);
         const body = cart.body && cart.body.id !== 'none' ? cart.body : null;
-        $('lab-unit-name-v2').textContent = config ? RIG_CHARACTERS[config.character].name : '미완성 기체';
-        $('lab-faction-v2').textContent = body ? body.faction : '흐린 부위는 아직 없는 파츠예요';
+        const name = config ? RIG_CHARACTERS[config.character].name : '미완성 기체';
+        $('lab-unit-name-v2').textContent = name;
+        // 계열 이름 '거대로봇 (메카닉)'이 위 캐릭터 이름과 겹치면 괄호 안만 (11-05 피드백 19번 — 이름 두 번)
+        const faction = body ? body.faction : '';
+        const same = faction.startsWith(name) && faction.match(/\(([^)]*)\)\s*$/);
+        $('lab-faction-v2').textContent = !body ? '흐린 부위는 아직 없는 파츠예요' : same ? same[1] : faction.startsWith(name) ? '' : faction;
         $('lab-preview-tag-v2').textContent = progress.cartChanges() ? 'MODIFIED' : 'CURRENT';
         $('lab-empty-v2').hidden = !!config;
         if (!this.rig) return;

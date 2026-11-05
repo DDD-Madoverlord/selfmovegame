@@ -145,7 +145,7 @@ function ensureStyles() {
     const el = document.createElement('style');
     el.id = 'v2-smap-style';
     el.textContent = `
-.v2-smap { position: absolute; inset: 0; overflow: hidden; touch-action: pan-y; user-select: none; -webkit-user-select: none; outline: none; background: #07090d; }
+.v2-smap { position: absolute; inset: 0; overflow: hidden; touch-action: none; user-select: none; -webkit-user-select: none; outline: none; background: #07090d; }
 .v2-smap.is-paused * { animation-play-state: paused !important; }
 .v2-smap__track { display: flex; width: 100%; height: 100%; will-change: transform; }
 .v2-smap__page { flex: 0 0 100%; height: 100%; position: relative; overflow: hidden; container-type: size; }
@@ -243,6 +243,7 @@ export class StageMap {
         this.sel = null;
         this.hero = null;
         this.walking = null;
+        this.look = null;   // 손으로 위아래로 끈 지도 위치 { page, y: 화면 가운데의 지도 높이 % } — 걷거나 구역을 넘기면 다시 캐릭터를 따라감
         this.active = true;
         this.walkSpeed = WALK_SPEED;   // 지도 px/초 (Q-022 비교: 지금 그대로 두기로 함 — D-108)
         this.root = document.createElement('div');
@@ -316,6 +317,7 @@ export class StageMap {
         this.track.style.transition = instant ? 'none' : 'transform 0.4s cubic-bezier(0.2, 0.8, 0.2, 1)';
         this.track.style.transform = `translateX(${-to * 100}%)`;
         const changed = to !== this.index;
+        if (changed) this.look = null;
         this.index = to;
         this._chrome();
         if (changed) this.opts.onView?.(this.pages[to]);
@@ -460,6 +462,7 @@ export class StageMap {
         const dx0 = h.dx, dx1 = this._heroDx(page, to);
         const id = this.pages[page].nodes[routeOf(this.pages[page].zone).stops.indexOf(to)]?.id;
         if (this.walking) cancelAnimationFrame(this.walking.raf);
+        this.look = null;
         h.rig.setMode('walk');
         const t0 = performance.now();
         const tick = now => {
@@ -480,7 +483,7 @@ export class StageMap {
         this.walking = { raf: requestAnimationFrame(tick) };
     }
 
-    /** 화면이 지도보다 납작하면 캐릭터(없으면 다음 정거장) 높이에 맞춰 지도를 위아래로 옮김 */
+    /** 화면이 지도보다 납작하면 캐릭터(없으면 다음 정거장) 높이에 맞춰 지도를 위아래로 옮김 — 손으로 끈 뒤에는 그 자리 */
     _camera(instant) {
         this.pages.forEach((p, i) => {
             const page = this.track.children[i];
@@ -488,7 +491,8 @@ export class StageMap {
             if (!land) return;
             const ph = page.clientHeight, lh = land.offsetHeight;
             let y = 50;
-            if (this.hero && this.hero.page === i && this.hero.y != null) y = this.hero.y - 4;
+            if (this.look && this.look.page === i) y = this.look.y;
+            else if (this.hero && this.hero.page === i && this.hero.y != null) y = this.hero.y - 4;
             else {
                 const r = routeOf(p.zone);
                 const k = Math.max(0, p.nodes.findIndex(n => n.state === 'open'));
@@ -520,22 +524,38 @@ export class StageMap {
         } else this.opts.onSelect?.(n.id);
     }
 
+    /** 지금 구역 지도를 위아래로 끌기 (화면이 지도보다 납작할 때만 — 휴대폰 가로에서 위·아래 정거장이 잘려 못 누르던 것) */
+    _dragY(d) {
+        const page = this.track.children[this.index];
+        const land = page?.querySelector('.v2-smap__land');
+        if (!land) return;
+        const ph = page.clientHeight, lh = land.offsetHeight;
+        if (lh <= ph + 1) return;
+        if (d.cam0 == null) d.cam0 = parseFloat(land.style.getPropertyValue('--cam')) || 0;
+        const cam = Math.min(0, Math.max(ph - lh, d.cam0 + d.dy));
+        land.style.transition = 'none';
+        land.style.setProperty('--cam', `${cam.toFixed(1)}px`);
+        this.look = { page: this.index, y: (ph / 2 - cam) / lh * 100 };
+    }
+
     _bindSwipe() {
         const vp = this.root;
         vp.addEventListener('pointerdown', e => {
             if (e.button > 0 || e.target.closest('.v2-smap__nav')) return;
-            this.drag = { x0: e.clientX, y0: e.clientY, t0: performance.now(), dx: 0, on: false, id: e.pointerId };
+            this.drag = { x0: e.clientX, y0: e.clientY, t0: performance.now(), dx: 0, dy: 0, on: false, id: e.pointerId };
         });
         vp.addEventListener('pointermove', e => {
             const d = this.drag;
             if (!d || e.pointerId !== d.id) return;
             d.dx = e.clientX - d.x0;
-            if (!d.on && Math.abs(d.dx) > 8 && Math.abs(d.dx) > Math.abs(e.clientY - d.y0)) {
-                d.on = true;
+            d.dy = e.clientY - d.y0;
+            if (!d.on && Math.max(Math.abs(d.dx), Math.abs(d.dy)) > 8) {   // 처음 움직인 방향으로 좌우(구역 넘기기)·위아래(지도 보기)를 가름
+                d.on = Math.abs(d.dx) > Math.abs(d.dy) ? 'x' : 'y';
                 vp.setPointerCapture(d.id);
-                this.track.style.transition = 'none';
+                if (d.on === 'x') this.track.style.transition = 'none';
             }
             if (!d.on) return;
+            if (d.on === 'y') { this._dragY(d); return; }
             const edge = (this.index === 0 && d.dx > 0) || (this.index === this.pages.length - 1 && d.dx < 0);
             this.track.style.transform = `translateX(calc(${-this.index * 100}% + ${(edge ? d.dx * 0.3 : d.dx).toFixed(1)}px))`;
         });
@@ -544,16 +564,22 @@ export class StageMap {
             if (!d || e.pointerId !== d.id) return;
             this.drag = null;
             if (!d.on) return;
+            this.dragged = true;
+            setTimeout(() => { this.dragged = false; }, 60);
+            if (d.on === 'y') return;
             const w = vp.clientWidth;
             const v = d.dx / Math.max(1, performance.now() - d.t0);
             let to = this.index;
             if (d.dx < -w * 0.18 || v < -0.45) to++;
             else if (d.dx > w * 0.18 || v > 0.45) to--;
-            this.dragged = true;
-            setTimeout(() => { this.dragged = false; }, 60);
             this.go(to);   // 덜 밀었으면 제자리로 돌아감
         };
         vp.addEventListener('pointerup', end);
         vp.addEventListener('pointercancel', end);
+        vp.addEventListener('wheel', e => {   // PC: 휠로 위아래
+            if (!e.deltaY) return;
+            e.preventDefault();
+            this._dragY({ dy: -e.deltaY });
+        }, { passive: false });
     }
 }

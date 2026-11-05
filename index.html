@@ -452,11 +452,11 @@
 
                     <section class="v2-lab__parts v2-frame">
                         <div class="v2-slottabs">
+                            <button class="tab-btn-v2 v2-slottab v2-slottab--set" data-slot="set"><b>세트</b><small>네 부위 한 번에</small></button>
                             <button class="tab-btn-v2 v2-slottab active" data-slot="head"><b>머리</b><small>필살기</small></button>
                             <button class="tab-btn-v2 v2-slottab" data-slot="body"><b>몸통</b><small>스킬 2 · 필수</small></button>
                             <button class="tab-btn-v2 v2-slottab" data-slot="arm"><b>팔</b><small>스킬 1</small></button>
                             <button class="tab-btn-v2 v2-slottab" data-slot="leg"><b>다리</b><small>패시브</small></button>
-                            <button class="tab-btn-v2 v2-slottab v2-slottab--set" data-slot="set"><b>세트</b><small>네 부위 한 번에</small></button>
                         </div>
                         <!-- 등급 거르기 칩 (Q-017 C안, lab_v2.js renderGradeBar) -->
                         <div id="parts-gradebar-v2" class="v2-gradebar"></div>
@@ -485,6 +485,7 @@
                     <button id="btn-equip-confirm-v2" class="v2-hazard-btn v2-hazard-btn--confirm">
                         <strong>개조 확정</strong>
                         <small>파츠 장착</small>
+                        <em id="lab-confirm-cost-v2" class="v2-confirm__cost"></em>
                     </button>
                 </footer>
             </div>
