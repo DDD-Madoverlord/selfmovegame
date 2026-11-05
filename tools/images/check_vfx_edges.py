@@ -26,6 +26,10 @@ ALLOWED = {
     'orbital_beam': {'top'}, 'pillar_gold': {'top'}, 'judgment_violet': {'top'},   # 하늘에서 내려오는 빛기둥
     'crusher_claw': {'top'},   # 화면 밖에서 뻗어 들어오는 집게 팔
 }
+# 바닥 기준 그림(anchorY 0.9 — 칸 아래 10%는 땅선 아래): 아래 변은 soften_vfx_edges.py로 24px 옅게 함 (11-05) → 아래 변은 빼고 잼
+for _n in ('revive_crimson', 'orbital_beam', 'summon_portal', 'meteor_cyan', 'power_aura', 'trident_gold', 'meteor_red',
+           'live_broadcast', 'plasma_white', 'pillar_gold', 'explosion_big'):
+    ALLOWED.setdefault(_n, set()).add('bottom')
 
 
 def edge_values(arr):
