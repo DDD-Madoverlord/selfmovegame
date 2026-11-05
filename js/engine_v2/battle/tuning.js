@@ -28,7 +28,9 @@ export const LEG = { ramDmg: 1.5, ramKnock: 3, ramStun: 0.6, ramCd: 4, hoverRedu
 // 주인공 상태 이상 (적 공격): 감속 = 진격 속도·동작 속도 감소, 기절 = 공격·진격·스킬 멈춤
 export const PLAYER_STATUS = { slowMove: 0.5, slowAnim: 0.55 };
 // 과부하: 내구도 0 → sec초 동안 멈춤(무적) → 최대 내구도 × restore로 수리 (D-028)
-export const OVERLOAD = { sec: 4, restore: 0.5 };
+// 다시 일어날 때 회복: 0.5 → 1.0 (11-05 피드백 21번 목숨 뒤 110판 측정 — 목숨 2개에 50% 회복이면 레이저 98 → 69판,
+// 그동안 '무한 부활 + 50%' 기준으로 맞춘 판이 많아서. 다 채워 일어나면 목숨 2개 = 체력 3칸 → 예전 깬 판의 약 89/98)
+export const OVERLOAD = { sec: 4, restore: 1.0 };
 // 전투 목숨 (11-05 피드백 21번, Q-028 임시): 내구도 0에서 과부하·긴급 수리로 다시 일어나는 횟수. 다 쓰고 또 쓰러지면 패배 (D-028의 '죽지 않음'을 바꿈)
 export const LIVES = { free: 2, pass: 4 };
 // 산성 발톱 팔(arm_mutant, D-030): 물린 적·거점 부식 — 초당 피해 = 주인공 DPS × dpsMul (거점 × baseMul)
