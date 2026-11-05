@@ -8,7 +8,7 @@
      equipped  장착 파츠 { head, body, arm, leg }
      owned     보유 파츠 id 목록 (가격 0인 파츠와 [파츠제거]는 처음부터 보유)
      levels    파츠 강화 레벨 { id: 1~5 }  (결정 D-015)
-     stages    스테이지 기록 { '1-1': { stars: [요새, 기지, 체력50%], cleared, bestTime } }  (D-016) — 노말
+     stages    스테이지 기록 { '1-1': { stars: [요새, 기지, 체력50%], cleared, bestTime, losses? } }  (D-016) — 노말, losses = 못 깬 판의 연패 수(연패 보정)
      diffStages 하드·헬·나이트메어 기록 { hard: { '1-1': { … } }, … }  (D-063, 난이도마다 따로)
      difficulty 메인 화면에서 고른 난이도 id (difficulty_v2.js)
      강화 외 성장 (Q-006, progressGrowth_v2.js): grades · options · shards · cores · skillLevels · modules · research ·
@@ -21,7 +21,7 @@
 import { gameState } from '../engine/state.js';
 import { PARTS_DB } from '../data/parts.js';
 import { ROSTER, SLOTS, DEFAULT_CHARACTER, rosterOf, characterOfPart, partsOfCharacter } from './roster_v2.js';
-import { DIFFICULTIES, DEFAULT_DIFFICULTY, difficultyOf, difficultyUnlocked, highestDifficulty } from './difficulty_v2.js';
+import { DIFFICULTIES, DEFAULT_DIFFICULTY, difficultyOf, difficultyUnlocked, highestDifficulty, assistOf } from './difficulty_v2.js';
 import { GrowthMethods, emptyGrowth } from './progressGrowth_v2.js';
 import { CommerceMethods, emptyCommerce } from './progressCommerce_v2.js';
 import { PetMethods } from './progressPets_v2.js';
@@ -423,6 +423,12 @@ class Progress {
         return rec || { stars: [false, false, false], cleared: false, bestTime: null };
     }
 
+    /** 연패 보정 비율 (0 ~ 0.4) — 깬 판은 0 (difficulty_v2.js ASSIST) */
+    assist(id, diff = this.difficulty) {
+        const rec = this.stage(id, diff);
+        return rec.cleared ? 0 : assistOf(rec.losses);
+    }
+
     starCount(id, diff = this.difficulty) {
         return this.stage(id, diff).stars.filter(Boolean).length;
     }
@@ -437,11 +443,13 @@ class Progress {
         const prev = this.stage(id, diff);
         const merged = prev.stars.map((had, i) => had || !!stars[i]);
         const newStars = merged.filter(Boolean).length - prev.stars.filter(Boolean).length;
-        this.recordsOf(diff)[id] = {
+        const rec = {
             stars: merged,
             cleared: prev.cleared || !!cleared,
             bestTime: cleared ? Math.min(prev.bestTime ?? Infinity, time) : prev.bestTime
         };
+        if (!rec.cleared) rec.losses = (prev.losses || 0) + 1;   // 못 깬 판에서 짐 → 연패 +1 (연패 보정), 깨면 지움
+        this.recordsOf(diff)[id] = rec;
         const bonus = Math.round(newStars * STAR_BONUS_DM * difficultyOf(diff).reward);
         if (bonus) gameState.darkMatter += bonus;
         gameState.notify();

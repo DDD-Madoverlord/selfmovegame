@@ -8,6 +8,7 @@
   강화 외 성장 (Q-006): --grade=rare  네 파츠 등급 / --opts=elite,siege,…  옵션(팔·머리·몸통·다리 차례로 하나씩 돌려 붙임)
                        --skill=3  스킬 레벨 / --mods=orbital,repair  전술 모듈 / --tag=geared  결과 파일 이름 끝에 붙임
                        --support=frost  보유 기본 장비 지원(주인공과 같은 강화·등급·스킬 레벨, 자동 호출) / --seed=69 고정 난수
+                       --assist=4  그 판을 '못 깬 판 · 연패 4번'으로 두고 잼 (연패 보정 −40%, difficulty_v2.js ASSIST)
 
 ※ 한 번에 Chrome을 많이 띄우면 느려져 시작에 실패할 수 있다 → batch는 동시 실행 수를 제한하고,
   실패·시간 초과도 결과 파일(error)로 남겨 기다림이 끝나지 않는 일이 없게 한다.
@@ -136,6 +137,8 @@ def _sim(build, level, speed, results, stages, diff='normal'):
                 ['{head}','{body}','{arm}','{leg}'].forEach(id => {{ progress.owned.add(id); progress.levels[id] = {level}; }});
                 gameState.equippedParts = {{ head: '{head}', body: '{body}', arm: '{arm}', leg: '{leg}' }};
                 progress.selectStage('{sid}');""")
+            if GEAR.get('assist'):   # 연패 보정: 이 판만 못 깬 판으로 (앞 판은 깬 채라 잠기지 않음)
+                g.js(f"progress.recordsOf('{diff}')['{sid}'] = {{ stars: [false, false, false], cleared: false, bestTime: null, losses: {GEAR['assist']} }};")
             support = GEAR.get('support')
             g.js('progress.supportCharacter = null; progress.supportAuto = false;')
             if support and support != 'none':
@@ -312,6 +315,7 @@ if __name__ == '__main__':
             if a.startswith('--tag='): GEAR['tag'] = a.split('=')[1]
             if a.startswith('--support='): GEAR['support'] = a.split('=')[1]
             if a.startswith('--seed='): GEAR['seed'] = int(a.split('=')[1])
+            if a.startswith('--assist='): GEAR['assist'] = int(a.split('=')[1])
         stg = next((a.split('=')[1].split(',') for a in sys.argv[1:] if a.startswith('--stages=')), None)
         dif = next((a.split('=')[1] for a in sys.argv[1:] if a.startswith('--diff=')), 'normal')
         pos = [a for a in sys.argv[1:] if not a.startswith('--')]

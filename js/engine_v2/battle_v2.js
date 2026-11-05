@@ -33,7 +33,7 @@ import { coach } from '../ui_v2/coach_v2.js';
 import { sound } from './audio/sound_v2.js';
 import { progress } from './progress_v2.js';
 import { stageById, defaultStage, nextStageOf, isUnlocked } from './stages_v2.js';
-import { stageFor, difficultyOf, difficultyUnlocked, nextDifficultyOf, FINAL_STAGE_ID, DEFAULT_DIFFICULTY } from './difficulty_v2.js';
+import { stageFor, assistStage, difficultyOf, difficultyUnlocked, nextDifficultyOf, FINAL_STAGE_ID, DEFAULT_DIFFICULTY } from './difficulty_v2.js';
 import { aimAt as aimOf } from './bases_v2.js';
 import { HERO, POPUP, FOOT_B, OVERLOAD, LIVES } from './battle/tuning.js';
 import { PlayerMethods } from './battle/player.js';
@@ -158,7 +158,9 @@ export class BattleEngine {
         this.distanceTraveled = 0;
         // 난이도(D-063): 고른 난이도의 배율을 곱한 스테이지 복사본 — 전투 코드는 b.stage만 읽음
         this.difficulty = difficultyUnlocked(progress.difficulty, progress) ? progress.difficulty : DEFAULT_DIFFICULTY;
-        this.stage = this.growthStage(stageFor(stageById(progress.selectedStage || defaultStage(progress).id), this.difficulty));   // + 계정 연구 DM (growth.js)
+        const sid = progress.selectedStage || defaultStage(progress).id;
+        this.assist = progress.assist(sid, this.difficulty);   // 연패 보정: 못 깬 판에서 진 만큼 적·거점 약하게 (difficulty_v2.js ASSIST)
+        this.stage = this.growthStage(assistStage(stageFor(stageById(sid), this.difficulty), this.assist));   // + 계정 연구 DM (growth.js)
         predecodeStageArt(this.stage);   // 이 스테이지 적 그림을 미리 풂 (enemies_v2.js — 처음 나올 때 멈칫하지 않게)
         // 구역 배경 (ui_v2.css .v2-zone-1 ~ 4 · 6), 보스전은 경보 조명·불길 판 (.v2-stage-boss)
         // .v2-boss-rage(구역 4 보스 2페이즈)·.v2-crimson(구역 3 악마기사 소환 점멸)은 전투 중에 붙음
@@ -472,6 +474,8 @@ export class BattleEngine {
             next,
             timeUp: !victory && this.timeUp,
             livesOut: !victory && this.livesOut,
+            assist: this.assist,                                       // 이번 판에 걸린 연패 보정
+            nextAssist: victory ? 0 : progress.assist(this.stage.id, diff),   // 다음 도전 보정
             bossPhase: !victory && !!this.bossPhase,   // 최종 거점을 부순 뒤 보스전에서 짐 (11-05 피드백 17번)
             bossKill: victory && !!this.bossPhase,
             overloads: this.stats.overloads || 0,

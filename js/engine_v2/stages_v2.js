@@ -554,7 +554,8 @@ export const CHAPTER6 = {
             base: { mid: 10700, final: 19200 }, reward: { kill: 79, mid: 4250, final: 11400 }
         },
         {
-            id: '6-B', timeLimit: 270, starTime: 185, name: '무너진 영생', desc: '빈민의 피로 박동하는 "탐욕의 심장". 끌려가는 실험체를 막고 심장을 산산조각 내라.', boss: true,
+            // 시간 270 → 300: 보스가 최종 거점 뒤에 나오게 바뀐 뒤(11-05 피드백 17) 성장 끝 레이저도 보스 체력을 남기고 시간 초과 (11-05 측정)
+            id: '6-B', timeLimit: 300, starTime: 185, name: '무너진 영생', desc: '빈민의 피로 박동하는 "탐욕의 심장". 끌려가는 실험체를 막고 심장을 산산조각 내라.', boss: true,
             distance: 1050, midAt: 470, finalAt: 950,
             enemy: { hp: 4.6, dps: 2.92, spawn: 2.0, max: 9, mix: { orderly: 3, maidenshield: 1, holywater: 1, anesthetist: 1, bloodbagdrone: 1, bloated: 1 } }, elite: 0.12,
             base: { mid: 10000, final: 16800 }, reward: { kill: 86, mid: 4500, final: 13500 },

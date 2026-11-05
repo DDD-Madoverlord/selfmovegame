@@ -126,6 +126,7 @@ body.v2-fit.v2-mobile #screen-menu-v2 { left: 0; top: 0; width: var(--v2-vw, 128
 .v2-mstage__stars i.is-on { color: var(--v2-gold); filter: drop-shadow(0 0 6px rgba(255, 209, 102, 0.7)); }
 .v2-mstage .v2-diffbadge { font-size: 24px; padding: 4px 14px; border-radius: 8px; }
 .v2-mstage__boss { padding: 4px 12px; border-radius: 8px; font: 900 22px var(--v2-font); color: #fff; background: #b3263f; }
+.v2-mstage .v2-assist { margin: 0; padding: 4px 10px; border-radius: 8px; font-size: 22px; white-space: nowrap; }
 .v2-mstage__time { margin-left: auto; display: inline-flex; align-items: center; gap: 8px; font: 800 28px var(--v2-font-num); color: var(--v2-gold); }
 .v2-mstage__pick { margin-top: auto; height: 72px; flex: none; display: flex; align-items: center; justify-content: center; gap: 12px;
     font-size: 28px; font-weight: 900; color: var(--v2-gold); background: rgba(255, 176, 32, 0.1); border: 2px solid rgba(255, 176, 32, 0.5); border-radius: 16px; }
@@ -529,6 +530,7 @@ body.v2-fit.v2-mobile #screen-select-v2 { left: 0; top: 0; width: var(--v2-aw, 1
 .v2-mobile #screen-battle-v2 .v2-result__op { letter-spacing: 1px; }
 .v2-mobile #screen-battle-v2 .v2-result__title { font-size: 24px; line-height: 1.1; white-space: normal; letter-spacing: 1px; }
 .v2-mobile #screen-battle-v2 .v2-result__sub { margin: 0; font-size: 12px; }
+.v2-mobile #screen-battle-v2 .v2-result__assist { margin: 0; font-size: 11px; }
 .v2-mobile #screen-battle-v2 .v2-result__stars { justify-content: space-between; gap: 4px; padding: 4px 0 0; }
 .v2-mobile #screen-battle-v2 .v2-result__star .v2-icon { width: 40px; height: 40px; }
 .v2-mobile #screen-battle-v2 .v2-result__star { font-size: 11px; text-align: center; }

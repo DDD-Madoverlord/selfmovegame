@@ -488,6 +488,7 @@ export class BattleDirector {
                 <small class="v2-result__op">STAGE ${stage.id} · ${stage.name}${diffTag(stage)}</small>
                 <h2 class="v2-result__title">${r.victory ? 'MISSION COMPLETE' : 'MISSION FAILED'}</h2>
                 <p class="v2-result__sub">${r.victory ? (r.bossKill ? '최종 거점을 부수고 보스를 쓰러뜨렸습니다' : '적 수비대 거점을 모두 분쇄했습니다') : r.livesOut ? '목숨을 모두 잃었습니다 — 연구소에서 몸통(체력)을 강화해 보세요' : r.bossPhase ? '제한 시간 안에 보스를 쓰러뜨리지 못했습니다' : '제한 시간 안에 최종 기지를 부수지 못했습니다'}</p>
+                ${r.nextAssist ? `<p class="v2-result__assist">${icon('down', 14)}도전 보정 — 다음 도전은 적 체력·공격력 −${Math.round(r.nextAssist * 100)}%</p>` : ''}
                 <div class="v2-result__stars">
                     ${stars.map((st, i) => `
                         <div class="v2-result__star${st.now ? ' is-on' : ''}${st.had ? ' is-had' : ''}" style="--d:${0.35 + i * 0.3}s">
