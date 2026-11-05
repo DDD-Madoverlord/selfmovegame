@@ -102,7 +102,9 @@ def run(ctx):
     battle_at(g, '2-B')
     g.js("b.midBaseSpawned = true; b.midBaseDestroyed = true; b.distanceTraveled = b.stage.finalAt - 0.5; b.playerSpeed = 100;")
     g.wait(2600)
-    st = g.js("""const f = b.enemies.find(e => e.isFinal); const sky = getComputedStyle(document.getElementById('bg-sky-v2')).backgroundImage;
+    g.js("window.__finalArt = b.enemies.find(e => e.isFinal)?.art;")
+    g.open_boss_gate()   # 11-05 피드백 17: 보스는 최종 거점을 부순 뒤 나옴
+    st = g.js("""const f = { art: window.__finalArt }; const sky = getComputedStyle(document.getElementById('bg-sky-v2')).backgroundImage;
         return { art: f && f.art, boss: b.boss && b.boss.type, sky };""")
     ctx.check(st['art'] == 'st2_base' and st['boss'] == 'terraformer' and 'st2/far_boss' in st['sky'], '2-B: 메인 시추 코어 · 기간틱 테라포머 · 보스전 배경', str(st))
     g.js("b.enemies.filter(e => !e.isBuilding && !e.boss).forEach(e => e.dom.remove()); b.enemies = b.enemies.filter(e => e.isBuilding || e.boss); b.spawnInterval = 999;"

@@ -67,7 +67,9 @@ def run(ctx):
     battle_at(g, '5-B')
     g.js("b.midBaseSpawned = true; b.midBaseDestroyed = true; b.distanceTraveled = b.stage.finalAt - 0.5; b.playerSpeed = 100;")
     g.wait(2600)
-    st = g.js(BG + "const f = b.enemies.find(e => e.isFinal); return { art: f && f.art, boss: b.boss && b.boss.type, sky: bg('sky') };")
+    g.js("window.__finalArt = b.enemies.find(e => e.isFinal)?.art;")
+    g.open_boss_gate()   # 11-05 피드백 17: 보스는 최종 거점을 부순 뒤 나옴
+    st = g.js(BG + "const f = { art: window.__finalArt }; return { art: f && f.art, boss: b.boss && b.boss.type, sky: bg('sky') };")
     ctx.check(st['art'] == 'st5_base' and st['boss'] == 'ironclad' and 'st5/far_boss' in st['sky'], '5-B: 중앙 통제 시추선 · 아이언클래드 · 보스전 배경', str(st))
     g.js(CLEAN + "b.monsterX = 420; m.setMonsterPosition(420); b.boss.x = 760; b.boss.dom.style.left = '760px'; b.boss.speed = 0;"
          "b.boss.cd.cannon = b.boss.t.cannon.every - 0.05; b.boss.cd.barrage = -99;")

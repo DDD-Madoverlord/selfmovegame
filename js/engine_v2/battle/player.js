@@ -119,7 +119,7 @@ export const PlayerMethods = {
         this.createDamagePopup(this.monsterX + 40, 210, '⬢ 실드 전개 (최대 체력 30%)', false);
     },
 
-    // ---- 과부하: 내구도 0이면 멈춰서 긴급 수리 (주인공은 죽지 않음, D-028) ----
+    // ---- 과부하: 내구도 0이면 멈춰서 긴급 수리 — 목숨(b.lives)이 남아 있을 때만, 다 쓰면 패배 (D-028 → 11-05 피드백 21번) ----
     checkOverload(dt) {
         if (this.overloadT > 0) {
             this.overloadT -= dt;
@@ -134,6 +134,9 @@ export const PlayerMethods = {
         }
         if (this.playerHp > 0) return;
         this.playerHp = 0;
+        if (this.livesOut) return;
+        if (this.lives <= 0) { this.loseLives(); return; }
+        this.lives -= 1;
         this.overloadT = OVERLOAD.sec;
         this.stats.overloads = (this.stats.overloads || 0) + 1;
         this.applyPlayerStun(OVERLOAD.sec, 'OVERLOAD', true);

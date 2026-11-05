@@ -50,7 +50,7 @@ def run(ctx):
 
     g.js("b.stopBattle();" + CLEAR.replace('IDS', '[1, 2, 3, 4, 5, 6, 7, 8, 9]'))
     boss_at(g, '9-B')
-    st = g.js("const f = b.enemies.find(e => e.isFinal); return { art: f && f.art, boss: b.boss && b.boss.type };")
+    st = g.js("const f = { art: window.__finalArt }; return { art: f && f.art, boss: b.boss && b.boss.type };")
     ctx.check(st['art'] == 'st9_base' and st['boss'] == 'panopticon', '9-B: 메인 크레인 타워 · 탐욕의 파노프티콘', str(st))
     g.js("b.boss.x = b.frontX() + 300; b.boss.dom.style.left = b.boss.x + 'px'; b.boss.cd.pulse = b.boss.t.pulse.every - 0.05;")
     g.wait(800)
@@ -109,7 +109,7 @@ def run(ctx):
 
     g.js("b.stopBattle();" + CLEAR.replace('IDS', '[1, 2, 3, 4, 5, 6, 7, 8, 9, 10]'))
     boss_at(g, '10-B')
-    st = g.js("const f = b.enemies.find(e => e.isFinal); return { art: f && f.art, boss: b.boss && b.boss.type, fly: parseFloat(b.boss.dom.style.bottom) };")
+    st = g.js("const f = { art: window.__finalArt }; return { art: f && f.art, boss: b.boss && b.boss.type, fly: parseFloat(b.boss.dom.style.bottom) };")
     ctx.check(st['art'] == 'st10_base' and st['boss'] == 'mothervoice' and st['fly'] > 100, '10-B: 코어 룸 · 떠 있는 마더 보이스', str(st))
     g.js("b.boss.x = b.frontX() + 300; b.boss.dom.style.left = b.boss.x + 'px'; b.boss.cd.pulse = b.boss.t.pulse.every - 0.05;")
     g.wait(800)

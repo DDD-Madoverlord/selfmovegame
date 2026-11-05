@@ -48,11 +48,13 @@ export function probabilityHtml(character = progress.character) {
     const optionCount = Object.keys(OPTIONS).length;
     const optionRows = Object.entries(OPTIONS).map(([id, o]) => `<tr data-option="${id}"><td>${o.name}</td><td>${o.desc}</td><td>${percent(1 / optionCount)}</td></tr>`).join('');
     const gradeRows = GRADES.map(g => `<tr><td>${g.name}</td><td>${g.options}개</td><td>${g.options ? percent(g.options / optionCount) : '0%'}</td></tr>`).join('');
+    // 판 클리어 드랍 = 공용 파츠 조각 (11-05 피드백 23번) · 파츠 묶음 확률은 파견 보상에만 (유니크·레전더리 제외 — progressGrowth_v2.js 파견)
+    const shardList = Object.entries(DROP.shardDrop).map(([g, n]) => `${GRADES.find(v => v.id === g).name} ${n}개`).join(' · ');
     const dropRows = DIFFICULTIES.map(d => {
-        const weights = Object.entries(DROP.poolWeights[d.id]).filter(([key]) => groups[key]?.length);
+        const weights = Object.entries(DROP.poolWeights[d.id]).filter(([key]) => groups[key]?.length && !['unique', 'legendary'].includes(key));
         const total = weights.reduce((sum, [, w]) => sum + w, 0);
-        return `<tr data-difficulty="${d.id}"><td>${d.name}</td><td>${Object.entries(DROP.grades[d.id]).map(([g, n]) => `${GRADES.find(v => v.id === g).name} ${percent(n)}`).join(' · ')}</td>
-            <td>${weights.map(([key, w]) => `${GROUP_NAMES[key]}: ${percent(w / total)} / ${groups[key].length}개, 개별 ${percent(w / total / groups[key].length)}`).join('<br>')}</td>
+        return `<tr data-difficulty="${d.id}"><td>${d.name}</td><td>${Object.entries(DROP.grades[d.id]).map(([g, n]) => `${GRADES.find(v => v.id === g).name} ${percent(n)} (조각 ${DROP.shardDrop[g]}개)`).join(' · ')}</td>
+            <td>${weights.map(([key, w]) => `${GROUP_NAMES[key]}: ${percent(w / total)} / ${groups[key].length}개, 개별 ${percent(w / total / groups[key].length)}`).join('<br>') || '—'}</td>
             <td>${DROP.firstClearGroups[d.id].map(key => GROUP_NAMES[key]).join(' → ')}</td></tr>`;
     }).join('');
     return `<p>DM 구매·조각 제작·조각 승급·판 드랍에서 등급에 필요한 옵션을 무작위로 채웁니다. 이미 붙은 옵션은 유지하며 같은 파츠에는 중복되지 않습니다.</p>
@@ -60,10 +62,11 @@ export function probabilityHtml(character = progress.character) {
         <table><thead><tr><th>옵션</th><th>고정 효과</th><th>첫 추첨 확률</th></tr></thead><tbody>${optionRows}</tbody></table>
         <table><thead><tr><th>최종 등급</th><th>옵션 수</th><th>처음부터 채울 때 특정 옵션 포함 확률</th></tr></thead><tbody>${gradeRows}</tbody></table>
         <p>DM 구매·조각 제작은 고른 파츠와 등급 바닥이 확정이고 옵션만 추첨합니다. 승급도 다음 등급이 확정이며 부족한 옵션만 추가합니다. 등급 추첨은 판 드랍에 적용합니다.</p>
-        <p data-prob="drop">판 클리어 파츠 드랍 ${percent(DROP.chance)} + 구역 상성 ${percent(DROP.affinityBonus)}p + 드랍 감지기 단계당 ${percent(RESEARCH.dropRate.per)}p(최대 ${RESEARCH.dropRate.max}단계).
-        보스 첫 클리어는 ${DROP.bossFirstClear ? '100% 확정(난이도별)' : '일반 확률'}입니다.</p>
-        <p>출전 캐릭터의 묶음을 가중치로 뽑고 묶음 안에서 균등하게 하나를 뽑습니다. 없는 묶음은 빼고 다시 나눕니다. 아래 개별 확률은 드랍 성공 조건부이며, 실제 판당 확률은 드랍 확률을 곱합니다.</p>
-        <table><thead><tr><th>난이도</th><th>추첨 등급</th><th>묶음 확률 / 파츠 수 / 파츠당 확률</th><th>첫 보스 확정 묶음 우선순위</th></tr></thead><tbody>${dropRows}</tbody></table>
+        <p data-prob="drop">판 클리어 드랍 ${percent(DROP.chance)} + 구역 상성 ${percent(DROP.affinityBonus)}p + 드랍 감지기 단계당 ${percent(RESEARCH.dropRate.per)}p(최대 ${RESEARCH.dropRate.max}단계)
+        → <b>공용 파츠 조각</b>: 아래 표의 등급을 추첨하고 등급마다 조각 ${shardList} (조각 회수 연구 적용). 판 클리어로는 파츠를 주지 않습니다.
+        보스 첫 클리어는 ${DROP.bossFirstClear ? '100% 확정으로 파츠 하나(난이도별)' : '일반 확률'}입니다.</p>
+        <p>보스 첫 클리어 파츠는 우선순위 묶음 중 처음으로 비어 있지 않은 묶음 안에서 균등하게 하나를 뽑습니다. 파견 보상 파츠는 묶음을 가중치로 뽑고(유니크·레전더리 세트 제외, 없는 묶음은 빼고 다시 나눔) 묶음 안에서 균등하게 뽑습니다.</p>
+        <table><thead><tr><th>난이도</th><th>판 드랍 추첨 등급 (조각 수)</th><th>파견 보상 묶음 확률 / 파츠 수 / 파츠당 확률</th><th>첫 보스 확정 묶음 우선순위</th></tr></thead><tbody>${dropRows}</tbody></table>
         <p>세트 파츠는 추첨 등급보다 등급 바닥이 높으면 바닥을 적용합니다. 보스 확정은 첫 비어 있지 않은 우선 묶음 안에서 균등 추첨합니다. 같은 등급 이상을 보유하면 DM·조각으로 환급합니다.</p>
         <p>${Object.entries(DROP.refund).map(([g, r]) => `${GRADES.find(v => v.id === g).name}: ${r.dm} DM·조각 ${r.shards}`).join(' / ')}. 조각 회수 연구는 기존 환급 규칙대로 적용합니다.</p>`;
 }

@@ -35,7 +35,7 @@ import { progress } from './progress_v2.js';
 import { stageById, defaultStage, nextStageOf, isUnlocked } from './stages_v2.js';
 import { stageFor, difficultyOf, difficultyUnlocked, nextDifficultyOf, FINAL_STAGE_ID, DEFAULT_DIFFICULTY } from './difficulty_v2.js';
 import { aimAt as aimOf } from './bases_v2.js';
-import { HERO, POPUP, FOOT_B, OVERLOAD } from './battle/tuning.js';
+import { HERO, POPUP, FOOT_B, OVERLOAD, LIVES } from './battle/tuning.js';
 import { PlayerMethods } from './battle/player.js';
 import { AttackMethods, SKILL_AUTO_KEY } from './battle/attacks.js';
 import { EnemyMethods } from './battle/enemyField.js';
@@ -181,6 +181,10 @@ export class BattleEngine {
         this.overloadT = 0;
         this.timeUp = false;
         this.timeWarned = false;
+        // 목숨 (11-05 피드백 21번): 패스(weekly_pass_7d)가 켜져 있으면 4, 아니면 2 — 전투마다 새로 (battle/player.js checkOverload)
+        this.livesMax = progress.activePass() ? LIVES.pass : LIVES.free;
+        this.lives = this.livesMax;
+        this.livesOut = false;
         this.artTimer = 0;
         this.orbitalTimer = 0;   // 새 기획 구역 1 보스전 궤도 폭격 (enemyField.js tickOrbital)
         this.containerTimer = 0; // 새 기획 구역 2 보스전 폐기물 컨테이너 투하 (enemyField.js tickContainers)
@@ -418,7 +422,19 @@ export class BattleEngine {
         return true;
     }
 
-    // 전투 종료 → 결과 화면 (승리: 최종 기지 파괴 연출 뒤 / 패배: 시간 초과 연출 뒤)
+    /** 목숨을 다 쓰고 또 쓰러짐 → 쓰러지는 연출 → 패배 (11-05 피드백 21번) */
+    loseLives() {
+        if (this.livesOut || this.timeUp || this.finalBaseDestroyed) return;
+        this.livesOut = true;
+        this.cinematic = true;
+        this.clearSupport();
+        const run = this.runId;
+        this.director.playerDown().then(() => {
+            if (this.runId === run && this.isActive) this.finishBattle(false);
+        });
+    }
+
+    // 전투 종료 → 결과 화면 (승리: 최종 기지 파괴 연출 뒤 / 패배: 시간 초과·목숨 소진 연출 뒤)
     finishBattle(victory) {
         // 세 번째 별: 목표 시간(stage.starTime) 안에 클리어 (D-029)
         if (victory && this.stats.time <= this.stage.starTime) this.starFlags[2] = true;
@@ -455,6 +471,9 @@ export class BattleEngine {
             pets: record.pets,
             next,
             timeUp: !victory && this.timeUp,
+            livesOut: !victory && this.livesOut,
+            bossPhase: !victory && !!this.bossPhase,   // 최종 거점을 부순 뒤 보스전에서 짐 (11-05 피드백 17번)
+            bossKill: victory && !!this.bossPhase,
             overloads: this.stats.overloads || 0,
             distance: Math.min(this.maxDistance, this.distanceTraveled),
             kills: this.stats.kills,

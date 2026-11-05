@@ -149,15 +149,22 @@ export const GrowthMethods = {
         return (AFFINITY[zone] || []).includes(character);
     },
     /**
-     * 클리어 드랍: 확률(25% + 상성 + 연구) 또는 보스전 첫 클리어 확정 → 출전 캐릭터 파츠 중 무작위, 등급은 난이도 표
-     * @returns 받은 결과(grantPart) 또는 null
+     * 클리어 드랍: 확률(25% + 상성 + 연구) → 공용 파츠 조각(등급은 난이도 표, 양은 DROP.shardDrop — 11-05 피드백 23번),
+     * 보스전 첫 클리어는 확정으로 출전 캐릭터 파츠 하나(예전 그대로)
+     * @returns { type: 'shards', grade, shards } · 받은 파츠 결과(grantPart) · null
      */
     rollBattleDrop({ character, zone, difficulty, boss, firstClear }, rnd = Math.random) {
         const chance = DROP.chance + (this.isAffinity(character, zone) ? DROP.affinityBonus : 0) + this.researchBonus('dropRate');
         const sure = DROP.bossFirstClear && boss && firstClear;
         if (!sure && rnd() >= chance) return null;
         const diff = difficultyOf(difficulty).id;
-        const part = this.pickDropPart(character, diff, { prefer: sure ? DROP.firstClearGroups[diff] : null }, rnd);
+        if (!sure) {
+            const grade = pickWeighted(DROP.grades[diff] || DROP.grades.normal, rnd);
+            const shards = Math.round(DROP.shardDrop[grade] * (1 + this.researchBonus('shardBoost')));
+            this.shards += shards;
+            return { type: 'shards', grade, shards, sure: false };
+        }
+        const part = this.pickDropPart(character, diff, { prefer: DROP.firstClearGroups[diff] }, rnd);
         if (!part) return null;
         const grade = pickWeighted(DROP.grades[diff] || DROP.grades.normal, rnd);
         return { ...this.grantPart(part.id, grade, rnd), sure };

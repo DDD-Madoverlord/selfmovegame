@@ -405,6 +405,9 @@
 .v2-unit__body { flex: 1; display: flex; flex-direction: column; gap: 5px; min-width: 0; }
 .v2-unit__name { display: flex; align-items: baseline; gap: 8px; font-weight: 900; font-size: 16px; letter-spacing: 0.5px; }
 .v2-unit__name small { font-size: 10px; font-weight: 700; color: var(--faction, var(--v2-dim)); }
+.v2-lives { display: flex; gap: 3px; margin-top: 3px; font-size: 13px; line-height: 1; }   /* 목숨 하트 (11-05 피드백 21번) */
+.v2-lives i { font-style: normal; color: rgba(255, 255, 255, 0.18); }
+.v2-lives i.is-on { color: #ff3355; text-shadow: 0 0 6px rgba(255, 51, 85, 0.7); }
 .v2-unit__state { font-size: 11px; font-family: var(--v2-font-num); color: var(--v2-dim); white-space: nowrap; overflow: hidden; }
 .v2-unit__state strong { font-weight: 800; }
 
@@ -2416,6 +2419,20 @@ div.v2-settings__row > span { flex: 1; }
 .v2-partcard__lv { font-family: var(--v2-font-num); font-size: 9px; color: var(--v2-amber); margin-left: 4px; }
 .v2-partcard__badge.is-owned { background: #3a4252; color: #dfe6f2; }   /* 레어 파랑과 헷갈리지 않게 회색 (Q-017) */
 .v2-partcard__badge.is-drop { background: rgb(186, 104, 255); color: #fff; }   /* 드랍·조각 전용 (유니크 세트, Q-008) */
+/* 해금 재화 (11-05 피드백 10번): 카드 배지 아이콘 · [만들기]·[등급 ▲] 필요/보유 · 세트 줄 남은 값 */
+.v2-partcard__badge .v2-icon { width: 11px; height: 11px; margin-right: 2px; vertical-align: -1px; }
+#lab-grade-cost-v2 { display: inline-flex; align-items: center; gap: 2px; }
+#lab-grade-cost-v2 .v2-icon { width: 12px; height: 12px; }
+#lab-grade-cost-v2 b.is-poor { color: #ff5a6e; }
+#lab-grade-cost-v2 i { font-style: normal; font-weight: 400; opacity: 0.75; }
+.v2-setrow__head { flex-wrap: wrap; row-gap: 2px; }
+.v2-setrow__meta { order: 9; flex-basis: 100%; display: flex; align-items: center; gap: 10px; min-width: 0; }   /* 둘째 줄: 보유·담음 · 남은 값 — 첫 줄은 이름·단추 */
+.v2-setrow__cost { display: inline-flex; align-items: center; gap: 4px; font-size: 10px; color: var(--v2-dim); white-space: nowrap; }
+.v2-setrow__cost em { display: inline-flex; align-items: center; gap: 2px; font-style: normal; font-weight: 700; color: #fff; }
+.v2-setrow__cost em.is-poor { color: #ff5a6e; }
+.v2-setrow__cost i { font-style: normal; font-weight: 400; color: var(--v2-dim); }
+.v2-setrow__cost .v2-icon { width: 12px; height: 12px; }
+.v2-setrow__cost.is-done { color: var(--v2-green); }
 /* 등급 단계 잠김 (11-03, progress_v2.js tierLock): 아래 등급 파츠를 더 가져야 열림 — 그림을 흐리게, 배지에 자물쇠 + 가진 수/필요 수 */
 .v2-partcard__badge.is-tierlock { display: flex; align-items: center; justify-content: center; gap: 3px; background: #2a2f3a; color: var(--v2-amber); }
 .v2-partcard__badge.is-tierlock .v2-icon { width: 10px; height: 10px; }

@@ -184,7 +184,9 @@ def run(ctx):
     battle_at(g, '4-B')
     g.js("b.midBaseSpawned = true; b.midBaseDestroyed = true; b.distanceTraveled = b.stage.finalAt - 0.5; b.playerSpeed = 100;")
     g.wait(2600)
-    st = g.js("const f = b.enemies.find(e => e.isFinal); return { art: f && f.art, boss: b.boss && b.boss.type, img: b.boss && b.boss.dom.className };")
+    g.js("window.__finalArt = b.enemies.find(e => e.isFinal)?.art;")
+    g.open_boss_gate()   # 11-05 피드백 17: 보스는 최종 거점을 부순 뒤 나옴
+    st = g.js("const f = { art: window.__finalArt }; return { art: f && f.art, boss: b.boss && b.boss.type, img: b.boss && b.boss.dom.className };")
     ctx.check(st['art'] == 'st4_base' and st['boss'] == 'oculus' and 'v2-art-oculus' in (st['img'] or ''), '4-B: 우주적 고치 · 관장자 오큘러스(새 그림)', str(st))
     g.js(CLEAN + "b.monsterX = 420; m.setMonsterPosition(420); b.boss.x = 700; b.boss.dom.style.left = '700px'; b.boss.speed = 0;"
          "b.boss.cd.goo = 99; b.boss.cd.wave = 0;")

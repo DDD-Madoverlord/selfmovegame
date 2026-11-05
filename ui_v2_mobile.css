@@ -234,6 +234,7 @@ body.v2-fit.v2-mobile #screen-menu-v2 { left: 0; top: 0; width: var(--v2-vw, 128
 .v2-mobile #screen-battle-v2 .v2-unit .v2-bar__fill::after { background: repeating-linear-gradient(90deg, transparent 0 43px, rgba(0, 0, 0, 0.22) 43px 44px); }
 .v2-mobile #screen-battle-v2 .v2-unit .v2-bar__text { right: 12px; font-size: 26px; font-weight: 900; }
 .v2-mobile #screen-battle-v2 .v2-unit .v2-bar__text small { display: none; }
+.v2-mobile #screen-battle-v2 .v2-lives { gap: 6px; margin-top: 2px; font-size: 26px; }   /* 목숨 하트 (11-05 피드백 21번) */
 .v2-mobile #screen-battle-v2 .v2-unit__status { top: 44px; left: 0; right: auto; gap: 6px; }   /* 체력 막대 바로 아래 (기준 = .v2-unit__body) */
 .v2-mobile #screen-battle-v2 .v2-unit__status .v2-status__icon { width: 30px; height: 30px; border-radius: 6px; }
 .v2-mobile #screen-battle-v2 .v2-unit__status .v2-status__icon .v2-icon { width: 22px; height: 22px; }
@@ -391,6 +392,7 @@ body.v2-fit.v2-mobile #screen-lab-v2 { left: 0; top: 0; width: var(--v2-aw, 100v
 .v2-mobile #screen-lab-v2 .v2-gradechip, .v2-mobile #screen-lab-v2 .v2-gradechip b { font-size: 12px; }
 .v2-mobile #screen-lab-v2 .v2-partgrid { grid-column: 2; grid-row: 2; gap: 6px; align-items: start; grid-auto-rows: max-content; }   /* 줄 높이 = 카드 내용 (칸이 낮아도 눌리지 않게) */
 .v2-mobile #screen-lab-v2 .v2-partgroup small { font-size: 11px; }
+.v2-mobile #screen-lab-v2 .v2-setrow__cost, .v2-mobile #screen-lab-v2 .v2-setrow__meta small { font-size: 11px; }
 /* 고른 파츠 = 펼친 카드 (한 줄 전체): 그림 · 이름 · 세트 · 개조 후 능력치 4칸 · 스킬 */
 .v2-mobile #screen-lab-v2 .v2-partcard { min-height: 0; grid-template-columns: 60px minmax(0, 1fr); gap: 8px; padding: 7px 8px 7px 10px; }   /* index.css .part-card 110px 최소 높이를 풂 */
 .v2-mobile #screen-lab-v2 .v2-partcard.is-selected { grid-column: 1 / -1; }

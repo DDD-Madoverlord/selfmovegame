@@ -66,6 +66,27 @@ function thumbOf(slot, part) {
     return { src: `assets/sprites/rig/${c}/${t.file}`, filter: t.filter };
 }
 
+/** 드랍 전용(유니크·레전더리 세트) 카드 배지 = 만들기 조각 수 (11-05 피드백 10번 — 예전 '드랍·조각') */
+function dropBadge(part) {
+    const c = progress.craftCost(part.id);
+    return c ? [`${icon('shard', 11)}조각 ${c.shards}`, `is-drop${c.shards > progress.shards ? ' is-poor' : ''}`] : ['드랍 전용', 'is-drop'];
+}
+
+/** 세트 줄: 아직 없는 파츠를 다 얻는 값 — DM으로 살 수 있으면 DM 합, 아니면 만들기 조각 합 (11-05 피드백 10번) */
+function setCostHtml(parts) {
+    let dm = 0, shards = 0;
+    for (const p of parts) {
+        if (!p || progress.isOwned(p.id)) continue;
+        if (!isDropOnly(p) && p.cost) dm += p.cost;
+        else shards += progress.craftCost(p.id)?.shards || 0;
+    }
+    if (!dm && !shards) return parts.some(Boolean) ? '<span class="v2-setrow__cost is-done">모두 보유</span>' : '';
+    const bits = [];
+    if (dm) bits.push(`<em class="${dm > gameState.darkMatter ? 'is-poor' : ''}">${icon('gem', 12)}${dm.toLocaleString()} DM</em>`);
+    if (shards) bits.push(`<em class="${shards > progress.shards ? 'is-poor' : ''}">${icon('shard', 12)}조각 ${shards}<i>/${progress.shards}</i></em>`);
+    return `<span class="v2-setrow__cost" title="아직 없는 파츠를 모두 얻는 값">남은 파츠 ${bits.join(' + ')}</span>`;
+}
+
 function skillOf(slot, part) {
     if (!part || part.id === 'none') return null;
     if (slot === 'leg') {
@@ -274,8 +295,8 @@ export class LabController {
             const badge = part.id === equippedId ? ['EQUIPPED', 'is-equipped']
                 : owned ? [part.cost ? 'OWNED' : 'FREE', part.cost ? 'is-owned' : 'is-free']
                     : lock ? [`${icon('lock', 10)}${gradeOf(lock.from).name} ${lock.have}/${lock.need}`, 'is-tierlock']
-                        : isDropOnly(part) ? ['드랍·조각', 'is-drop']
-                            : [`${part.cost.toLocaleString()} DM`, part.cost > gameState.darkMatter ? 'is-poor' : ''];
+                        : isDropOnly(part) ? dropBadge(part)
+                            : [`${icon('gem', 11)}${part.cost.toLocaleString()} DM`, part.cost > gameState.darkMatter ? 'is-poor' : ''];
             const st = progress.partStats(part);
             const lv = progress.levelOf(part.id);
             const card = document.createElement('div');
@@ -371,7 +392,7 @@ export class LabController {
                 || '<li>세트 효과 없음</li>';
             row.innerHTML = `
                 <div class="v2-setrow__head">${mark}<b>${label}</b>
-                    <small>보유 ${owned}/${n} · 담음 ${inCart}/${n}</small>
+                    <span class="v2-setrow__meta"><small>보유 ${owned}/${n} · 담음 ${inCart}/${n}</small>${setCostHtml(parts)}</span>
                     ${sid ? '<button class="v2-btn v2-btn--ghost v2-setrow__skills">세트 스킬</button>' : ''}
                     <button class="v2-btn v2-setrow__take" ${inCart === n ? 'disabled' : ''}>${inCart === n ? '담음' : n === 4 ? '세트로 담기' : '모두 담기'}</button></div>
                 <div class="v2-setrow__parts">${cells}</div>
@@ -553,13 +574,16 @@ export class LabController {
         const opts = $('lab-upg-opts-v2');
         const craft = valid && !owned0 ? progress.craftCost(part.id) : null;   // 안 가진 세트 파츠: 조각으로 만들기 (Q-008)
         if (opts) opts.textContent = valid && owned0 ? (optionText(part.id) || (g.id === 'common' ? '옵션 없음 — 레어부터 (하드 이상 드랍·조각)' : ''))
-            : craft ? `${isDropOnly(part) ? '드랍 전용 — 헬 이상에서 떨어짐, ' : '하드 이상에서도 떨어짐, '}파츠 조각 ${craft.shards}개로 만들 수 있음 (보유 ${progress.shards})` : '';
+            : craft ? `파츠 조각 ${craft.shards}개로 만들 수 있음 (보유 ${progress.shards}) · ${isDropOnly(part) ? '보스 첫 클리어(헬 이상) 확정 보상으로도 나옴' : 'DM으로도 살 수 있음'}` : '';
         const gc = valid ? progress.shardUpgradeCost(part.id) : null;
         const gBtn = $('btn-grade-v2');
         if (gBtn) {
             gBtn.querySelector('span').textContent = craft ? '만들기' : '등급 ▲';
             gBtn.disabled = craft ? craft.shards > progress.shards : !gc || gc.shards > progress.shards;
-            $('lab-grade-cost-v2').textContent = !valid ? '' : craft ? `조각 ${craft.shards}` : !owned0 ? '구매 후' : gc ? `조각 ${gc.shards}` : 'MAX';
+            // 필요 / 보유 조각 (11-05 피드백 10번 — 휴대폰은 보유 줄이 숨어 있어 단추에 같이), 모자라면 빨강
+            const need = craft ? craft.shards : owned0 && gc ? gc.shards : null;
+            $('lab-grade-cost-v2').innerHTML = !valid ? '' : need != null
+                ? `${icon('shard', 12)}<b class="${need > progress.shards ? 'is-poor' : ''}">${need}</b><i>/${progress.shards}</i>` : !owned0 ? '구매 후' : 'MAX';
             gBtn.title = craft ? `파츠 조각 ${craft.shards}개로 만들기 — ${gradeOf(craft.grade).name} (보유 ${progress.shards})`
                 : gc ? `파츠 조각 ${gc.shards}개로 ${gradeOf(gc.grade).name} (보유 ${progress.shards})` : '';
         }

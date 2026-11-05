@@ -12,6 +12,13 @@ def clear_stage_fast(g, keep_hp=True):
     g.wait(1500)
     g.js("b.enemies.filter(e => !e.isBuilding).forEach(e => e.dom.remove()); b.enemies = b.enemies.filter(e => e.isBuilding);"
          "const bd = b.enemies.find(e => e.isBuilding && e.isFinal); if (bd) { bd.hp = 1; b.dealDamageToEnemy(bd, 50, true, { knock: 0 }); }")
+    # 보스 판(X-B)은 최종 거점을 부순 뒤 보스가 나오고 보스를 쓰러뜨려야 승리 (11-05 피드백 17)
+    if g.js("return !!b.bossPhase;"):
+        for _ in range(40):
+            if g.js("return !!(b.boss && b.boss.dom);"):
+                break
+            g.wait(200)
+        g.js("if (b.boss) { b.boss.hp = 1; b.dealDamageToEnemy(b.boss, 50, true, { knock: 0 }); }")
     g.wait(7200)
 
 
@@ -105,6 +112,7 @@ def run(ctx):
     g.battle('kaiju', wait_ms=2900)
     g.js("b.spawnInterval = 999; b.midBaseSpawned = true; b.midBaseDestroyed = true; b.enemies.forEach(e => e.dom && e.dom.remove()); b.enemies = []; b.distanceTraveled = b.stage.finalAt - 0.5;")
     g.wait(1500)
+    g.open_boss_gate()   # 11-05 피드백 17: 보스는 최종 거점을 부순 뒤 나옴
     st = g.js("return { boss: !!b.boss && b.boss.type, bar: !document.getElementById('hud-boss-v2').hidden };")
     ctx.check(st['boss'] == 'wmdalpha' and st['bar'], '보스전: WMD-알파 등장 + 보스 체력 바', str(st))
     g.js("b.playerHp = b.maxPlayerHp; window.__hp0 = b.playerHp; b.boss.cd.laser = b.boss.t.laser.every - 0.05;")

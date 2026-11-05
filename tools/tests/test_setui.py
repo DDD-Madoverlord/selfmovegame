@@ -73,6 +73,13 @@ def run(ctx):
               and all('스킬 없음' not in s for s in pop['skills']),
               '세트 탭 [세트 스킬]: 세트 효과 + 네 파츠 스킬(필살기·스킬 2·스킬 1·패시브) 창', str((st, pop)))
     g.shot('setui_setskill', '.v2-lab')
+    # 세트 줄 둘째 줄: 아직 없는 파츠를 다 얻는 값 (레어 = DM 합, 유니크·레전더리 = 만들기 조각 합 — 11-05 피드백 10)
+    st = g.js("""const rows = [...document.querySelectorAll('#parts-grid-v2 .v2-setrow:not(.is-common)')];
+        return rows.map(r => ({ mark: r.querySelector('.v2-setmark').textContent, cost: r.querySelector('.v2-setrow__cost')?.textContent.replace(/\s+/g, ' ').trim() || '' }));""")
+    rare = [r for r in st if r['mark'].startswith('R')]
+    uniq = [r for r in st if r['mark'].startswith('U') or r['mark'].startswith('L')]
+    ctx.check(rare and all('DM' in r['cost'] or '모두 보유' in r['cost'] for r in rare) and uniq and all('조각' in r['cost'] or '모두 보유' in r['cost'] for r in uniq),
+              '세트 줄: 남은 파츠 값 — 레어 세트는 DM, 유니크·레전더리는 조각', str(st[:4]))
     g.key('Escape')
     g.wait(150)
     ctx.check(g.js("return !document.querySelector('.v2-setskill') && window.madOverlordGameV2.currentScreen === 'lab';"), '[세트 스킬] 창은 Escape로 닫히고 연구소 그대로')

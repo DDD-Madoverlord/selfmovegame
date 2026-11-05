@@ -9,6 +9,8 @@ def boss_at(g, stage):
     battle_at(g, stage)
     g.js("b.midBaseSpawned = true; b.midBaseDestroyed = true; b.distanceTraveled = b.stage.finalAt - 0.5; b.playerSpeed = 100;")
     g.wait(2600)
+    g.js("window.__finalArt = b.enemies.find(e => e.isFinal)?.art;")
+    g.open_boss_gate()   # 11-05 피드백 17: 보스는 최종 거점을 부순 뒤 나옴
     g.js(CLEAN + "b.monsterX = 420; m.setMonsterPosition(420); b.boss.x = 780; b.boss.dom.style.left = '780px'; b.boss.speed = 0;"
          "Object.keys(b.boss.cd).forEach(k => b.boss.cd[k] = -99);")
 
@@ -60,7 +62,7 @@ def run(ctx):
 
     g.js("b.stopBattle();" + CLEAR.replace('IDS', '[1, 2, 3, 4, 5, 6, 7]'))
     boss_at(g, '7-B')
-    st = g.js("const f = b.enemies.find(e => e.isFinal); return { art: f && f.art, boss: b.boss && b.boss.type };")
+    st = g.js("const f = { art: window.__finalArt }; return { art: f && f.art, boss: b.boss && b.boss.type };")
     ctx.check(st['art'] == 'st7_base' and st['boss'] == 'behemoth', '7-B: 전방 사령탑 · 심판의 구포 베헤모스', str(st))
     g.js("b.boss.cd.cannon = b.boss.t.cannon.every - 0.05;")
     g.wait(1700)
@@ -124,7 +126,7 @@ def run(ctx):
 
     g.js("b.stopBattle();" + CLEAR.replace('IDS', '[1, 2, 3, 4, 5, 6, 7, 8]'))
     boss_at(g, '8-B')
-    st = g.js("const f = b.enemies.find(e => e.isFinal); return { art: f && f.art, boss: b.boss && b.boss.type };")
+    st = g.js("const f = { art: window.__finalArt }; return { art: f && f.art, boss: b.boss && b.boss.type };")
     ctx.check(st['art'] == 'st8_base' and st['boss'] == 'vladimir', '8-B: 메인 화로석 제단 · 블라디미르 국왕', str(st))
     g.js("b.boss.cd.laser = b.boss.t.laser.every - 0.05;")
     g.wait(1700)
