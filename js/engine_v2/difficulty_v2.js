@@ -113,6 +113,26 @@ export function stageFor(stage, id = DEFAULT_DIFFICULTY, now = Date.now()) {
     return s;
 }
 
+/**
+ * 연패 보정 (11-05 Q-028 답: 무료가 더 어려운 건 의도, 단 절대 못 깨는 판은 없어야 함)
+ * 아직 못 깬 판에서 질 때마다(시간 초과·목숨 소진) 적·거점 체력과 적 공격력을 step씩 낮춤, 최대 max — 깨면 원래대로.
+ * 연패 수 = 판 기록 losses (progress_v2.js recordStage). 목숨 2개로는 성장 끝 기준 캐릭터도 10구역·늦은 보스 판을 거의 못 깸 (11-05 측정)
+ */
+export const ASSIST = { step: 0.1, max: 0.4 };
+export const assistOf = losses => round2(Math.min(ASSIST.max, Math.max(0, losses || 0) * ASSIST.step));
+
+/** 보정 k(0 ~ ASSIST.max)를 곱한 스테이지 복사본 — battle_v2.js startBattle (stageFor 뒤). 보스·바리케이드도 stage.enemy 배율을 씀 */
+export function assistStage(stage, k) {
+    if (!k || !stage) return stage;
+    const m = 1 - k;
+    return {
+        ...stage,
+        assist: k,
+        enemy: { ...stage.enemy, hp: round2(stage.enemy.hp * m), dps: round2(stage.enemy.dps * m) },
+        base: { mid: roundTo(stage.base.mid * m, 100), final: roundTo(stage.base.final * m, 100) }
+    };
+}
+
 /** 스테이지의 난이도 id (노말 스테이지는 difficulty가 없음) */
 export function difficultyOfStage(stage) {
     return (stage && stage.difficulty) || DEFAULT_DIFFICULTY;

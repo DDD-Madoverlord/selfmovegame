@@ -27,7 +27,8 @@
                           또는 gas: { every, warn, sec (감속 시간), silence (증원 중단 초) } (구역 2 유독 가스)
                           또는 orbital: { every, warn, n, radius, dmg, enemyDmg } (새 기획 구역 1 궤도 폭격)
                           또는 containers: { every, warn, n, radius, dmg, stun, hp, sec } (새 기획 구역 2 폐기물 컨테이너 투하) }  — 기획서 2-⑥ 광역 기믹
-                          afterBase: true → 최종 기지를 부수면 보스가 나오고, 보스를 쓰러뜨려야 승리 (구역 3)
+                          afterBase: true → 최종 기지를 부수면 보스가 나오고, 보스를 쓰러뜨려야 승리 (구역 3 → 11-05 피드백 17번: 구역마다 마지막 판 X-B 모두, Q-027)
+                          gate: 최종 기지 이름 (붕괴 문구 — 없으면 '최종 거점')
                           knights: { every, warn, unit } → 보스가 나온 뒤 every초마다 엘리트 소환 (구역 3 심연의 문 개방)
      fonts : 축복 성수대가 나오는 거리(m) 목록 (구역 6) — 부술 때까지 근처 적 받는 피해 감소
      map   : 메인 레이더에 찍을 위치 (레이더 중심 기준 -1~1)
@@ -122,7 +123,7 @@ export const CHAPTER1 = {
             enemy: { hp: 2.3, dps: 1.85, spawn: 2.0, max: 8, mix: { conscript: 3, riot: 1, taser: 1, rocket: 1, empdrone: 1, hound: 2, flamer: 1 } }, elite: 0.12,
             base: { mid: 5600, final: 12500 }, reward: { kill: 22, mid: 1300, final: 4500 },
             // 궤도 폭격: every초마다 경보 → warn초 뒤 붉은 원 n곳(하나는 주인공 자리)에 빛기둥 — 원 안의 주인공 최대 내구도 dmg, 적 병사 최대 체력 enemyDmg
-            boss: { unit: 'wmdalpha', orbital: { every: 20, warn: 2.2, n: 3, radius: 80, dmg: 0.07, enemyDmg: 0.6 } }
+            boss: { unit: 'wmdalpha', afterBase: true, orbital: { every: 20, warn: 2.2, n: 3, radius: 80, dmg: 0.07, enemyDmg: 0.6 } }
         }
     ]
 };
@@ -211,7 +212,7 @@ export const CHAPTER2 = {
             base: { mid: 8000, final: 15000 }, reward: { kill: 34, mid: 2000, final: 6500 },
             // 컨테이너 투하: every초마다 경보 → warn초 뒤 n곳(하나는 주인공 바로 앞) — 그 자리 주인공은 최대 내구도 dmg + stun초 기절,
             // 컨테이너는 hp(× 적 체력 배율) 바리케이드로 sec초 남음
-            boss: { unit: 'terraformer', containers: { every: 20, warn: 2.2, n: 3, radius: 75, dmg: 0.05, stun: 1.2, hp: 500, sec: 8 } }
+            boss: { unit: 'terraformer', afterBase: true, containers: { every: 20, warn: 2.2, n: 3, radius: 75, dmg: 0.05, stun: 1.2, hp: 500, sec: 8 } }
         }
     ]
 };
@@ -300,7 +301,7 @@ export const CHAPTER3 = {
             enemy: { hp: 3.8, dps: 2.6, spawn: 2.0, max: 9, mix: { zealot: 3, holyshield: 1, inquisitor: 1, lightmage: 1, battlepriest: 1, griffon: 1 } }, elite: 0.12,
             base: { mid: 8800, final: 14000 }, reward: { kill: 50, mid: 2800, final: 8500 },
             // 위선의 민낯: 보스가 나온 뒤 every초마다 지옥문 → 악마기사(엘리트) n기
-            boss: { unit: 'benedict', afterBase: true, knights: { every: 32, warn: 2, unit: 'demonknight', n: 2 } }
+            boss: { unit: 'benedict', afterBase: true, gate: '정문', knights: { every: 32, warn: 2, unit: 'demonknight', n: 2 } }
         }
     ]
 };
@@ -385,7 +386,7 @@ export const CHAPTER4 = {
             distance: 1050, midAt: 470, finalAt: 950,
             enemy: { hp: 3.9, dps: 2.62, spawn: 2.0, max: 9, mix: { mutant: 3, boneshield: 1, leechfiend: 2, chimeraslime: 1, sporecaster: 1, parasite: 1 } }, elite: 0.12,
             base: { mid: 9000, final: 15600 }, reward: { kill: 66, mid: 3600, final: 11000 },
-            boss: { unit: 'oculus' }
+            boss: { unit: 'oculus', afterBase: true }
         }
     ]
 };
@@ -471,7 +472,7 @@ export const CHAPTER5 = {
             enemy: { hp: 4.3, dps: 2.82, spawn: 2.0, max: 9, mix: { marine: 3, hatchshield: 1, netgunner: 1, mineman: 1, sonardrone: 1, toxicdiver: 1 } }, elite: 0.12,
             base: { mid: 9800, final: 16200 }, reward: { kill: 76, mid: 4000, final: 12000 },
             // 오염된 해저 화산: every초마다 경보 → warn초 뒤 n곳(하나는 주인공 자리)에서 맹독 간헐천 — sec초 동안 위에 있으면 초당 최대 내구도 dps 비율
-            boss: { unit: 'ironclad', geysers: { every: 20, warn: 2.2, n: 3, width: 130, sec: 4, dps: 0.012 } }
+            boss: { unit: 'ironclad', afterBase: true, geysers: { every: 20, warn: 2.2, n: 3, width: 130, sec: 4, dps: 0.012 } }
         }
     ]
 };
@@ -553,12 +554,13 @@ export const CHAPTER6 = {
             base: { mid: 10700, final: 19200 }, reward: { kill: 79, mid: 4250, final: 11400 }
         },
         {
-            id: '6-B', timeLimit: 270, starTime: 185, name: '무너진 영생', desc: '빈민의 피로 박동하는 "탐욕의 심장". 끌려가는 실험체를 막고 심장을 산산조각 내라.', boss: true,
+            // 시간 270 → 300: 보스가 최종 거점 뒤에 나오게 바뀐 뒤(11-05 피드백 17) 성장 끝 레이저도 보스 체력을 남기고 시간 초과 (11-05 측정)
+            id: '6-B', timeLimit: 300, starTime: 185, name: '무너진 영생', desc: '빈민의 피로 박동하는 "탐욕의 심장". 끌려가는 실험체를 막고 심장을 산산조각 내라.', boss: true,
             distance: 1050, midAt: 470, finalAt: 950,
             enemy: { hp: 4.6, dps: 2.92, spawn: 2.0, max: 9, mix: { orderly: 3, maidenshield: 1, holywater: 1, anesthetist: 1, bloodbagdrone: 1, bloated: 1 } }, elite: 0.12,
             base: { mid: 10000, final: 16800 }, reward: { kill: 86, mid: 4500, final: 13500 },
             // 강제 헌혈: every초마다 경보 → 주인공 앞에 실험체 n명이 나타나 심장 쪽으로 걸어감. 닿으면 보스 최대 체력 heal 회복 + shield(최대 체력 비율) 방어막
-            boss: { unit: 'grailheart', donors: { every: 20, warn: 1.6, n: 3, heal: 0.08, shield: 0.06 } }
+            boss: { unit: 'grailheart', afterBase: true, donors: { every: 20, warn: 1.6, n: 3, heal: 0.08, shield: 0.06 } }
         }
     ]
 };
@@ -646,7 +648,7 @@ export const CHAPTER7 = {
             enemy: { hp: 5.3, dps: 3.27, spawn: 2.0, max: 9, mix: { trench: 3, wireshield: 1, grenadier: 1, gassoldier: 1, officer: 0.6, sapper: 1 } }, elite: 0.12,
             base: { mid: 11600, final: 19000 }, reward: { kill: 96, mid: 5100, final: 15000 },
             // 조명탄: every초마다 보스가 쏘아 올림 → fuse초 안에 부수지 못하면 전장 융단 포격 (최대 내구도 dmg). 조명탄 체력 hp × 적 체력 배율
-            boss: { unit: 'behemoth', flares: { every: 20, fuse: 6, hp: 260, dmg: 0.22 } }
+            boss: { unit: 'behemoth', afterBase: true, flares: { every: 20, fuse: 6, hp: 260, dmg: 0.22 } }
         }
     ]
 };
@@ -734,7 +736,7 @@ export const CHAPTER8 = {
             base: { mid: 13200, final: 21600 }, reward: { kill: 108, mid: 5700, final: 17000 },
             // 탐욕의 제단: every초마다 제단 n개(체력 hp × 적 체력 배율) — 서 있는 동안 초당 최대 내구도 heat 비율 열파동 + 국왕 공격력 ×rage,
             // 모두 부수면 국왕 stun초 기절
-            boss: { unit: 'vladimir', altars: { every: 20, n: 3, hp: 420, heat: 0.006, rage: 1.4, stun: 3 } }
+            boss: { unit: 'vladimir', afterBase: true, altars: { every: 20, n: 3, hp: 420, heat: 0.006, rage: 1.4, stun: 3 } }
         }
     ]
 };
@@ -821,7 +823,7 @@ export const CHAPTER9 = {
             enemy: { hp: 6.7, dps: 3.97, spawn: 2.0, max: 9, mix: { thug: 3, concretedrone: 1, cementsprayer: 1, rivetsniper: 1, dynamite: 1, safetywarden: 0.6 } }, elite: 0.12,
             base: { mid: 14800, final: 24200 }, reward: { kill: 120, mid: 6300, final: 19000 },
             // 폐자재 더미: every초마다 n개(체력 hp × 적 체력 배율) — 서 있는 동안 보스 무적, fuse초 안에 모두 못 부수면 폭발 (최대 내구도 dmg)
-            boss: { unit: 'panopticon', scrap: { every: 20, n: 3, hp: 460, fuse: 15, dmg: 0.25 } }
+            boss: { unit: 'panopticon', afterBase: true, scrap: { every: 20, n: 3, hp: 460, fuse: 15, dmg: 0.25 } }
         }
     ]
 };
@@ -908,7 +910,7 @@ export const CHAPTER10 = {
             enemy: { hp: 7.4, dps: 4.32, spawn: 2.0, max: 9, mix: { citizen: 3, sonicshield: 1, speakerdrone: 1, lasersniper: 1, woofermech: 0.6, thug: 1 } }, elite: 0.12,
             base: { mid: 16400, final: 26800 }, reward: { kill: 132, mid: 6900, final: 21000 },
             // 세뇌 방송국 가동: every초마다 보스 무적 + 안테나 n개(체력 hp × 적 체력 배율) — fuse초 안에 모두 못 부수면 소음 파동 (최대 내구도 dmg)
-            boss: { unit: 'mothervoice', antennas: { every: 20, n: 4, hp: 360, fuse: 10, dmg: 0.25 } }
+            boss: { unit: 'mothervoice', afterBase: true, antennas: { every: 20, n: 4, hp: 360, fuse: 10, dmg: 0.25 } }
         }
     ]
 };

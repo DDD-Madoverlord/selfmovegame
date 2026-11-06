@@ -10,6 +10,7 @@ import { sound } from '../engine_v2/audio/sound_v2.js';
 import { progress, exportSave, importSave } from '../engine_v2/progress_v2.js';
 import { VERSION, BUILD } from '../version_v2.js';
 import { isApp, checkForUpdate } from './appUpdate_v2.js';
+import { openProbInfo } from './probInfo_v2.js';
 import { commerceEnvironment, initCommerceDev, isMockCommerce } from '../engine_v2/commerceDev_v2.js';
 
 const SLIDERS = [
@@ -90,6 +91,10 @@ export function openSettings() {
                 <div class="v2-settings__row">
                     <span>버전 ${VERSION} <small data-out="update">빌드 ${BUILD} · ${isApp() ? 'Android 앱' : '웹'}</small></span>
                     ${isApp() ? '<button class="v2-btn v2-btn--ghost v2-settings__reset" data-act="update">업데이트 확인</button>' : ''}
+                </div>
+                <div class="v2-settings__row">
+                    <span>확률 정보<small>파츠 옵션·등급 · 판 클리어 드랍 확률 (11-05 상점·연구소에서 옮김)</small></span>
+                    <button class="v2-btn v2-btn--ghost v2-settings__reset" data-act="prob">보기</button>
                 </div>
                 <div class="v2-settings__row">
                     <span>사운드<small>일부 효과음·배경음 Powered by Stability AI (Stable Audio 3) · 그 밖은 CC0 (Kenney 등)</small></span>
@@ -173,6 +178,7 @@ export function openSettings() {
         setTimeout(() => el.remove(), 180);
     };
     const onKey = e => {
+        if (document.querySelector('.v2-prob-info')) return;   // 위에 뜬 확률 창이 먼저 닫힘 (그 창이 Escape를 받음)
         if (e.key === 'Escape') {
             e.stopPropagation();
             e.preventDefault();
@@ -181,6 +187,7 @@ export function openSettings() {
     };
     document.addEventListener('keydown', onKey, true);
     el.querySelector('[data-act="close"]').addEventListener('click', close);
+    el.querySelector('[data-act="prob"]').addEventListener('click', openProbInfo);
     el.querySelector('[data-act="tutorial-replay"]').addEventListener('click', () => { progress.replayTutorial(); close(); });
     el.querySelector('[data-act="tutorial-resume"]').addEventListener('click', () => { progress.resumeTutorial(); close(); });
     el.querySelector('[data-act="copy-save"]').addEventListener('click', async () => {

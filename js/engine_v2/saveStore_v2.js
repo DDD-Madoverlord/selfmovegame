@@ -188,7 +188,8 @@ function validate(entries) {
     for (const stages of records) {
         if (!object(stages) || Object.values(stages).some(rec => !object(rec) || !Array.isArray(rec.stars)
             || rec.stars.length !== 3 || rec.stars.some(v => typeof v !== 'boolean')
-            || typeof rec.cleared !== 'boolean' || (rec.bestTime != null && !Number.isFinite(rec.bestTime)))) {
+            || typeof rec.cleared !== 'boolean' || (rec.bestTime != null && !Number.isFinite(rec.bestTime))
+            || (rec.losses !== undefined && !(Number.isInteger(rec.losses) && rec.losses >= 0)))) {
             throw new Error('스테이지 기록의 모양이 올바르지 않습니다.');
         }
     }

@@ -32,10 +32,10 @@ import { BattleDirector } from '../ui_v2/battleDirector_v2.js';
 import { coach } from '../ui_v2/coach_v2.js';
 import { sound } from './audio/sound_v2.js';
 import { progress } from './progress_v2.js';
-import { stageById, defaultStage, nextStageOf } from './stages_v2.js';
-import { stageFor, difficultyOf, difficultyUnlocked, nextDifficultyOf, FINAL_STAGE_ID, DEFAULT_DIFFICULTY } from './difficulty_v2.js';
+import { stageById, defaultStage, nextStageOf, isUnlocked } from './stages_v2.js';
+import { stageFor, assistStage, difficultyOf, difficultyUnlocked, nextDifficultyOf, FINAL_STAGE_ID, DEFAULT_DIFFICULTY } from './difficulty_v2.js';
 import { aimAt as aimOf } from './bases_v2.js';
-import { HERO, POPUP, FOOT_B, OVERLOAD } from './battle/tuning.js';
+import { HERO, POPUP, FOOT_B, OVERLOAD, LIVES } from './battle/tuning.js';
 import { PlayerMethods } from './battle/player.js';
 import { AttackMethods, SKILL_AUTO_KEY } from './battle/attacks.js';
 import { EnemyMethods } from './battle/enemyField.js';
@@ -158,7 +158,9 @@ export class BattleEngine {
         this.distanceTraveled = 0;
         // 난이도(D-063): 고른 난이도의 배율을 곱한 스테이지 복사본 — 전투 코드는 b.stage만 읽음
         this.difficulty = difficultyUnlocked(progress.difficulty, progress) ? progress.difficulty : DEFAULT_DIFFICULTY;
-        this.stage = this.growthStage(stageFor(stageById(progress.selectedStage || defaultStage(progress).id), this.difficulty));   // + 계정 연구 DM (growth.js)
+        const sid = progress.selectedStage || defaultStage(progress).id;
+        this.assist = progress.assist(sid, this.difficulty);   // 연패 보정: 못 깬 판에서 진 만큼 적·거점 약하게 (difficulty_v2.js ASSIST)
+        this.stage = this.growthStage(assistStage(stageFor(stageById(sid), this.difficulty), this.assist));   // + 계정 연구 DM (growth.js)
         predecodeStageArt(this.stage);   // 이 스테이지 적 그림을 미리 풂 (enemies_v2.js — 처음 나올 때 멈칫하지 않게)
         // 구역 배경 (ui_v2.css .v2-zone-1 ~ 4 · 6), 보스전은 경보 조명·불길 판 (.v2-stage-boss)
         // .v2-boss-rage(구역 4 보스 2페이즈)·.v2-crimson(구역 3 악마기사 소환 점멸)은 전투 중에 붙음
@@ -181,6 +183,10 @@ export class BattleEngine {
         this.overloadT = 0;
         this.timeUp = false;
         this.timeWarned = false;
+        // 목숨 (11-05 피드백 21번): 패스(weekly_pass_7d)가 켜져 있으면 4, 아니면 2 — 전투마다 새로 (battle/player.js checkOverload)
+        this.livesMax = progress.activePass() ? LIVES.pass : LIVES.free;
+        this.lives = this.livesMax;
+        this.livesOut = false;
         this.artTimer = 0;
         this.orbitalTimer = 0;   // 새 기획 구역 1 보스전 궤도 폭격 (enemyField.js tickOrbital)
         this.containerTimer = 0; // 새 기획 구역 2 보스전 폐기물 컨테이너 투하 (enemyField.js tickContainers)
@@ -418,7 +424,19 @@ export class BattleEngine {
         return true;
     }
 
-    // 전투 종료 → 결과 화면 (승리: 최종 기지 파괴 연출 뒤 / 패배: 시간 초과 연출 뒤)
+    /** 목숨을 다 쓰고 또 쓰러짐 → 쓰러지는 연출 → 패배 (11-05 피드백 21번) */
+    loseLives() {
+        if (this.livesOut || this.timeUp || this.finalBaseDestroyed) return;
+        this.livesOut = true;
+        this.cinematic = true;
+        this.clearSupport();
+        const run = this.runId;
+        this.director.playerDown().then(() => {
+            if (this.runId === run && this.isActive) this.finishBattle(false);
+        });
+    }
+
+    // 전투 종료 → 결과 화면 (승리: 최종 기지 파괴 연출 뒤 / 패배: 시간 초과·목숨 소진 연출 뒤)
     finishBattle(victory) {
         // 세 번째 별: 목표 시간(stage.starTime) 안에 클리어 (D-029)
         if (victory && this.stats.time <= this.stage.starTime) this.starFlags[2] = true;
@@ -429,6 +447,15 @@ export class BattleEngine {
         const firstClear = victory && !progress.stage(this.stage.id, diff).cleared;
         const record = progress.recordStage(this.stage.id, { stars: this.starFlags, cleared: victory, time: this.stats.time }, diff);
         const next = victory ? nextStageOf(this.stage.id) : null;
+        // 고른 판을 깨면 '진행해야 할 판'(아직 안 깬 가장 앞 판, 다 깼으면 바로 다음 판)을 골라 둠 — 결과에서 [메인 메뉴]·[연구소]로 나와도 (11-05 피드백 13번).
+        // [다시 출격]은 깬 판을 다시 고름, [다음]은 바로 다음 판
+        const clearedId = this.stage.id;
+        const front = defaultStage(progress);
+        const target = !victory ? null
+            : !progress.stage(front.id).cleared && isUnlocked(front.id, progress) ? front
+            : next && isUnlocked(next.id, progress) ? next : null;
+        const advance = !!target && target.id !== clearedId && progress.selectedStage === clearedId;
+        if (advance) progress.selectStage(target.id);
         // 마지막 스테이지(4-B)를 처음 깨면 다음 난이도가 열림 + 강화 한도 상승 (D-063)
         const unlocked = victory && this.stage.id === FINAL_STAGE_ID && wasLocked && difficultyUnlocked(nextDiff.id, progress) ? nextDiff : null;
         const loot = this.finishGrowth(victory, firstClear);   // 스킬 코어 + 파츠 드랍 (battle/growth.js)
@@ -446,6 +473,11 @@ export class BattleEngine {
             pets: record.pets,
             next,
             timeUp: !victory && this.timeUp,
+            livesOut: !victory && this.livesOut,
+            assist: this.assist,                                       // 이번 판에 걸린 연패 보정
+            nextAssist: victory ? 0 : progress.assist(this.stage.id, diff),   // 다음 도전 보정
+            bossPhase: !victory && !!this.bossPhase,   // 최종 거점을 부순 뒤 보스전에서 짐 (11-05 피드백 17번)
+            bossKill: victory && !!this.bossPhase,
             overloads: this.stats.overloads || 0,
             distance: Math.min(this.maxDistance, this.distanceTraveled),
             kills: this.stats.kills,
@@ -459,6 +491,7 @@ export class BattleEngine {
         progress.tutorialBattleResult(result.stage.id, diff, victory);
         this.director.showResult(result, act => {
             if (act === 'next' && next) progress.selectStage(next.id);
+            if (act === 'retry' && advance) progress.selectStage(clearedId);
             if (this.onNavigate) this.onNavigate(act === 'retry' || act === 'next' ? 'battle' : act);
         });
     }

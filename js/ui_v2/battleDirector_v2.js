@@ -8,7 +8,7 @@
    - baseDestroyed()  : 거점 파괴 (연쇄 폭발 → 대폭발, 흔들림, 섬광, 슬로모션, 별 획득)
    - overload(sec)    : 내구도 0 → 과부하 (붉은 섬광, OVERLOAD 문구, 긴급 수리 중 깜빡임)
    - timeOver()       : 제한 시간 초과 (기체 정지, TIME OVER) → 결과 화면
-   - playerDown()     : 캐릭터가 쓰러짐 (지금은 쓰지 않음 — 주인공은 죽지 않음, D-028)
+   - playerDown()     : 캐릭터가 쓰러짐 — 목숨을 다 쓰고 또 쓰러지면 (11-05 피드백 21번, battle_v2.js loseLives)
    - showResult()     : 승리/패배 결과 화면 (별 도장, 전투 기록, 보상 카운트업, 다음 행동 버튼, 패배면 원인·할 일 — runReport.js)
    - setLowHp(on)     : 체력 30% 미만 화면 가장자리 붉은 경고
    효과음: sfx(이름) → 사운드 매니저(audio/sound_v2.js). 저체력 심장 박동은 반복 재생.
@@ -35,7 +35,12 @@ const lootHtml = loot => {
     if (!loot || (!loot.drop && !loot.cores)) return '';
     const d = loot.drop;
     let card = '';
-    if (d) {
+    if (d && d.type === 'shards') {   // 판 클리어 드랍 = 공용 파츠 조각 (11-05 피드백 23번)
+        const g = gradeOf(d.grade);
+        card = `<div class="v2-loot__part is-shards" style="--grade:${g.color}">
+            <small>판 클리어 드랍 · ${g.name} 등급</small><b>${icon('shard', 18)} 파츠 조각 +${d.shards}</b>
+            <span>연구소 [만들기] · 등급 올리기에 씀 (보유 ${loot.shards})</span></div>`;
+    } else if (d) {
         const g = gradeOf(d.grade);
         const what = d.type === 'new' ? 'NEW 파츠' : d.type === 'upgrade' ? `등급 상승 (${gradeOf(d.prev).name} → ${g.name})` : '중복 — 환급';
         const opts = d.options.map(o => OPTIONS[o] ? `<li>${OPTIONS[o].name} · ${OPTIONS[o].desc}</li>` : '').join('');
@@ -482,7 +487,8 @@ export class BattleDirector {
                 <div class="v2-result__head">   <!-- 머리(결과·별)와 몸(기록·보상): PC는 없는 셈(display: contents), 휴대폰 배치는 두 칸 (ui_v2_mobile.css) -->
                 <small class="v2-result__op">STAGE ${stage.id} · ${stage.name}${diffTag(stage)}</small>
                 <h2 class="v2-result__title">${r.victory ? 'MISSION COMPLETE' : 'MISSION FAILED'}</h2>
-                <p class="v2-result__sub">${r.victory ? '적 수비대 거점을 모두 분쇄했습니다' : '제한 시간 안에 최종 기지를 부수지 못했습니다'}</p>
+                <p class="v2-result__sub">${r.victory ? (r.bossKill ? '최종 거점을 부수고 보스를 쓰러뜨렸습니다' : '적 수비대 거점을 모두 분쇄했습니다') : r.livesOut ? '목숨을 모두 잃었습니다 — 연구소에서 몸통(체력)을 강화해 보세요' : r.bossPhase ? '제한 시간 안에 보스를 쓰러뜨리지 못했습니다' : '제한 시간 안에 최종 기지를 부수지 못했습니다'}</p>
+                ${r.nextAssist ? `<p class="v2-result__assist">${icon('down', 14)}도전 보정 — 다음 도전은 적 체력·공격력 −${Math.round(r.nextAssist * 100)}%</p>` : ''}
                 <div class="v2-result__stars">
                     ${stars.map((st, i) => `
                         <div class="v2-result__star${st.now ? ' is-on' : ''}${st.had ? ' is-had' : ''}" style="--d:${0.35 + i * 0.3}s">

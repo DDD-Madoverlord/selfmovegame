@@ -335,7 +335,8 @@ export const EnemyMethods = {
         gate.isFinal = false;   // collapseBase가 요새 잔해처럼 바닥과 함께 흘려보냄
         this.ruinHoldT = BASE_STATE.ruinHold;
         const unit = ENEMY_TYPES[this.stage.boss.unit];
-        this.director.baseDestroyed(gate, false, { stamp: ['GATE BROKEN', `정문 붕괴 — ${unit.name}이(가) 모습을 드러낸다`] });
+        const gateName = this.stage.boss.gate || '최종 거점';   // 3-B만 '정문' (stages_v2.js boss.gate)
+        this.director.baseDestroyed(gate, false, { stamp: [this.stage.boss.gate ? 'GATE BROKEN' : 'BASE DOWN', `${gateName} 붕괴 — ${unit.name}이(가) 모습을 드러낸다`] });
         const x = gate.x + (gate.size ? gate.size.w / 2 : 60) - 40;
         this.schedule(1.3, () => {
             if (!this.isActive || this.finalBaseDestroyed) return;

@@ -4,7 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>MAD OVERLORD // RIG TEST</title>
-    <script>if (new URLSearchParams(location.search).get('capture') === '1') document.documentElement.classList.add('capture');</script>
+    <script>if (new URLSearchParams(location.search).get('capture') === '1') document.documentElement.classList.add('capture');
+        // 게임 연구소 안 스킬 미리보기 (11-05 피드백 11번, lab_v2.js): 무대만, 캐릭터와 첫 적이 보이게 잘라 채움
+        if (new URLSearchParams(location.search).get('embed') === '1') document.documentElement.classList.add('capture', 'embed');</script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;700&family=Noto+Sans+KR:wght@400;700&family=Orbitron:wght@700;900&display=swap" rel="stylesheet">
@@ -191,6 +193,9 @@
             color: #fff; font: 700 22px 'Noto Sans KR', sans-serif; pointer-events: none;
             background: rgba(10, 8, 20, 0.72); border: 1px solid rgba(242, 154, 58, 0.8); border-radius: 6px; padding: 4px 12px; }
         .capture #capture-label:empty { display: none; }
+        .embed, .embed body { background: transparent; }
+        .embed #rig-canvas { object-fit: cover; object-position: 52% 100%; }
+        .embed #rig-loading { display: none; }
         .empty { color: var(--muted); font-size: 12px; padding: 6px 2px; }
         label.opt {
             display: flex;

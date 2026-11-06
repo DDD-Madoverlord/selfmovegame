@@ -131,6 +131,18 @@ class Game:
                      sel: progress.selectedStage, name: document.getElementById('menu-map-name-v2').textContent,
                      foot: document.getElementById('menu-map-foot-v2').textContent }};""")
 
+    def open_boss_gate(self, timeout=8000):
+        """보스 판(X-B): 최종 거점을 부숴 보스를 불러냄 — 11-05 피드백 17부터 보스는 거점을 부순 뒤 나옴(boss.afterBase).
+        보스가 나올 때까지 기다림(거점 붕괴 연출의 느린 화면 때문에 1.3초보다 걸릴 수 있음). 돌려주는 값: 나왔는지"""
+        self.js("const bd = b.enemies.find(e => e.isBuilding && e.isFinal); if (bd) { bd.hp = 1; b.dealDamageToEnemy(bd, 50, true, { knock: 0 }); }")
+        for _ in range(timeout // 200):
+            if self.js("return !!(b.boss && b.boss.hp > 0 && b.boss.dom);"):
+                self.wait(1200)   # 거점 붕괴 연출(느린 화면·보스 카드)이 끝나게
+                self.js("gameTime.slowUntil = 0; gameTime.speed = 1;")
+                return True
+            self.wait(200)
+        return False
+
     def wait(self, ms):
         self.page.wait_for_timeout(ms)
 

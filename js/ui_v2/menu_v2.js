@@ -24,7 +24,8 @@ import { icon, fillIcons } from './icons.js';
 import { openSettings } from './settingsPanel_v2.js';
 import { TacticalRadar } from './radar_v2.js';
 import { StageMap, stageNpcs, plainName } from './stageMap_v2.js';
-import { resChipHtml, openGrowthPanel } from './growthUi_v2.js';
+import { openGrowthPanel } from './growthUi_v2.js';
+import { refreshCurrency, currencyChipsHtml } from './currencyBar_v2.js';
 import { MUTATORS } from '../engine_v2/growth_v2.js';
 import { openShop } from './shop_v2.js';
 import { createOfflineRewardButton, updateOfflineRewardButton } from './offlineRewardUi_v2.js';
@@ -153,6 +154,13 @@ export class MenuController {
         $('btn-menu-support-v2')?.addEventListener('click', () => openGrowthPanel('modules', changed));
         $('btn-menu-coop-v2')?.addEventListener('click', () => openGrowthPanel('coop', changed));
         this.root?.querySelectorAll('.v2-maptab').forEach(tab => tab.addEventListener('click', () => this.setMap(tab.dataset.map)));
+        const money = this.root?.querySelector('.v2-radar__money');
+        if (money) money.innerHTML = currencyChipsHtml();
+        // 휴대폰 메인의 [스토리 맵]·[스페셜 맵]: 그 지도로 바꾸고 지도 창을 엶 (11-05 피드백 14번)
+        this.root?.querySelectorAll('.v2-mmap').forEach(btn => btn.addEventListener('click', () => {
+            this.setMap(btn.dataset.map);
+            this.openStages(true);
+        }));
 
         // 휴대폰 배치 (메인 시안 B): 메뉴 줄 · 스테이지 선택 창
         $('btn-rail-select-v2')?.addEventListener('click', toSelect);
@@ -198,7 +206,7 @@ export class MenuController {
     setMap(map) {
         this.map = map;
         this.radar.setMode(map);
-        this.root.querySelectorAll('.v2-maptab').forEach(t => t.classList.toggle('is-on', t.dataset.map === map));
+        this.root.querySelectorAll('.v2-maptab, .v2-mmap').forEach(t => t.classList.toggle('is-on', t.dataset.map === map));
         const story = map === 'story';
         $('menu-radar-locked-v2').hidden = story;
         $('menu-map-name-v2').textContent = story ? plainName(chapterOf(this.currentStage()).name) : 'SPECIAL · 무한 파밍 / 엘리트 챌린지';
@@ -323,6 +331,7 @@ export class MenuController {
         const stars = progress.stage(cur.id).stars.map(f => (f ? '★' : '☆')).join('');
         const enemies = Object.keys(cur.enemy.mix).map(k => ENEMY_TYPES[k].name).join(' · ');
         const best = progress.stage(cur.id).bestTime;
+        const assist = Math.round(progress.assist(cur.id) * 100);   // 연패 보정 % (못 깬 판에서 진 만큼, difficulty_v2.js ASSIST)
         const shown = stageFor(cur, diff.id);   // 제한·별 시간은 난이도 배율 반영
         // 노말이 아니면 레이더 왼쪽 아래에 배율 요약
         const note = $('menu-diffnote-v2');
@@ -335,14 +344,15 @@ export class MenuController {
         }
         $('menu-map-foot-v2').innerHTML = `<b>${cur.id} ${cur.name}</b> <span class="v2-stars">${stars}</span>`
             + `<span class="v2-radar__time">⏱ 제한 ${clock(shown.timeLimit)} · ★ ${shown.starTime}초 안에${best ? ` · 최고 ${clock(best)}` : ''}</span>`
+            + (assist ? `<span class="v2-assist" title="이 판에서 진 만큼 적 체력·공격력이 낮아짐 — 깨면 원래대로">도전 보정 −${assist}%</span>` : '')
             + `<small>${cur.desc} · 적: ${enemies}${cur.boss ? ' · 보스' : ''}</small>`;
         $('menu-sortie-sub-v2').textContent = progress.isReady()
             ? `STAGE ${cur.id} ${cur.name}${diff.id === 'normal' ? '' : ` · ${diff.name}`} 출격` : '몸통 파츠 필요 — 연구소에서 구매';
-        this.renderStageCard(cur, ch, diff, shown);
+        this.renderStageCard(cur, ch, diff, shown, assist);
     }
 
-    /** 휴대폰 배치의 스테이지 카드: 구역(누르면 스테이지 선택) · 번호·이름 · 별 · 난이도 · 제한 시간 */
-    renderStageCard(cur, ch, diff, shown) {
+    /** 휴대폰 배치의 스테이지 카드: 구역(누르면 스테이지 선택) · 번호·이름 · 별 · 난이도 · (연패 보정) · 제한 시간 */
+    renderStageCard(cur, ch, diff, shown, assist) {
         const card = $('menu-stage-card-v2');
         if (!card) return;
         const stars = progress.stage(cur.id).stars.map(f => `<i class="${f ? 'is-on' : ''}">${icon('star', 34)}</i>`).join('');
@@ -351,6 +361,7 @@ export class MenuController {
             + `<div class="v2-mstage__title"><b>${cur.id}</b><strong>${cur.name}</strong></div>`
             + `<div class="v2-mstage__meta"><span class="v2-mstage__stars" aria-label="별 ${got}개 / 3개">${stars}</span>`
             + `<span class="v2-diffbadge" style="--diff:${diff.color}">${diff.name}</span>${cur.boss ? '<span class="v2-mstage__boss">보스</span>' : ''}`
+            + (assist ? `<span class="v2-assist" aria-label="도전 보정 ${assist}%">보정 −${assist}%</span>` : '')
             + `<span class="v2-mstage__time" aria-label="제한 시간 ${clock(shown.timeLimit)}">${icon('clock', 30)}${clock(shown.timeLimit)}</span></div>`
             + `<button class="v2-mstage__pick" data-act="stages">${icon('map', 34)}스테이지 선택</button>`;
     }
@@ -360,9 +371,7 @@ export class MenuController {
         this.updateOfflineReward();
         window.madOverlordGameV2?.tutorialUi?.update();
         if ($('menu-shop-badge-v2')) $('menu-shop-badge-v2').textContent = progress.canClaimPass() ? '●' : '';
-        if (this.domDmCount) this.domDmCount.textContent = gameState.darkMatter.toLocaleString();
-        const res = $('menu-res-v2');
-        if (res) res.innerHTML = resChipHtml();   // 별·조각·코어 (Q-006)
+        refreshCurrency();   // 별·조각·코어 · DM — 모든 화면 같은 표시줄 (currencyBar_v2.js)
         const badge = $('menu-support-badge-v2');   // 받을 파견이 있으면 빨간 점
         const dispatchDone = progress.dispatch.some(d => d.end <= Date.now());
         if (badge) badge.textContent = dispatchDone ? ' ' : '';

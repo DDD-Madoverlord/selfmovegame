@@ -24,11 +24,13 @@ import { ENEMY_TYPES, ELITE_AFFIXES } from '../engine_v2/enemies_v2.js';
 import { ENEMY_ART } from '../engine_v2/enemyArt_v2.js';
 import { ROSTER } from '../engine_v2/roster_v2.js';
 import { PART_CATALOG } from './partSkills.gen.js';
-import { SKILL_PREVIEWS } from './skillPreviews.js';
+import { SKILL_PREVIEWS, kitPreview, kitPassivePreview } from './skillPreviews.js';
+import { registerAllSets2 } from '../engine_v2/sets2/index.js';
 import { VFX_VARIANTS, applyVfxVariant, applyVfxChoices, readVfxChoices, readVfxStyle } from '../engine_v2/vfx/vfxVariants.js';
 
 const BAKE = new URLSearchParams(location.search).has('bake');   // 스프라이트 굽기: 적을 그리지 않음
 const CAPTURE = new URLSearchParams(location.search).get('capture') === '1';
+const EMBED = new URLSearchParams(location.search).get('embed') === '1';   // 게임 연구소 안 스킬 미리보기 (11-05 피드백 11번)
 const vfxChoices = readVfxChoices();
 applyVfxChoices(vfxChoices);
 const STAGE_W = 960;
@@ -84,6 +86,7 @@ function applyScale() {
 }
 
 async function init() {
+    registerAllSets2();   // 2차 세트 스킬 단계(SKILLS)를 게임처럼 등록 — kitPreview가 읽음
     const canvas = document.getElementById('rig-canvas');
     mainCtx = canvas.getContext('2d');
     offCanvas = document.createElement('canvas');
@@ -104,6 +107,20 @@ async function init() {
     syncButtons();
     document.getElementById('rig-loading').remove();
     requestAnimationFrame(loop);
+    if (EMBED) bindEmbed();
+}
+
+/** 게임 연구소(lab_v2.js)가 iframe으로 띄우면: { type: 'mo-skill-preview', char, equip: { 부위: 파츠 id }, part } → 그 캐릭터·파츠로 그 스킬 재생 */
+function bindEmbed() {
+    window.addEventListener('message', async e => {
+        const m = e.data;
+        if (e.origin !== location.origin || !m || m.type !== 'mo-skill-preview') return;
+        if (m.char && m.char !== state.char && PART_CATALOG[m.char]) await setCharacter(m.char);
+        Object.values(m.equip || {}).forEach(id => { if (partById(id)) equip(id); });
+        const ok = m.part ? playSkill(m.part) : false;
+        e.source?.postMessage({ type: 'mo-skill-preview-done', ok, part: m.part }, e.origin);
+    });
+    window.parent?.postMessage({ type: 'mo-skill-preview-ready' }, location.origin);
 }
 
 /** 캐릭터 교체: 에셋 로드 후 뼈대/스프링/애니메이터를 새로 구성하고 현재 상태 동작을 이어서 재생 */
@@ -577,7 +594,8 @@ function equip(id) {
     syncButtons();
 }
 
-const previewOf = p => (p && p.skill && SKILL_PREVIEWS[p.skill]) || null;
+// 2차 세트 파츠(kit)는 손으로 짠 미리보기가 없으면 스킬 단계를 읽어 흉내 (skillPreviews.js kitPreview, 11-05 피드백 11번)
+const previewOf = p => (p && p.skill && (SKILL_PREVIEWS[p.skill] || (p.kit && (p.slot === 'leg' ? kitPassivePreview(state.char) : kitPreview(p.skill, p.slot))))) || null;
 
 /** 파츠 스킬 미리보기: 그 파츠를 장착하고(그림) 스킬 이펙트를 적에게 */
 function playSkill(id) {
@@ -1251,7 +1269,7 @@ function render() {
         const sockets = character.arms ? [hitSocket(), ...character.debugSockets] : character.debugSockets;
         skeleton.drawDebug(mainCtx, Mat.mul([1, 0, 0, 1, sx, sy], stageM), sockets);
     }
-    if (opts.bg && !CAPTURE) drawHud();
+    if (opts.bg && !CAPTURE && !EMBED) drawHud();
 }
 
 function drawBackground(ctx, view) {

@@ -12,6 +12,13 @@ def clear_stage_fast(g, keep_hp=True):
     g.wait(1500)
     g.js("b.enemies.filter(e => !e.isBuilding).forEach(e => e.dom.remove()); b.enemies = b.enemies.filter(e => e.isBuilding);"
          "const bd = b.enemies.find(e => e.isBuilding && e.isFinal); if (bd) { bd.hp = 1; b.dealDamageToEnemy(bd, 50, true, { knock: 0 }); }")
+    # 보스 판(X-B)은 최종 거점을 부순 뒤 보스가 나오고 보스를 쓰러뜨려야 승리 (11-05 피드백 17)
+    if g.js("return !!b.bossPhase;"):
+        for _ in range(40):
+            if g.js("return !!(b.boss && b.boss.dom);"):
+                break
+            g.wait(200)
+        g.js("if (b.boss) { b.boss.hp = 1; b.dealDamageToEnemy(b.boss, 50, true, { knock: 0 }); }")
     g.wait(7200)
 
 
@@ -45,12 +52,27 @@ def run(ctx):
     ctx.check(st['stars'] == [True, True, True] and st['cleared'], '1-1 별 3개 기록', str(st['stars']))
     ctx.check(st['news'] == 3, '결과 화면: NEW 별 3개')
     ctx.check(st['next'], '결과 화면: 다음 스테이지 버튼')
+    ctx.check(g.js('return progress.selectedStage;') == '1-2', '1-1을 깨면 진행해야 할 판(1-2)이 골라짐 — 메뉴로 나가도 (피드백 13)')
     gained = g.js('return gameState.darkMatter;') - dm0
     ctx.check(gained >= 500 + 1500 + 900, '보상: 요새 + 기지 + 새 별 보너스 900', str(gained))
     g.shot('stage_result', '#screen-battle-v2')
     g.page.click('.v2-result [data-act="next"]')
     g.wait(1500)
     ctx.check(g.js('return b.stage.id;') == '1-2', '다음 스테이지 버튼 → 1-2 출격')
+
+    # 1-2를 깨고 [메인 메뉴] → 1-3이 골라져 있음 / 깬 판(1-1)을 다시 깨면 아직 안 깬 가장 앞 판(1-3), [다시 출격]은 1-1 그대로 (피드백 13)
+    clear_stage_fast(g, keep_hp=True)
+    g.page.click('.v2-result [data-act="menu"]')
+    g.wait(900)
+    st = g.js("return { sel: progress.selectedStage, card: document.getElementById('menu-stage-card-v2').innerText };")
+    ctx.check(st['sel'] == '1-3' and '1-3' in st['card'], '1-2를 깨고 메인 메뉴: 1-3이 골라져 있음 (방금 깬 1-2가 아님)', str(st))
+    g.js("progress.selectStage('1-1');")
+    g.battle('mech', wait_ms=2900)
+    clear_stage_fast(g, keep_hp=True)
+    ctx.check(g.js('return progress.selectedStage;') == '1-3', '깬 판 1-1을 다시 깨면: 아직 안 깬 가장 앞 판 1-3이 골라짐 (1-2 아님)')
+    g.page.click('.v2-result [data-act="retry"]')
+    g.wait(1500)
+    ctx.check(g.js('return b.stage.id + "|" + progress.selectedStage;') == '1-1|1-1', '결과에서 [다시 출격]: 깬 판(1-1)을 다시 고르고 출격')
 
     # 구역 1 적 능력 (새 기획 D-085, 1-4 설정으로 직접 소환)
     g.js("progress.selectStage('1-4'); progress.stages['1-3'] = { stars: [true,true,false], cleared: true, bestTime: 60 };")
@@ -90,6 +112,7 @@ def run(ctx):
     g.battle('kaiju', wait_ms=2900)
     g.js("b.spawnInterval = 999; b.midBaseSpawned = true; b.midBaseDestroyed = true; b.enemies.forEach(e => e.dom && e.dom.remove()); b.enemies = []; b.distanceTraveled = b.stage.finalAt - 0.5;")
     g.wait(1500)
+    g.open_boss_gate()   # 11-05 피드백 17: 보스는 최종 거점을 부순 뒤 나옴
     st = g.js("return { boss: !!b.boss && b.boss.type, bar: !document.getElementById('hud-boss-v2').hidden };")
     ctx.check(st['boss'] == 'wmdalpha' and st['bar'], '보스전: WMD-알파 등장 + 보스 체력 바', str(st))
     g.js("b.playerHp = b.maxPlayerHp; window.__hp0 = b.playerHp; b.boss.cd.laser = b.boss.t.laser.every - 0.05;")

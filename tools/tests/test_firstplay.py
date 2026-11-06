@@ -84,9 +84,11 @@ def run(ctx):
     g.js("b.enemies.forEach(e => e.dom && e.dom.remove()); b.enemies = []; b.spawnInterval = 999;"
          "b.midBaseSpawned = true; b.midBaseDestroyed = true; b.distanceTraveled = b.stage.finalAt - 0.5;")
     g.wait(900)
+    g.open_boss_gate()   # 11-05 피드백 17: 보스는 최종 거점을 부순 뒤 나옴 → 그때 카드
+    g.wait(300)
     st = g.js("""const c = document.querySelector('.v2-bosscard'); return { text: c && c.innerText, boss: !!b.boss };""")
     ctx.check(st['text'] and 'WMD-알파' in st['text'] and 'BOSS' in st['text'] and '플라스마 레이저' in st['text'] and st['boss'],
-              '보스 등장 카드: BOSS · 이름 · 주요 기술 (최종 기지와 함께)', str(st))
+              '보스 등장 카드: BOSS · 이름 · 주요 기술 (최종 거점을 부순 뒤 — 피드백 17)', str(st))
     g.shot('firstplay_boss', '#screen-battle-v2')
 
     # ---- 2026-11-03 튜토리얼 세부: 첫 과부하 · 첫 최종 기지 · 연구소 강화 단추 안내 (각각 한 번, tips에 저장) ----

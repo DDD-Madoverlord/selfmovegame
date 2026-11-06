@@ -405,6 +405,9 @@
 .v2-unit__body { flex: 1; display: flex; flex-direction: column; gap: 5px; min-width: 0; }
 .v2-unit__name { display: flex; align-items: baseline; gap: 8px; font-weight: 900; font-size: 16px; letter-spacing: 0.5px; }
 .v2-unit__name small { font-size: 10px; font-weight: 700; color: var(--faction, var(--v2-dim)); }
+.v2-lives { display: flex; gap: 3px; margin-top: 3px; font-size: 13px; line-height: 1; }   /* 목숨 하트 (11-05 피드백 21번) */
+.v2-lives i { font-style: normal; color: rgba(255, 255, 255, 0.18); }
+.v2-lives i.is-on { color: #ff3355; text-shadow: 0 0 6px rgba(255, 51, 85, 0.7); }
 .v2-unit__state { font-size: 11px; font-family: var(--v2-font-num); color: var(--v2-dim); white-space: nowrap; overflow: hidden; }
 .v2-unit__state strong { font-weight: 800; }
 
@@ -1246,6 +1249,10 @@
     text-shadow: 0 0 16px color-mix(in srgb, var(--acc) 70%, transparent);
 }
 .v2-result__sub { margin: -4px 0 4px; font-size: 13px; color: var(--v2-dim); }
+/* 연패 보정 (difficulty_v2.js ASSIST): 진 뒤 '다음 도전은 적 −N%' · 메뉴 판 정보 칩 */
+.v2-result__assist { display: inline-flex; align-items: center; gap: 4px; margin: 0 0 4px; font-size: 12px; font-weight: 700; color: #7dff9a; }
+.v2-assist { display: inline-block; margin-left: 6px; padding: 1px 6px; border-radius: 4px; font-size: 11px; font-weight: 800; color: #7dff9a;
+    background: rgba(125, 255, 154, 0.12); border: 1px solid rgba(125, 255, 154, 0.45); }
 .v2-result__stars { display: flex; justify-content: center; gap: 40px; padding: 6px 0 4px; }
 .v2-result__star { display: flex; flex-direction: column; align-items: center; gap: 4px; color: #3a4150; font-size: 11px; }
 .v2-result__star .v2-icon { filter: drop-shadow(0 0 0 rgba(255, 255, 255, 0.08)) drop-shadow(0 2px 0 #000); opacity: 0.8; }
@@ -2127,6 +2134,7 @@ div.v2-settings__row > span { flex: 1; }
 
 /* 세트 효과 (Q-008): 스킬 구성 아래 한 줄씩 — 켜지면 밝게, 마우스를 올리면 전체 설명 */
 .v2-setbonus { margin-top: 4px; display: flex; flex-direction: column; gap: 2px; }
+.v2-setbonus[hidden] { display: none; }
 .v2-setbonus__row { display: flex; align-items: baseline; gap: 6px; padding: 3px 8px; font-size: 11px; color: var(--v2-dim);
     background: rgba(255, 255, 255, 0.025); border-left: 2px solid #3a4150; white-space: nowrap; min-width: 0; }
 .v2-setbonus__row b { flex: none; font-size: 11px; font-weight: 800; color: #aab3c4; }
@@ -2189,6 +2197,35 @@ div.v2-settings__row > span { flex: 1; }
 .v2-setrow__head b { min-width: 0; font-size: 13px; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .v2-setrow__head small { font-size: 10px; color: var(--v2-dim); white-space: nowrap; }
 .v2-setrow__take { flex: none; margin-left: auto; min-width: 0; padding: 4px 12px; font-size: 11px; letter-spacing: 0; white-space: nowrap; }
+.v2-setrow__skills { flex: none; margin-left: auto; min-width: 0; padding: 4px 10px; font-size: 11px; letter-spacing: 0; white-space: nowrap; }
+.v2-setrow__skills + .v2-setrow__take { margin-left: 0; }
+/* 연구소 스킬 미리보기 (lab_v2.js previewSkill, 11-05 피드백 11번): 캐릭터 칸 위 iframe(rig_test.html?embed=1) · [▶ 스킬] */
+.v2-skillprev { position: absolute; inset: 0; z-index: 5; overflow: hidden; border-radius: 6px; background: #0b0d12; opacity: 0; transition: opacity 0.25s; cursor: pointer; }
+.v2-skillprev.is-on { opacity: 1; }
+.v2-skillprev[hidden] { display: none; }
+.v2-skillprev iframe { display: block; width: 100%; height: 100%; border: 0; pointer-events: none; }
+.v2-skillprev__name { position: absolute; left: 8px; top: 8px; display: flex; align-items: center; gap: 5px; padding: 3px 8px; font-size: 12px; color: #fff; background: rgba(0, 0, 0, 0.65); border-radius: 4px; }
+.v2-skillprev__name em { padding: 0 4px; font-style: normal; font-size: 10px; color: #16120a; background: var(--sk); border-radius: 3px; }
+.v2-skillprev__again { position: absolute; right: 8px; bottom: 8px; z-index: 4; min-width: 0; padding: 4px 10px; font-size: 12px; letter-spacing: 0; }
+.v2-skillprev__again[hidden] { display: none; }
+/* [세트 스킬] 창 (lab_v2.js openSetSkills, 11-05 피드백 6번) */
+.v2-setskill { position: absolute; inset: 0; z-index: 40; display: grid; place-items: center; background: rgba(4, 6, 10, 0.66); }
+.v2-setskill__box { width: min(560px, calc(100% - 32px)); max-height: calc(100% - 32px); overflow-y: auto; box-sizing: border-box; padding: 14px 16px;
+    background: linear-gradient(180deg, rgba(24, 27, 36, 0.98), rgba(10, 11, 16, 0.98)); border: 1px solid var(--grade); border-radius: 10px; box-shadow: 0 10px 40px rgba(0, 0, 0, 0.6); }
+.v2-setskill__box header { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+.v2-setskill__box header .v2-setmark { position: static; }
+.v2-setskill__box h3 { flex: 1; min-width: 0; margin: 0; font-size: 16px; color: #fff; }
+.v2-setskill__bonus, .v2-setskill__list { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 6px; }
+.v2-setskill__bonus { margin-bottom: 10px; }
+.v2-setskill__bonus li { padding: 5px 8px; font-size: 12px; color: #c9d1de; background: rgba(255, 255, 255, 0.04); border-left: 2px solid var(--grade); }
+.v2-setskill__bonus b { color: var(--v2-amber); margin-right: 4px; }
+.v2-setskill__list li { display: grid; grid-template-columns: 36px minmax(0, 1fr); gap: 10px; align-items: start; padding: 8px; background: rgba(0, 0, 0, 0.3); border-radius: 6px; }
+.v2-setskill__icon { width: 36px; height: 36px; display: grid; place-items: center; color: var(--sk); background: color-mix(in srgb, var(--sk) 16%, transparent); border-radius: 8px; }
+.v2-setskill__list b { display: flex; align-items: baseline; gap: 6px; font-size: 14px; color: #fff; }
+.v2-setskill__list b em { font-style: normal; font-size: 11px; padding: 0 5px; color: #16120a; background: var(--sk); border-radius: 3px; }
+.v2-setskill__list b i { margin-left: auto; font-style: normal; font-size: 11px; color: var(--v2-dim); white-space: nowrap; }
+.v2-setskill__list small { display: block; font-size: 11px; color: var(--v2-dim); }
+.v2-setskill__list p { margin: 4px 0 0; font-size: 12px; line-height: 1.45; color: #c9d1de; }
 .v2-setrow__parts { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; }
 .v2-setrow__part {
     display: flex;
@@ -2297,6 +2334,7 @@ div.v2-settings__row > span { flex: 1; }
 .v2-lab__cart strong.is-poor { color: #ff5a6e; }
 .v2-lab__foot .v2-btn { min-width: 130px; }
 .v2-hazard-btn--confirm { width: 300px; height: 64px; }
+.v2-confirm__cost { display: none; }   /* 휴대폰 [확정] 아래 줄에만 (PC는 small·아래 비용 줄) */
 .v2-toast {
     position: absolute;
     top: 86px;
@@ -2394,6 +2432,20 @@ div.v2-settings__row > span { flex: 1; }
 .v2-partcard__lv { font-family: var(--v2-font-num); font-size: 9px; color: var(--v2-amber); margin-left: 4px; }
 .v2-partcard__badge.is-owned { background: #3a4252; color: #dfe6f2; }   /* 레어 파랑과 헷갈리지 않게 회색 (Q-017) */
 .v2-partcard__badge.is-drop { background: rgb(186, 104, 255); color: #fff; }   /* 드랍·조각 전용 (유니크 세트, Q-008) */
+/* 해금 재화 (11-05 피드백 10번): 카드 배지 아이콘 · [만들기]·[등급 ▲] 필요/보유 · 세트 줄 남은 값 */
+.v2-partcard__badge .v2-icon { width: 11px; height: 11px; margin-right: 2px; vertical-align: -1px; }
+#lab-grade-cost-v2 { display: inline-flex; align-items: center; gap: 2px; }
+#lab-grade-cost-v2 .v2-icon { width: 12px; height: 12px; }
+#lab-grade-cost-v2 b.is-poor { color: #ff5a6e; }
+#lab-grade-cost-v2 i { font-style: normal; font-weight: 400; opacity: 0.75; }
+.v2-setrow__head { flex-wrap: wrap; row-gap: 2px; }
+.v2-setrow__meta { order: 9; flex-basis: 100%; display: flex; align-items: center; gap: 10px; min-width: 0; }   /* 둘째 줄: 보유·담음 · 남은 값 — 첫 줄은 이름·단추 */
+.v2-setrow__cost { display: inline-flex; align-items: center; gap: 4px; font-size: 10px; color: var(--v2-dim); white-space: nowrap; }
+.v2-setrow__cost em { display: inline-flex; align-items: center; gap: 2px; font-style: normal; font-weight: 700; color: #fff; }
+.v2-setrow__cost em.is-poor { color: #ff5a6e; }
+.v2-setrow__cost i { font-style: normal; font-weight: 400; color: var(--v2-dim); }
+.v2-setrow__cost .v2-icon { width: 12px; height: 12px; }
+.v2-setrow__cost.is-done { color: var(--v2-green); }
 /* 등급 단계 잠김 (11-03, progress_v2.js tierLock): 아래 등급 파츠를 더 가져야 열림 — 그림을 흐리게, 배지에 자물쇠 + 가진 수/필요 수 */
 .v2-partcard__badge.is-tierlock { display: flex; align-items: center; justify-content: center; gap: 3px; background: #2a2f3a; color: var(--v2-amber); }
 .v2-partcard__badge.is-tierlock .v2-icon { width: 10px; height: 10px; }
@@ -2714,9 +2766,9 @@ body.v2-fit .v2-growth__box { width: 940px; max-height: 655px; }
 
 /* ---------- 휴대폰 배치 (ui_v2_mobile.css, D-099 · D-102)와 같이 쓰는 PC 쪽 규칙 ---------- */
 /* 휴대폰 배치 전용 요소 (PC에서는 숨김) */
-.v2-mrail, .v2-mstage, .v2-mparts-row, .v2-mscrim, .v2-mtoast, .v2-mclass, .v2-sortie__ko, .v2-radar__close, .v2-unit__badge,
+.v2-mrail, .v2-mstage, .v2-mmaps, .v2-radar__money, .v2-mparts-row, .v2-mscrim, .v2-mtoast, .v2-mclass, .v2-sortie__ko, .v2-radar__close, .v2-unit__badge,
 .v2-showroom__stats dt .v2-icon, .v2-chip--res em, .v2-mlabskills,
-#select-res-v2, .v2-charcard__stats .is-mobile, .v2-charcard__stats dt .v2-icon, .v2-partcard__totals { display: none; }
+.v2-charcard__stats .is-mobile, .v2-charcard__stats dt .v2-icon, .v2-partcard__totals { display: none; }
 .v2-bar__text small { font-size: inherit; }
 .v2-settings .v2-btn.is-on { color: #16120a; --btn-c: var(--v2-amber); }   /* 설정 '화면 배치'에서 고른 단추 */
 .v2-settings [data-layout] { min-width: 0; padding: 10px 14px; white-space: nowrap; }
@@ -2771,6 +2823,8 @@ body.v2-fit .v2-growth__box { width: 940px; max-height: 655px; }
     font-size: 14px; line-height: 1.6; box-sizing: border-box;
 }
 .v2-commerce__panel > header { display: flex; justify-content: space-between; align-items: center; gap: 16px; }
+.v2-commerce__panel > header .v2-currency { display: flex; align-items: center; gap: 8px; margin-left: auto; }   /* 상점 머리 재화 표시줄 (currencyBar_v2.js) — display는 여기만: 일반 .v2-currency에 넣으면 PC 지도 칸의 숨김(.v2-radar__money)을 덮음 */
+.v2-shop__probnote { font-size: 12px; color: var(--v2-dim); }
 .v2-commerce__panel h2, .v2-commerce__panel h3 { margin: 0; }
 .v2-commerce__panel p { margin: 8px 0; }
 .v2-commerce__panel table { width: 100%; border-collapse: collapse; margin: 14px 0; font-size: 12px; }

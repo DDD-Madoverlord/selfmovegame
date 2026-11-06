@@ -28,6 +28,8 @@ const HP_BAR = { width: 80, gap: 16 };  // 머리 위 체력바 (index.css .mons
 // 메뉴(메인 화면 대기실): 캐릭터마다 캔버스 안에 들어오도록 배율/위치 자동 맞춤 (최대 0.34)
 // (좌우에 부위 설명이 붙으므로 가로 여백을 넉넉히)
 const MENU_RIG = { width: 440, height: 300, rootX: 220, rootY: 288, scale: 0.34, fit: { x: 58, y: 12 }, shadow: false, fitCss: true };
+// 휴대폰 메인: 능력치·파츠 칸 없이 캐릭터만 크게 — 배율 상한을 올리고 여백(PC 부위 설명 자리)을 줄임 (11-05 피드백 1번)
+const MENU_FIT_MOBILE = { scale: 0.7, fit: { x: 10, y: 6 } };
 const PAPERDOLL_CANVAS = { width: 330, height: 248 };
 
 // 몬스터 상태 → 애니메이션
@@ -80,6 +82,14 @@ export class MonsterController {
             })
             : null;
         this.rigMenu = menuCanvas ? new RigAvatar(menuCanvas, MENU_RIG) : null;
+        // 휴대폰·PC 배치가 바뀌면 메인 캐릭터 배율·여백도 바꿔 다시 맞춤 (main_v2.js fitScreens → 'v2-layout')
+        const applyMenuFit = mobile => {
+            if (!this.rigMenu) return;
+            Object.assign(this.rigMenu.opts, mobile ? MENU_FIT_MOBILE : { scale: MENU_RIG.scale, fit: MENU_RIG.fit });
+            if (this.rigMenu.layout) this.rigMenu._fitToCanvas(this.rigMenu.layout);
+        };
+        applyMenuFit(document.body.classList.contains('v2-mobile'));
+        window.addEventListener('v2-layout', e => applyMenuFit(e.detail.mobile));
         // 화면 흔들림 설정 (끄면 착지/사격 흔들림도 없음)
         const applyShake = () => { if (this.rigBattle) this.rigBattle.shakeScale = settings.get('shake') ? 1 : 0; };
         applyShake();

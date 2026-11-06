@@ -44,7 +44,7 @@ def run(ctx):
     ctx.check(not st['radar'] and not st['running'], '메인: 지도는 접혀 있고 멈춤')
     ctx.check(abs(st['width'] - 800) < 2, '메인: 창 전체 폭 사용 (20:9 양옆 빈칸 없음)', str(st['width']))
     t = g.page.evaluate(SMALL_TEXT, '#screen-menu-v2')
-    ctx.check(t['all'] < 230 and t['small'] <= t['all'] * 0.05, '메인: 보이는 글자 230자 미만(파츠 4칸 포함), 실제 11px 미만 5% 이하 (예전 497자 · 87%)', str(t))
+    ctx.check(t['all'] < 230 and t['small'] <= t['all'] * 0.05, '메인: 보이는 글자 230자 미만, 실제 11px 미만 5% 이하 (예전 497자 · 87%)', str(t))
     g.shot('mobile_menu')
 
     # 스테이지 선택 = 지도 전체 화면 → 닫기 (D-104)
@@ -57,15 +57,30 @@ def run(ctx):
     g.wait(200)
     ctx.check(g.js(vis + "return !vis('.v2-smap') && !window.madOverlordGameV2.menuController.stageMap.active;"), '스테이지 선택: 닫으면 접히고 멈춤')
 
-    # 파츠 4칸 (머리·팔·몸통·다리): 화면 아래에 바로, 능력치는 캐릭터 오른쪽 세로 (11-04 디자인 제안)
-    st = g.js(vis + """const rows = [...document.querySelectorAll('#menu-parts-list-v2 li')];
-        const r = s => document.querySelector(s).getBoundingClientRect();
-        const stats = [...document.querySelectorAll('#menu-stats-v2 > div')].map(n => n.getBoundingClientRect());
-        return { rows: rows.map(li => li.innerText.replace(/\\s+/g, ' ')), shown: rows.every(li => li.getClientRects().length),
-            column: stats.length === 4 && stats.every((b, i) => !i || (Math.abs(b.left - stats[0].left) < 2 && b.top > stats[i - 1].top)),
-            right: stats[0].left > r('#menu-sprite-canvas-v2').left };""")
-    ctx.check(len(st['rows']) == 4 and st['shown'] and '팔 · 스킬 1' in st['rows'][1] and '연타 러시' in st['rows'][1], '메인: 파츠 4칸이 화면에 바로 (부위·역할 · 파츠 이름 · 스킬)', str(st['rows']))
-    ctx.check(st['column'] and st['right'], '메인: 능력치 4칸은 캐릭터 오른쪽에 세로로', str(st))
+    # 메인 = 캐릭터만 크게 (11-05 피드백 1) · 협력 출격은 왼쪽 아래 (15) · 스토리·스페셜 맵 단추는 메인 오른쪽 위 (14)
+    st = g.js(vis + """const r = s => document.querySelector(s).getBoundingClientRect();
+        const cv = r('#menu-sprite-canvas-v2'), coop = r('#btn-menu-coop-v2'), maps = r('.v2-mmaps'), card = r('#menu-stage-card-v2'), sortie = r('#btn-to-battle-v2');
+        return { parts: vis('#menu-parts-list-v2 li'), stats: vis('#menu-stats-v2 > div'), canvasH: Math.round(cv.height), screenH: innerHeight,
+            coopLeft: coop.right < card.left && coop.bottom > innerHeight * 0.75 && coop.left < innerWidth * 0.35,
+            coopUnderChar: coop.top >= r('.v2-showroom__stage').bottom - 1,
+            maps: [...document.querySelectorAll('.v2-mmap')].map(b => b.innerText.trim()), mapsAbove: maps.bottom <= card.top + 1 && Math.abs(maps.left - card.left) < 2,
+            sortieUnder: sortie.top >= card.bottom - 1 };""")
+    ctx.check(not st['parts'] and not st['stats'] and st['canvasH'] >= st['screenH'] * 0.75, '메인: 능력치·파츠 칸 없이 캐릭터만 크게 (그림 높이 화면의 75% 이상)', str(st))
+    ctx.check(st['coopLeft'] and st['coopUnderChar'], '메인: 협력 출격 단추는 왼쪽 아래 (캐릭터 발밑, 오른쪽 칸 밖)', str(st))
+    ctx.check(st['maps'] == ['스토리 맵', '스페셜 맵'] and st['mapsAbove'] and st['sortieUnder'], '메인 오른쪽: [스토리 맵]·[스페셜 맵] → 스테이지 카드 → 출격', str(st))
+    # [스페셜 맵]을 누르면 그 모드로 지도 창, 지도 창 아래 STORY/SPECIAL 탭은 휴대폰에서 없음
+    g.page.click('.v2-mmap[data-map="special"]')
+    g.wait(400)
+    st = g.js(vis + "return { open: !!document.querySelector('.v2-menu.is-stages-open'), map: window.madOverlordGameV2.menuController.map, tabs: vis('.v2-radar__tabs .v2-maptab'), on: document.querySelector('.v2-mmap.is-on').dataset.map };")
+    ctx.check(st['open'] and st['map'] == 'special' and not st['tabs'] and st['on'] == 'special', '메인 [스페셜 맵]: 스페셜 맵으로 지도 창이 열림 · 지도 창 아래 탭 없음', str(st))
+    g.page.click('#btn-radar-close-v2')
+    g.wait(200)
+    g.page.click('.v2-mmap[data-map="story"]')
+    g.wait(400)
+    st = g.js(vis + "return { open: !!document.querySelector('.v2-menu.is-stages-open'), map: window.madOverlordGameV2.menuController.map, smap: vis('.v2-smap') };")
+    ctx.check(st['open'] and st['map'] == 'story' and st['smap'], '메인 [스토리 맵]: 스토리 지도 창', str(st))
+    g.page.click('#btn-radar-close-v2')
+    g.wait(200)
     g.shot('mobile_parts')
 
     # 메뉴 줄: 캐릭터 → 선택창, 돌아와서 몸통 없는 캐릭터로 출격하면 알림
@@ -122,6 +137,26 @@ def run(ctx):
             cart: getComputedStyle(document.querySelector('#screen-lab-v2 .v2-lab__cart')).display };""")
     ctx.check(st['vertical'] and st['totals'] == 4 and st['compact'], '연구소: 부위 탭 세로 · 고른 파츠 카드에 개조 후 능력치 4칸 · 나머지 파츠는 한 줄 (11-04 디자인 제안)', str(st))
     ctx.check(st['reset'] and st['confirm'] and st['cart'] == 'none', '연구소: [초기화]는 파츠 칸 오른쪽 위, [확정]은 강화 줄 오른쪽, 아래 비용 줄 없음', str(st))
+    # [확정] 자리 = 목록과 안 겹침 (부위 탭·세트 탭 모두 — 세트 탭은 강화 줄이 없어 단추가 목록을 덮던 것, 피드백 7) · 단추에 드는 DM (피드백 9)
+    OVERLAP = """const ok = document.getElementById('btn-equip-confirm-v2').getBoundingClientRect(), grid = document.getElementById('parts-grid-v2').getBoundingClientRect();
+        return { under: ok.top >= grid.bottom - 1, ok: [ok.top, ok.bottom].map(Math.round), grid: [grid.top, grid.bottom].map(Math.round) };"""
+    st = g.js(OVERLAP)
+    ctx.check(st['under'], '연구소 부위 탭: [확정] 단추가 파츠 목록 아래 (안 겹침)', str(st))
+    cost0 = g.js("return document.getElementById('lab-confirm-cost-v2').textContent;")
+    priced = g.js("""const c = [...document.querySelectorAll('#parts-grid-v2 .v2-partcard')].find(c => /DM/.test(c.querySelector('.v2-partcard__badge')?.textContent || ''));
+        if (!c) return null; c.click(); return c.querySelector('.v2-partcard__badge').textContent.replace(/\s+/g, ' ').trim();""")
+    g.wait(200)
+    st = g.js("""const em = document.getElementById('lab-confirm-cost-v2'); return { text: em.textContent, shown: em.getClientRects().length > 0, cost: progress.cartCost() };""")
+    ctx.check(cost0 == '' and priced and st['shown'] and st['cost'] > 0 and st['text'] == f"{st['cost']:,} DM",
+              '연구소 [확정]: 바꾼 것이 없으면 금액 없음, DM 파츠를 담으면 단추 아래 줄에 드는 DM', f'{cost0!r} → {priced} → {st}')
+    g.page.click('#screen-lab-v2 .v2-slottab[data-slot="set"]')
+    g.wait(300)
+    st = g.js(OVERLAP)
+    ctx.check(st['under'], '연구소 세트 탭: [확정] 단추가 세트 목록 아래 (강화 줄이 없어도 자리 유지)', str(st))
+    g.shot('mobile_lab_set')
+    g.js("gameState.resetCartToEquipped(); window.madOverlordGameV2.labController?.refresh?.();")
+    g.page.click('#screen-lab-v2 .v2-slottab[data-slot="head"]')
+    g.wait(200)
     g.shot('mobile_lab')
     g.page.click('#btn-lab-skills-v2')
     g.wait(200)
@@ -146,6 +181,15 @@ def run(ctx):
     ctx.check(n == 3 and not st['confirm'] and not st['info'] and st['labTop'] and st['res'], '선택창: 한 화면에 카드 3장 · 아래 줄·[결정] 없음 · [연구소]·재화는 위 줄', str((n, st)))
     ctx.check('선택' in st['badge'] and st['stats'] == 4, "선택창: 고른 카드 표시 '선택' · 능력치 4칸(사거리 포함)", str(st))
     ctx.check(t['all'] > 100 and t['small'] <= t['all'] * 0.1, '선택창: 실제 11px 미만 10% 이하 (예전 98%)', str(t))
+    # 능력치 = 1000 단위 K 표기 (11-05 피드백 2) · 휴대폰 카드 캐릭터는 배율 상한을 올려 칸을 거의 채움 (피드백 3)
+    st = g.js("""const { fmtK } = await import('/js/ui_v2/fmt_v2.js');
+        const cases = [[999, '999'], [1000, '1K'], [3300, '3.3K'], [12345, '12.3K'], [99999, '99.9K'], [100000, '100K'], [123456, '123K'], [999999, '999K'], [1000000, '1M'], [1234567, '1.2M']];
+        const bad = cases.filter(([n, s]) => fmtK(n) !== s).map(([n, s]) => `${n}→${fmtK(n)}≠${s}`);
+        const card = document.querySelector('#select-grid-v2 .v2-charcard.is-selected');
+        const hp = card.querySelector('.v2-charcard__stats dd').textContent;
+        const rig = window.madOverlordGameV2.selectController?.cards?.find?.(c => c.el === card)?.rig;
+        return { bad, hp, scale: rig ? rig.scale ?? rig.stageScale ?? null : null };""")
+    ctx.check(not st['bad'] and st['hp'] == '3.3K', '선택창 능력치: 1000 단위 K (3,300 → 3.3K, 경계값 10개)', str(st))
     g.shot('mobile_select')
     # 잠긴 캐릭터를 누르면 잠깐 뜨는 알림 (아래 줄 대신), 고른 캐릭터를 누르면 [결정] 없이 바로 메인으로
     g.page.click('#select-grid-v2 .v2-charcard.is-locked')

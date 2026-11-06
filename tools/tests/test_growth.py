@@ -67,10 +67,13 @@ def run(ctx):
         const nm = progress.rollBattleDrop({ character: 'mech', zone: 1, difficulty: 'nightmare', boss: false, firstClear: false }, r([0.1, 0.6, 0.5, 0.5]));
         const sure = progress.rollBattleDrop({ character: 'mech', zone: 1, difficulty: 'normal', boss: true, firstClear: true }, r([0.99, 0.2, 0.5]));
         const aff = [progress.isAffinity('mech', 1), progress.isAffinity('mech', 3), progress.isAffinity('chimera', 4)];
-        return { none, n: n && n.grade, h: h && h.grade, nm: nm && nm.grade, sure: sure && sure.sure, aff };""")
+        return { none, n: n && n.grade, h: h && h.grade, nm: nm && nm.grade, sure: sure && sure.sure, aff,
+            kinds: [n.type, h.type, nm.type, sure.type], amounts: [n.shards, nm.shards], boost: progress.researchBonus('shardBoost') };""")
     ctx.check(st['none'] is None and st['n'] == 'common' and st['h'] in ('rare', 'unique') and st['nm'] == 'legendary',
               '드랍 판정: 25% 밖이면 없음 · 노말 커먼 · 하드 레어/유니크 · 나이트메어 레전더리', str(st))
     ctx.check(st['sure'] and st['aff'] == [True, False, True], '보스전 첫 클리어는 확정 드랍 · 구역 상성(구역 1 거대로봇, 구역 4 합성괴인)', str(st))
+    ctx.check(st['kinds'][:3] == ['shards'] * 3 and st['kinds'][3] != 'shards' and (st['boost'] > 0 or st['amounts'] == [2, 20]),
+              '판 클리어 드랍 = 파츠 대신 공용 파츠 조각(노말 커먼 2 · 나이트메어 레전더리 20), 보스전 첫 클리어만 파츠 (11-05 피드백 23)', str(st))
 
     # 세트 장비 (Q-008): 등급 바닥 · 묶음 가중 드랍 · 보스 첫 클리어 세트 부위 · 조각 제작 · 드랍 전용 잠금 · 예전 저장
     st = g.js("""const S = await import('/js/engine_v2/sets_v2.js');
@@ -161,8 +164,10 @@ def run(ctx):
     clear_stage_fast(g, keep_hp=True)
     st = g.js("""return { loot: document.querySelector('.v2-result__loot')?.textContent || '', cores: progress.cores,
         part: !!document.querySelector('.v2-loot__part') };""")
-    ctx.check(st['part'] and '보스전 첫 클리어' in st['loot'] and '스킬 코어 +3' in st['loot'] and st['cores'] >= 3,
-              '결과 화면: 보스전 첫 클리어 확정 파츠 + 스킬 코어 지급', st['loot'][:120])
+    import re
+    got = re.search(r'스킬 코어 \+(\d+)', st['loot'])
+    ctx.check(st['part'] and '보스전 첫 클리어' in st['loot'] and got and int(got.group(1)) >= 3 and st['cores'] >= 3,
+              '결과 화면: 보스전 첫 클리어 확정 파츠 + 스킬 코어 지급 (보스를 쓰러뜨려 이기므로 보스 코어도 더해짐 — 피드백 17)', ' '.join(st['loot'].split())[:120])
     g.shot('growth_result', '#screen-battle-v2')
 
     # ===== 2. 스킬 레벨 · 전술 모듈 =====

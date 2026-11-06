@@ -1168,7 +1168,7 @@ function lobRocket(b, e) {
     }, { apex: r.apex || 160, dur: r.dur || 1.1, color: r.color || '255, 160, 80' });
 }
 
-// EMP 드론 (새 기획 구역 1): 전파 방해 — 작은 피해 + 팔·몸통 스킬 쿨다운 늘리기 (자기장 방벽이면 절반)
+// EMP 드론 (새 기획 구역 1)·주파수 교란기 (구역 10): 전파 방해 — 작은 피해 + 팔·몸통 스킬 쿨다운 늘리기 (자기장 방벽이면 절반, 여러 대가 겹쳐도 한 대만큼)
 function empPulse(b, e) {
     const m = e.t.emp;
     playOnce(e, 'attack');
@@ -1178,6 +1178,9 @@ function empPulse(b, e) {
         const k = b.rangedMul();
         b.fx.play(ZONE_VFX[m.fx || 'empZap'], b.monsterX + 60, 130);
         if (m.dmg) b.damagePlayer(m.dmg * b.stage.enemy.dps * k, 0, null, e);
+        // 여러 대가 겹쳐도 쿨다운 지연은 한 대 주기(every)에 한 번만 — 교란기 2~3대면 스킬이 아예 안 나가 무료 목숨으로 10구역을 못 깸 (11-05 측정)
+        if (b.stats.time < (b.stats.empUntil ?? 0)) return;
+        b.stats.empUntil = b.stats.time + m.every;
         b.delaySkills(Math.round(m.cd * k * 10) / 10, m.label || '📡 전파 방해 — 스킬 쿨다운 +');
     }, null);
 }

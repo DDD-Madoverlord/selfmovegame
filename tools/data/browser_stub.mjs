@@ -12,3 +12,11 @@ for (const name of ['document', 'Image', 'Audio', 'AudioContext', 'HTMLElement',
 }
 globalThis.window ??= globalThis;
 globalThis.localStorage ??= { getItem: () => null, setItem() { }, removeItem() { } };
+// 게임 모듈이 불러올 때 리그 그림·rig.json을 상대 주소로 fetch함(monster_v2.js 전투 리그) — 노드에서는 끝나지 않는 약속으로 둠
+// (파츠 표에는 필요 없음, 처리 안 된 거부로 노드가 멈추던 것 — 11-05)
+const realFetch = globalThis.fetch;
+globalThis.fetch = (url, ...rest) => (/^[a-z]+:/i.test(String(url)) ? realFetch(url, ...rest) : new Promise(() => { }));
+// window 이벤트 (monster_v2.js 'v2-layout' 등)
+globalThis.addEventListener ??= () => { };
+globalThis.removeEventListener ??= () => { };
+globalThis.dispatchEvent ??= () => true;

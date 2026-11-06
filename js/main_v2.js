@@ -110,17 +110,21 @@ class GameRouterV2 {
         if (!progress._offlineLifecycleBound) {
             progress._offlineLifecycleBound = true;
             const refresh = () => window.madOverlordGameV2?.menuController.updateOfflineReward();
+            // 앱·탭이 뒤로 가면: 방치 보상 시각 기록 · 전투 일시정지 · 소리 끔 (11-05 피드백 22번) — 돌아와도 전투는 일시정지 창 그대로(직접 이어 하기)
             const away = () => {
                 if (window.madOverlordGameMode !== 'v2') return;
                 progress.offlineAway();
+                sound.suspend();
                 if (battleEngineV2.isActive) battleEngineV2.hud.setPaused(true);
             };
             const back = () => {
                 if (window.madOverlordGameMode !== 'v2') return;
+                sound.resume();
                 progress.offlineReturn();
                 refresh();
             };
             document.addEventListener('visibilitychange', () => document.hidden ? away() : back());
+            window.addEventListener('mo-app-state', e => e.detail?.active ? back() : away());   // Android 앱 MainActivity onPause/onResume (WebView가 화면 가림을 못 알리는 기기 대비)
             window.addEventListener('pagehide', away);
             window.addEventListener('pageshow', () => { if (!document.hidden) back(); });
             setInterval(() => {

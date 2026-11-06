@@ -58,6 +58,31 @@ def run(ctx):
     ctx.check(st['n'] == 4 and st['inRow'] == 4 and st['on'] >= 1 and st['dots'] == 4,
               '[세트로 담기]: 네 부위 한 번에 장바구니, 세트 효과 켜짐, 부위 탭 점 4개', str(st))
     g.shot('setui_sets', '.v2-lab__parts')
+    # [세트 스킬] (11-05 피드백 6): 세트 줄마다 단추 → 세트 효과 + 네 파츠 스킬 창, Escape로 닫힘 (커먼 줄은 단추 없음)
+    st = g.js("""const rows = [...document.querySelectorAll('#parts-grid-v2 .v2-setrow')];
+        return { set: rows.filter(r => !r.classList.contains('is-common')).every(r => r.querySelector('.v2-setrow__skills')),
+            common: rows.filter(r => r.classList.contains('is-common')).every(r => !r.querySelector('.v2-setrow__skills')) };""")
+    g.page.locator('.v2-setrow:not(.is-common) .v2-setrow__skills').first.click()
+    g.wait(200)
+    pop = g.js("""const box = document.querySelector('.v2-setskill');
+        if (!box) return null;
+        return { title: box.querySelector('h3').textContent, bonus: box.querySelectorAll('.v2-setskill__bonus li').length,
+            skills: [...box.querySelectorAll('.v2-setskill__list li b')].map(b => b.textContent.trim()),
+            tags: [...box.querySelectorAll('.v2-setskill__list li em')].map(e => e.textContent) };""")
+    ctx.check(st['set'] and st['common'] and pop and pop['bonus'] >= 2 and len(pop['skills']) == 4 and pop['tags'] == ['ULT', '2', '1', 'P']
+              and all('스킬 없음' not in s for s in pop['skills']),
+              '세트 탭 [세트 스킬]: 세트 효과 + 네 파츠 스킬(필살기·스킬 2·스킬 1·패시브) 창', str((st, pop)))
+    g.shot('setui_setskill', '.v2-lab')
+    # 세트 줄 둘째 줄: 아직 없는 파츠를 다 얻는 값 (레어 = DM 합, 유니크·레전더리 = 만들기 조각 합 — 11-05 피드백 10)
+    st = g.js("""const rows = [...document.querySelectorAll('#parts-grid-v2 .v2-setrow:not(.is-common)')];
+        return rows.map(r => ({ mark: r.querySelector('.v2-setmark').textContent, cost: r.querySelector('.v2-setrow__cost')?.textContent.replace(/\s+/g, ' ').trim() || '' }));""")
+    rare = [r for r in st if r['mark'].startswith('R')]
+    uniq = [r for r in st if r['mark'].startswith('U') or r['mark'].startswith('L')]
+    ctx.check(rare and all('DM' in r['cost'] or '모두 보유' in r['cost'] for r in rare) and uniq and all('조각' in r['cost'] or '모두 보유' in r['cost'] for r in uniq),
+              '세트 줄: 남은 파츠 값 — 레어 세트는 DM, 유니크·레전더리는 조각', str(st[:4]))
+    g.key('Escape')
+    g.wait(150)
+    ctx.check(g.js("return !document.querySelector('.v2-setskill') && window.madOverlordGameV2.currentScreen === 'lab';"), '[세트 스킬] 창은 Escape로 닫히고 연구소 그대로')
 
     # 부위 탭: 모으는 세트의 짝이 맨 앞 + 테두리 + 그림 모서리 R①, 강화 칸 다시 보임
     g.page.click('.v2-slottab[data-slot="body"]')

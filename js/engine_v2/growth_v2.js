@@ -66,7 +66,10 @@ export const DROP = {
         nightmare: ['legendary', 'unique', 'rare', 'base']
     },
     // 조각으로 세트 파츠 만들기 (안 가진 부위, 등급 바닥으로 나옴) — 드랍 운이 나빠도 끝이 보이게
-    craftCost: { rare: 30, unique: 80, legendary: 200 }
+    craftCost: { rare: 30, unique: 80, legendary: 200 },
+    // 판 클리어 드랍 = 파츠 대신 공용 파츠 조각 (11-05 피드백 23번, Q-029 임시 — 만들기 비용의 약 1/10, 커먼은 2)
+    //   확률·등급표는 위 그대로 (chance · grades), 보스전 첫 클리어 확정 드랍만 파츠 그대로
+    shardDrop: { common: 2, rare: 3, unique: 8, legendary: 20 }
 };
 // 구역 상성 캐릭터 (추천안 — 구역 이야기와 맞춘 짝)
 export const AFFINITY = { 1: ['mech', 'frost'], 2: ['kaiju', 'doll'], 3: ['hero', 'saint'], 4: ['chimera', 'diver'], 5: ['diver'], 6: ['saint'], 7: ['doll'], 8: ['frost'], 9: ['architect'], 10: ['broadcaster'] };   // 구역 6 = 성녀의 구역 (D-078), 구역 5 = 길잡이의 구역 (새 기획 D-085)

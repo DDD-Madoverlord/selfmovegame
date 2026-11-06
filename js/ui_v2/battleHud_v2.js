@@ -53,6 +53,7 @@ export class BattleHud {
             hpGhost: $('hud-hp-ghost-v2'),
             shield: $('hud-shield-v2'),
             hpText: $('hud-hp-text-v2'),
+            lives: $('hud-lives-v2'),
             progress: $('hud-progress-v2'),
             unitMark: $('hud-progress-unit-v2'),
             track: document.querySelector('#battle-hud-v2 .v2-progress__track'),
@@ -207,6 +208,11 @@ export class BattleHud {
             this.el.hpGhost.style.width = w;
             this.el.hp.classList.toggle('is-mid', v < 600 && v >= 300);
             this.el.hp.classList.toggle('is-low', v < 300);
+        });
+        // 목숨 하트 (11-05 피드백 21번): 남은 것은 빨강, 쓴 것은 어둡게
+        if (this.el.lives) this.set('lives', `${b.lives}/${b.livesMax}`, () => {
+            this.el.lives.innerHTML = Array.from({ length: b.livesMax }, (_, i) => `<i class="${i < b.lives ? 'is-on' : ''}">♥</i>`).join('');
+            this.el.lives.setAttribute('aria-label', `목숨 ${b.lives} / ${b.livesMax}`);
         });
         // 최대 체력은 휴대폰 배치에서 숨김 (Q-015 — 지금 체력 숫자만 크게)
         this.set('hpText', `${Math.max(0, Math.round(b.playerHp)).toLocaleString()}<small> / ${Math.round(b.maxPlayerHp).toLocaleString()}</small>`,

@@ -28,6 +28,11 @@ W, H, FPS = 1080, 1920, 30
 FF = imageio_ffmpeg.get_ffmpeg_exe()
 
 CHARS = ['mech', 'kaiju', 'hero', 'chimera', 'diver', 'saint', 'doll', 'frost', 'architect', 'broadcaster']
+# 11-05 피드백 24: 광고에는 6명만 보이고 나머지 4명은 물음표 (공개 6명 = 스토리 순서 1~6, Q-031 임시)
+SHOWN = ['mech', 'kaiju', 'hero', 'chimera', 'diver', 'saint']
+HIDDEN = ['doll', 'frost', 'architect', 'broadcaster']
+ROSTER = SHOWN + HIDDEN
+SHOWN_SETS, SHOWN_PARTS = 54, 254   # 공개 6명의 세트·파츠 수 (11-05 sets_v2·partSkills.gen 기준 — 10명은 90세트·430파츠)
 KO_NAME = {'mech': '거대로봇', 'kaiju': '거대괴수', 'hero': '타락 히어로', 'chimera': '합성괴인', 'diver': '심연의 길잡이',
            'saint': '봉합 성녀', 'doll': '뒤틀린 인형사', 'frost': '서리의 무희', 'architect': '철거의 설계자', 'broadcaster': '침묵의 방송자'}
 # 필살기 장면: 클립 · 터지는 구간(초) · 필살기 이름 · 효과음 — 컷인(얼굴 띠)은 모든 클립 1.85~2.45초
@@ -257,6 +262,28 @@ def face(ch, size):
     return _texts[key]
 
 
+def mystery(size):
+    """숨긴 캐릭터 자리: 어두운 원 + 큰 물음표 (실루엣도 안 보임 — 누군지 짐작 못 하게)"""
+    key = ('mystery', size)
+    if key not in _texts:
+        out = Image.new('RGBA', (size + 12, size + 12), (0, 0, 0, 0))
+        d = ImageDraw.Draw(out)
+        d.ellipse((0, 0, size + 11, size + 11), fill=(120, 90, 200, 255))
+        d.ellipse((6, 6, size + 5, size + 5), fill=(22, 16, 36, 255))
+        glow = Image.new('RGBA', out.size, (0, 0, 0, 0))
+        ImageDraw.Draw(glow).ellipse((size * 0.2, size * 0.2, size * 0.8 + 12, size * 0.8 + 12), fill=(150, 110, 255, 90))
+        out = Image.alpha_composite(out, glow.filter(ImageFilter.GaussianBlur(size // 8)))
+        q = text('?', int(size * 0.62), (235, 225, 255), 'en', stroke=6, stroke_fill=(40, 20, 80), shadow=False)
+        out.paste(q, ((out.width - q.width) // 2, (out.height - q.height) // 2), q)
+        _texts[key] = out
+    return _texts[key]
+
+
+def portrait(ch, size):
+    """공개 캐릭터는 얼굴, 숨긴 캐릭터는 물음표"""
+    return face(ch, size) if ch in SHOWN else mystery(size)
+
+
 def tag(s, color, size=44):
     """색 띠 이름표"""
     key = ('tag', s, color, size)
@@ -287,7 +314,7 @@ def button(s, color, w=640, h=128):
 
 
 # ---------------------------------------------------------------- 공통 장면
-def endcard(t, dur, accent, tagline, sub='10명의 오버로드 · 82세트 · 자동 전투'):
+def endcard(t, dur, accent, tagline, sub=f'오버로드 {len(SHOWN)}명 공개 · {len(HIDDEN)}명은 곧 · 자동 전투'):
     c = Image.new('RGB', (W, H), (10, 7, 14))
     glow = Image.new('RGB', (W, H), (0, 0, 0))
     ImageDraw.Draw(glow).ellipse((W // 2 - 620, 420, W // 2 + 620, 1160), fill=tuple(int(v * 0.55) for v in accent))
@@ -300,9 +327,9 @@ def endcard(t, dur, accent, tagline, sub='10명의 오버로드 · 82세트 · �
     put(c, title2, W // 2 + dx, 830 + dy, s1, min(1, t / 0.08))
     pop(c, text('매드 오버로드', 66, (255, 255, 255)), W // 2, 990, t - 0.22, big=1.3)
     slide(c, text(tagline, 48, (230, 232, 240), stroke=7), W // 2, 1090, t - 0.35, dx=0)
-    for k, ch in enumerate(CHARS):
+    for k, ch in enumerate(ROSTER):
         cx, cy = W // 2 + ((k % 5) - 2) * 186, 1300 + (k // 5) * 196
-        pop(c, face(ch, 158), cx, cy, t - 0.45 - k * 0.04, dur=0.18, big=1.5)
+        pop(c, portrait(ch, 158), cx, cy, t - 0.45 - k * 0.04, dur=0.18, big=1.5)
     put(c, text(sub, 34, (190, 196, 210), stroke=5), W // 2, 1590, 1.0, ease((t - 0.8) / 0.3))
     if t > 0.75:
         pulse = 1 + 0.04 * math.sin((t - 0.75) * 9)
@@ -354,7 +381,7 @@ def ad_a():
     segs.append(story('st3/B', 0.38, 0.55, '돌아온 것은\n배신과 처형대', 1.4))
     cues += [(2.75, 'hero_slash_hit', 0.9)]
 
-    mont = [('st5/B', 0.22), ('st7/C', 0.45), ('st9/B', 0.25), ('st6/C', 0.5)]
+    mont = [('st5/B', 0.22), ('st2/C', 0.45), ('st4/B', 0.25), ('st6/C', 0.5)]   # 공개 6명의 스토리 칸만 (11-05 — 예전 st7·st9는 숨긴 캐릭터)
 
     def montage(t):
         k = min(3, int(t / 0.25))
@@ -380,7 +407,7 @@ def ad_a():
     segs.append((1.3, monster))
     cues += [(4.0, 'hero_cast', 0.8), (4.45, 'hero_curse_nova', 1.0), (4.47, 'base_blast', 0.6)]
 
-    order = ['mech', 'diver', 'saint', 'kaiju', 'doll', 'architect']
+    order = ['mech', 'kaiju', 'hero', 'chimera', 'diver', 'saint']   # 공개 6명만 (11-05)
     lines = ['버림받은 괴물들이', '세상에 복수한다']
 
     def gameplay(t):
@@ -400,10 +427,11 @@ def ad_a():
 
     def roster(t):
         c = Image.new('RGB', (W, H), (8, 6, 12))
-        for k, ch in enumerate(CHARS):
+        for k, ch in enumerate(ROSTER):
             cx, cy = W // 2 + ((k % 5) - 2) * 196, 820 + (k // 5) * 210
-            pop(c, face(ch, 170), cx, cy, t - k * 0.07, dur=0.15, big=1.6)
+            pop(c, portrait(ch, 170), cx, cy, t - k * 0.07, dur=0.15, big=1.6)
         pop(c, text('10명의 오버로드', 92, (255, 255, 255)), W // 2, 500, t - 0.75, big=1.6)
+        pop(c, text(f'{len(HIDDEN)}명은 아직 비밀', 54, (200, 180, 255)), W // 2, 1150, t - 0.9, big=1.4)
         pop(c, text('복수가 시작된다', 80, (255, 70, 90)), W // 2, 1260, t - 1.0, big=1.5)
         vignette(c, 0.6)
         return c
@@ -434,7 +462,7 @@ def ad_b():
     cues += [(0.0, 'mech_laser_big', 1.0), (0.05, 'base_blast', 0.6), (0.3, 'shield_hit', 0.7)]
 
     def boss(t):
-        src = clip('boss_vladimir').at(0.3 + t * 1.25)
+        src = clip('boss_wmd').at(0.3 + t * 1.25)   # 공개 구역 보스 (예전 boss_vladimir = 숨긴 캐릭터 구역)
         c = blur_bg(src, key=('B', 'boss'))
         c.paste(view(src, (700, 80, 2200, 1440), (1080, 979)), (0, 500))
         red = 0.25 + 0.2 * math.sin(t * 14)
@@ -447,11 +475,11 @@ def ad_b():
     segs.append((50 / FPS, boss))
     cues += [(1.33, 'warning_danger', 0.9), (2.1, 'giant_step', 0.9)]
 
-    order = ['diver', 'saint', 'doll', 'broadcaster', 'architect', 'frost', 'hero', 'kaiju']
-    cut = 20 / FPS
+    order = ['diver', 'saint', 'chimera', 'hero', 'mech', 'kaiju']   # 공개 6명 (11-05) — 길이는 그대로 160프레임
+    cut = 160 / len(order) / FPS
 
     def combo(t):
-        k = min(7, int(t / cut))
+        k = min(len(order) - 1, int(t / cut))
         lt = t - k * cut
         ch = order[k]
         sq, src = ult_square(ch, lt, cut, zoom0=1.2)
@@ -464,7 +492,7 @@ def ad_b():
         mini_logo(c)
         return flash(c, max(0, 0.75 - lt / 0.07))
     segs.append((160 / FPS, combo))
-    cues += [(3.0 + k * cut, ULT[ch][4], 0.85) for k, ch in enumerate(order)] + [(3.0 + k * cut, 'shield_hit', 0.45) for k in range(8)]
+    cues += [(3.0 + k * cut, ULT[ch][4], 0.85) for k, ch in enumerate(order)] + [(3.0 + k * cut, 'shield_hit', 0.45) for k in range(len(order))]
 
     def base(t):
         src = clip('base_kaiju').at(1.9 + t * 1.2)
@@ -555,18 +583,23 @@ def ad_c():
     segs.append((120 / FPS, versus))
     cues += [(6.1, 'shield_hit', 0.7), (6.0 + 0.75, 'mech_laser_big', 1.0), (8.3, 'base_blast', 0.6)]
 
-    order = ['kaiju', 'hero', 'chimera', 'diver', 'saint', 'doll', 'frost']
+    order = ['kaiju', 'hero', 'chimera', 'diver', 'saint', '?', '?']   # 공개 5명 + 물음표 2 (11-05)
     cut = 10 / FPS
 
     def roster(t):
         k = min(6, int(t / cut))
         lt = t - k * cut
         ch = order[k]
-        sq, src = ult_square(ch, lt, cut, zoom0=1.08, part='cutin')
-        c = blur_bg(src, key=('C', ch))
-        c.paste(sq, (0, 520))
-        put(c, text('10명 · 82세트', 110, (255, 255, 255)), W // 2, 250)
-        n = int(430 * ease(t / 2.0))
+        if ch == '?':   # 숨긴 캐릭터: 어두운 판 + 물음표
+            c = Image.new('RGB', (W, H), (14, 10, 24))
+            put(c, mystery(620), W // 2, 1060, 1.0 + 0.08 * (1 - ease(lt / cut)))
+            put(c, text('COMING SOON', 84, (200, 180, 255), 'en', stroke=6), W // 2, 1500)
+        else:
+            sq, src = ult_square(ch, lt, cut, zoom0=1.08, part='cutin')
+            c = blur_bg(src, key=('C', ch))
+            c.paste(sq, (0, 520))
+        put(c, text(f'{len(SHOWN)}명 · {SHOWN_SETS}세트 · 그리고 ???', 96, (255, 255, 255)), W // 2, 250)
+        n = int(SHOWN_PARTS * ease(t / 2.0))
         put(c, text(f'파츠 {n}개', 96, (90, 210, 255)), W // 2, 400)
         mini_logo(c)
         return flash(c, max(0, 0.5 - lt / 0.06))

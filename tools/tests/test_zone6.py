@@ -85,7 +85,9 @@ def run(ctx):
     battle_at(g, '6-B')
     g.js("b.midBaseSpawned = true; b.midBaseDestroyed = true; b.distanceTraveled = b.stage.finalAt - 0.5; b.playerSpeed = 100;")
     g.wait(2600)
-    st = g.js("const f = b.enemies.find(e => e.isFinal); return { art: f && f.art, boss: b.boss && b.boss.type, fly: b.boss && parseFloat(b.boss.dom.style.bottom) };")
+    g.js("window.__finalArt = b.enemies.find(e => e.isFinal)?.art;")
+    g.open_boss_gate()   # 11-05 피드백 17: 보스는 최종 거점을 부순 뒤 나옴
+    st = g.js("const f = { art: window.__finalArt }; return { art: f && f.art, boss: b.boss && b.boss.type, fly: b.boss && parseFloat(b.boss.dom.style.bottom) };")
     ctx.check(st['art'] == 'st6_base' and st['boss'] == 'grailheart' and st['fly'] > 100, '6-B: 성배의 성역 · 떠 있는 탐욕의 심장', str(st))
     g.shot('zone6_boss', '#screen-battle-v2')
     g.js(CLEAN + "b.monsterX = 420; m.setMonsterPosition(420); b.boss.x = 760; b.boss.dom.style.left = '760px'; b.boss.speed = 0;"

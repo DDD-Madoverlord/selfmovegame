@@ -20,7 +20,7 @@ export const COACH = {
     lab_upgrade: { text: '장착한 파츠를 골라 <b>강화</b><br>레벨마다 체력·공격력이 올라요', sec: 8 },
     offline_intro: { text: '접속하지 않아도 DM이 쌓여요<br><b>방치 보상</b>에서 직접 받으세요', short: '<b>방치 보상</b>을 받으세요', sec: 7, side: 'bottom' },
     pet_intro: { text: '펫을 처음 얻었어요!<br><b>작전 지원 → 펫</b>에서 장착하세요', short: '<b>펫</b>을 장착하세요', sec: 7, side: 'bottom' },
-    shop_intro: { text: '<b>상점</b>에서 상품과 확률 정보를 확인할 수 있어요', short: '<b>상점</b>이 열렸어요', sec: 7, side: 'bottom' }
+    shop_intro: { text: '<b>상점</b>에서 상품을 확인할 수 있어요<br>확률 정보는 <b>설정 › 정보</b>에', short: '<b>상점</b>이 열렸어요', sec: 7, side: 'bottom' }
 };
 
 /** 안내 id를 아직 안 봤으면 anchor(요소 또는 선택자) 옆에 말풍선. 돌려주는 값: 말풍선 요소 또는 null */

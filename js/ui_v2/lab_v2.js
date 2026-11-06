@@ -25,9 +25,9 @@ import { rosterOf, characterOfPart, partsOfCharacter, partSetLabel } from '../en
 import { sound } from '../engine_v2/audio/sound_v2.js';
 import { icon, fillIcons } from './icons.js';
 import { openSettings } from './settingsPanel_v2.js';
-import { openProbInfo } from './probInfo_v2.js';
 import { GRADES, gradeOf, gradeIndex, SKILL_LEVEL } from '../engine_v2/growth_v2.js';
-import { optionText, resChipHtml } from './growthUi_v2.js';
+import { optionText } from './growthUi_v2.js';
+import { refreshCurrency } from './currencyBar_v2.js';
 import { setOf, setIdOf, setCounts, setLabelOf, setBonusList, isDropOnly, SETS, SET_TIERS, SET_PERKS } from '../engine_v2/sets_v2.js';
 
 const $ = id => document.getElementById(id);
@@ -66,6 +66,27 @@ function thumbOf(slot, part) {
     return { src: `assets/sprites/rig/${c}/${t.file}`, filter: t.filter };
 }
 
+/** 드랍 전용(유니크·레전더리 세트) 카드 배지 = 만들기 조각 수 (11-05 피드백 10번 — 예전 '드랍·조각') */
+function dropBadge(part) {
+    const c = progress.craftCost(part.id);
+    return c ? [`${icon('shard', 11)}조각 ${c.shards}`, `is-drop${c.shards > progress.shards ? ' is-poor' : ''}`] : ['드랍 전용', 'is-drop'];
+}
+
+/** 세트 줄: 아직 없는 파츠를 다 얻는 값 — DM으로 살 수 있으면 DM 합, 아니면 만들기 조각 합 (11-05 피드백 10번) */
+function setCostHtml(parts) {
+    let dm = 0, shards = 0;
+    for (const p of parts) {
+        if (!p || progress.isOwned(p.id)) continue;
+        if (!isDropOnly(p) && p.cost) dm += p.cost;
+        else shards += progress.craftCost(p.id)?.shards || 0;
+    }
+    if (!dm && !shards) return parts.some(Boolean) ? '<span class="v2-setrow__cost is-done">모두 보유</span>' : '';
+    const bits = [];
+    if (dm) bits.push(`<em class="${dm > gameState.darkMatter ? 'is-poor' : ''}">${icon('gem', 12)}${dm.toLocaleString()} DM</em>`);
+    if (shards) bits.push(`<em class="${shards > progress.shards ? 'is-poor' : ''}">${icon('shard', 12)}조각 ${shards}<i>/${progress.shards}</i></em>`);
+    return `<span class="v2-setrow__cost" title="아직 없는 파츠를 모두 얻는 값">남은 파츠 ${bits.join(' + ')}</span>`;
+}
+
 function skillOf(slot, part) {
     if (!part || part.id === 'none') return null;
     if (slot === 'leg') {
@@ -92,12 +113,6 @@ export class LabController {
         fillIcons(this.root);
         const chip = this.root && this.root.querySelector('.v2-chip--dm');
         if (chip) chip.insertAdjacentHTML('afterbegin', icon('gem', 18));
-        const probability = document.createElement('button');
-        probability.id = 'btn-lab-prob-info-v2';
-        probability.className = 'v2-btn v2-btn--ghost';
-        probability.textContent = '확률 정보';
-        probability.addEventListener('click', openProbInfo);
-        $('btn-lab-settings-v2')?.before(probability);
         this.initEvents();
     }
 
@@ -128,6 +143,7 @@ export class LabController {
             if (upg) upg.hidden = this.activeSlot === 'set';   // 세트 탭: 강화 칸 대신 목록을 길게
             this.renderPartsGrid();
             this.renderUpgrade();
+            this.renderSetBonus(gameState.getCartObjects());
         }));
 
         // 등급 거르기 칩 (소리는 main_v2.js가 연구소 버튼마다 냄)
@@ -241,8 +257,8 @@ export class LabController {
         if (!this.domPartsGrid) return;
         const slot = this.activeSlot;
         this.renderTabDots();
-        if (this.domGradeBar) this.domGradeBar.hidden = slot === 'set';
-        if (slot === 'set') { this.renderSetGrid(); return; }
+        this.renderReplay();
+        if (slot === 'set') { this.renderSetGrid(); return; }   // 세트 탭도 등급 칩 (11-05 피드백 8번 — 세트 줄 등급으로 셈)
         this.domPartsGrid.classList.remove('is-sets');
         const focus = this.focusSet();
         // 고른 캐릭터의 파츠만 (D-051) — 모으는 세트의 짝을 맨 앞에, 나머지는 등급 높은 순 (같은 등급은 원래 순서)
@@ -280,8 +296,8 @@ export class LabController {
             const badge = part.id === equippedId ? ['EQUIPPED', 'is-equipped']
                 : owned ? [part.cost ? 'OWNED' : 'FREE', part.cost ? 'is-owned' : 'is-free']
                     : lock ? [`${icon('lock', 10)}${gradeOf(lock.from).name} ${lock.have}/${lock.need}`, 'is-tierlock']
-                        : isDropOnly(part) ? ['드랍·조각', 'is-drop']
-                            : [`${part.cost.toLocaleString()} DM`, part.cost > gameState.darkMatter ? 'is-poor' : ''];
+                        : isDropOnly(part) ? dropBadge(part)
+                            : [`${icon('gem', 11)}${part.cost.toLocaleString()} DM`, part.cost > gameState.darkMatter ? 'is-poor' : ''];
             const st = progress.partStats(part);
             const lv = progress.levelOf(part.id);
             const card = document.createElement('div');
@@ -310,6 +326,7 @@ export class LabController {
                 if (sid) this.lastSet = sid;
                 this.renderPartsGrid();
                 this.updateMvvmFeedback();
+                this.previewSkill(slot, part);
             });
             this.domPartsGrid.appendChild(card);
         });
@@ -335,7 +352,7 @@ export class LabController {
             .sort(([, a], [, b]) => (TIER_ORDER[a.tier] - TIER_ORDER[b.tier]) || (a.no - b.no))
             .map(([sid, s]) => {
                 const perk = SET_PERKS[sid];   // 전투 밖 세트 효과 (협력·파견, 11-03)
-                return { sid, color: gradeOf(SET_TIERS[s.tier].minGrade).color, mark: setMark(s), label: setLabelOf({ id: sid, ...s }),
+                return { sid, grade: SET_TIERS[s.tier].minGrade, color: gradeOf(SET_TIERS[s.tier].minGrade).color, mark: setMark(s), label: setLabelOf({ id: sid, ...s }),
                     parts: SLOTS4.map(slot => partsOfCharacter(char, slot).find(p => setIdOf(p) === sid) || null),
                     bonus: [...Object.entries(s.bonus || {}), ...(perk ? [[perk.need, perk.text]] : [])] };
             });
@@ -343,16 +360,21 @@ export class LabController {
         const commons = SLOTS4.map(slot => partsOfCharacter(char, slot).filter(p => !setIdOf(p)));
         const cColor = gradeOf('common').color;
         for (let k = 0; k < Math.max(0, ...commons.map(l => l.length)); k++) {
-            rows.push({ sid: null, color: cColor, parts: commons.map(l => l[k] || null),
+            rows.push({ sid: null, grade: 'common', color: cColor, parts: commons.map(l => l[k] || null),
                 mark: `<span class="v2-setmark" style="--grade:${cColor}">C${'①②③④'[k] || k + 1}</span>`,
                 label: k ? `커먼 강화 파츠${k > 1 ? ` ${k}` : ''}` : '커먼 기본 파츠', bonus: [] });
         }
         if (!rows.length) {
+            if (this.domGradeBar) this.domGradeBar.innerHTML = '';
             grid.innerHTML = '<p class="v2-setrow__empty">이 캐릭터는 아직 세트가 없습니다</p>';
             return;
         }
+        const counts = Object.fromEntries(GRADES.map(g => [g.id, rows.filter(r => r.grade === g.id).length]));
+        if (this.gradeFilter !== 'all' && !counts[this.gradeFilter]) this.gradeFilter = 'all';
+        this.renderGradeBar(rows.length, counts);
         const color = (rosterOf(char) || {}).color || '#5a6272';
-        for (const { sid, color: gColor, mark, label, parts, bonus: bonusList } of rows) {
+        for (const { sid, color: gColor, mark, label, parts, bonus: bonusList, grade } of rows) {
+            if (this.gradeFilter !== 'all' && grade !== this.gradeFilter) continue;
             const n = parts.filter(Boolean).length;
             const owned = parts.filter(p => p && progress.isOwned(p.id)).length;
             const inCart = parts.filter((p, i) => p && cart[SLOTS4[i]] && cart[SLOTS4[i]].id === p.id).length;
@@ -372,7 +394,8 @@ export class LabController {
                 || '<li>세트 효과 없음</li>';
             row.innerHTML = `
                 <div class="v2-setrow__head">${mark}<b>${label}</b>
-                    <small>보유 ${owned}/${n} · 담음 ${inCart}/${n}</small>
+                    <span class="v2-setrow__meta"><small>보유 ${owned}/${n} · 담음 ${inCart}/${n}</small>${setCostHtml(parts)}</span>
+                    ${sid ? '<button class="v2-btn v2-btn--ghost v2-setrow__skills">세트 스킬</button>' : ''}
                     <button class="v2-btn v2-setrow__take" ${inCart === n ? 'disabled' : ''}>${inCart === n ? '담음' : n === 4 ? '세트로 담기' : '모두 담기'}</button></div>
                 <div class="v2-setrow__parts">${cells}</div>
                 <ul class="v2-setrow__bonus">${bonus}</ul>`;
@@ -383,6 +406,10 @@ export class LabController {
                 this.lastSet = sid;
                 sound.play('ui_click');
                 this.refresh();
+            });
+            row.querySelector('.v2-setrow__skills')?.addEventListener('click', () => {
+                sound.play('ui_click');
+                this.openSetSkills({ mark, label, parts, bonus: bonusList, color: gColor });
             });
             row.querySelectorAll('.v2-setrow__part[data-id]').forEach(b => b.addEventListener('click', () => {
                 gameState.selectCartPart(b.dataset.slot, b.dataset.id);
@@ -395,10 +422,104 @@ export class LabController {
         }
     }
 
+    /**
+     * 파츠를 고르면 그 파츠 스킬을 캐릭터 칸에서 재생 (11-05 피드백 11번): 리그 확인 페이지 무대(rig_test.html?embed=1 — 스킬 미리보기
+     * skillPreviews.js, 적 더미·같은 이펙트)를 캐릭터 칸 위 iframe으로 띄우고 { char, equip, part }를 보냄. 끝나면 사라지고 [▶ 스킬]로 다시
+     */
+    previewSkill(slot, part) {
+        const sk = skillOf(slot, part);
+        const stage = this.root?.querySelector('.v2-lab__stage');
+        if (!sk || !stage) return;
+        if (!this.skillPrev) {
+            const box = this.skillPrev = document.createElement('div');
+            box.className = 'v2-skillprev';
+            box.hidden = true;
+            box.innerHTML = '<iframe src="rig_test.html?embed=1" title="스킬 미리보기" tabindex="-1"></iframe><b class="v2-skillprev__name"></b>';
+            box.addEventListener('click', () => this.hideSkillPreview());
+            stage.appendChild(box);
+            window.addEventListener('message', e => {
+                if (e.origin !== location.origin || !e.data) return;
+                if (e.data.type === 'mo-skill-preview-ready') { this.prevReady = true; this.sendSkillPreview(); }
+                else if (e.data.type === 'mo-skill-preview-done') this.prevDone = e.data;
+            });
+        }
+        this.prevWant = { slot, part };
+        this.skillPrev.querySelector('.v2-skillprev__name').innerHTML = `<em style="--sk:${sk.color}">${ROLE[slot].tag}</em>${sk.name}`;
+        this.skillPrev.hidden = false;
+        this.skillPrev.classList.add('is-on');
+        clearTimeout(this.prevTimer);
+        this.prevTimer = setTimeout(() => this.hideSkillPreview(), 12000);   // 무대가 안 뜨면(불러오는 중 오류) 그래도 닫힘
+        if (this.prevReady) this.sendSkillPreview();
+    }
+
+    sendSkillPreview() {
+        const w = this.prevWant;
+        const win = this.skillPrev?.querySelector('iframe')?.contentWindow;
+        if (!w || !win) return;
+        this.prevWant = null;
+        const cart = gameState.getCartObjects();
+        const equip = Object.fromEntries(SLOTS4.map(s => [s, cart[s]?.id]).filter(([, id]) => id && id !== 'none'));
+        win.postMessage({ type: 'mo-skill-preview', char: characterOfPart(w.part) || progress.character, equip, part: w.part.id }, location.origin);
+        clearTimeout(this.prevTimer);
+        this.prevTimer = setTimeout(() => this.hideSkillPreview(), w.slot === 'head' ? 6500 : 4500);   // 필살기는 길게
+    }
+
+    /** 캐릭터 칸 [▶ 스킬]: 지금 부위에 담은 파츠의 스킬을 다시 (스킬 없는 파츠·세트 탭에서는 숨김) */
+    renderReplay() {
+        const stage = this.root?.querySelector('.v2-lab__stage');
+        if (!stage) return;
+        if (!this.replayBtn) {
+            const b = this.replayBtn = document.createElement('button');
+            b.className = 'v2-btn v2-btn--ghost v2-skillprev__again';
+            b.textContent = '▶ 스킬';
+            b.title = '고른 파츠의 스킬 보기';
+            b.addEventListener('click', () => {
+                const part = gameState.getCartObjects()[this.activeSlot];
+                this.previewSkill(this.activeSlot, part);
+            });
+            stage.appendChild(b);
+        }
+        const part = this.activeSlot === 'set' ? null : gameState.getCartObjects()[this.activeSlot];
+        this.replayBtn.hidden = !skillOf(this.activeSlot, part);
+    }
+
+    hideSkillPreview() {
+        const box = this.skillPrev;
+        if (!box || box.hidden) return;
+        clearTimeout(this.prevTimer);
+        box.classList.remove('is-on');
+        setTimeout(() => { if (!box.classList.contains('is-on')) box.hidden = true; }, 250);
+    }
+
+    /** [세트 스킬] 창: 세트 효과(2·4부위) + 네 파츠가 주는 스킬 (11-05 피드백 6번) — 닫기·바깥·Escape로 닫음 */
+    openSetSkills({ mark, label, parts, bonus, color }) {
+        this.root.querySelector('.v2-setskill')?.remove();
+        const box = document.createElement('div');
+        box.className = 'v2-setskill';
+        box.setAttribute('role', 'dialog');
+        box.setAttribute('aria-label', `${label} 세트 스킬`);
+        const skills = parts.map((p, i) => {
+            const slot = SLOTS4[i], sk = skillOf(slot, p);
+            if (!p) return '';
+            const cd = sk && sk.cd ? `<i>쿨다운 ${sk.cd}초</i>` : sk && sk.passive ? '<i>항상 켜짐</i>' : '';
+            return `<li style="--sk:${sk ? sk.color : '#5a6272'}"><span class="v2-setskill__icon">${icon(sk ? sk.icon : 'lock', 22)}</span>`
+                + `<div><b><em>${ROLE[slot].tag}</em>${sk ? sk.name : '스킬 없음'}${cd}</b><small>${SLOT_NAME[slot]} · ${p.name}</small>`
+                + `${sk && sk.desc ? `<p>${sk.desc}</p>` : ''}</div></li>`;
+        }).join('');
+        box.innerHTML = `<div class="v2-setskill__box" style="--grade:${color}">
+            <header>${mark}<h3>${label}</h3><button class="v2-iconbtn" data-act="close" aria-label="닫기">✕</button></header>
+            <ul class="v2-setskill__bonus">${bonus.map(([need, d]) => `<li><b>${need}부위</b> ${d}</li>`).join('') || '<li>세트 효과 없음</li>'}</ul>
+            <ul class="v2-setskill__list">${skills}</ul></div>`;
+        const close = () => { box.remove(); document.removeEventListener('keydown', onKey, true); };
+        const onKey = e => { if (e.key === 'Escape') { e.stopPropagation(); close(); } };
+        box.addEventListener('click', e => { if (e.target === box || e.target.closest('[data-act="close"]')) close(); });
+        document.addEventListener('keydown', onKey, true);
+        (this.root.querySelector('.v2-lab') || this.root).appendChild(box);
+        box.querySelector('[data-act="close"]').focus();
+    }
+
     updateMvvmFeedback() {
-        if (this.domDmCount) this.domDmCount.textContent = gameState.darkMatter.toLocaleString();
-        const res = $('lab-res-v2');
-        if (res) res.innerHTML = resChipHtml();   // 별·조각·코어 (Q-006)
+        refreshCurrency();   // 별·조각·코어 · DM (currencyBar_v2.js)
         this.renderCompare();
         this.renderLoadout();
         this.renderCart();
@@ -477,7 +598,7 @@ export class LabController {
         if (!box) return;
         // 자리가 좁아 2부위 이상 모은 세트만, 두 줄까지: 켜진 효과 먼저, 그다음 많이 모은 세트
         const list = setBonusList(cart).filter(b => b.count >= 2).sort((p, q) => (q.on - p.on) || (q.count - p.count)).slice(0, 2);
-        box.hidden = !list.length;
+        box.hidden = !list.length || this.activeSlot !== 'set';   // 부위 탭에서는 세트 효과 줄을 뺌 — 세트 탭에서만 (11-05 피드백 5번)
         box.innerHTML = list.map(b => `<div class="v2-setbonus__row${b.on ? ' is-on' : ''}" title="${b.label} — ${b.need}부위: ${b.desc}">`
             + `<b>${b.on ? '◆' : '◇'} ${b.name} ${Math.min(b.count, b.need)}/${b.need}</b><span>${b.desc}</span></div>`).join('');
     }
@@ -497,6 +618,12 @@ export class LabController {
             this.btnEquip.querySelector('small').textContent = changes === 0 ? '변경한 파츠 없음'
                 : locked.length ? '드랍·조각 전용 파츠가 있음'
                     : remain < 0 ? 'DM 부족' : cost ? `구매 ${cost.toLocaleString()} DM · ${changes}개 장착` : `${changes}개 장착 (보유 파츠)`;
+            // 휴대폰 [확정] 아래 줄 = 드는 DM (11-05 피드백 9번 — 휴대폰은 small·비용 줄이 없음)
+            const em = $('lab-confirm-cost-v2');
+            if (em) {
+                em.textContent = changes === 0 ? '' : locked.length ? '조각 전용' : `${remain < 0 ? '부족 ' : ''}${cost.toLocaleString()} DM`;
+                em.classList.toggle('is-poor', remain < 0);
+            }
         }
     }
 
@@ -518,13 +645,16 @@ export class LabController {
         const opts = $('lab-upg-opts-v2');
         const craft = valid && !owned0 ? progress.craftCost(part.id) : null;   // 안 가진 세트 파츠: 조각으로 만들기 (Q-008)
         if (opts) opts.textContent = valid && owned0 ? (optionText(part.id) || (g.id === 'common' ? '옵션 없음 — 레어부터 (하드 이상 드랍·조각)' : ''))
-            : craft ? `${isDropOnly(part) ? '드랍 전용 — 헬 이상에서 떨어짐, ' : '하드 이상에서도 떨어짐, '}파츠 조각 ${craft.shards}개로 만들 수 있음 (보유 ${progress.shards})` : '';
+            : craft ? `파츠 조각 ${craft.shards}개로 만들 수 있음 (보유 ${progress.shards}) · ${isDropOnly(part) ? '보스 첫 클리어(헬 이상) 확정 보상으로도 나옴' : 'DM으로도 살 수 있음'}` : '';
         const gc = valid ? progress.shardUpgradeCost(part.id) : null;
         const gBtn = $('btn-grade-v2');
         if (gBtn) {
             gBtn.querySelector('span').textContent = craft ? '만들기' : '등급 ▲';
             gBtn.disabled = craft ? craft.shards > progress.shards : !gc || gc.shards > progress.shards;
-            $('lab-grade-cost-v2').textContent = !valid ? '' : craft ? `조각 ${craft.shards}` : !owned0 ? '구매 후' : gc ? `조각 ${gc.shards}` : 'MAX';
+            // 필요 / 보유 조각 (11-05 피드백 10번 — 휴대폰은 보유 줄이 숨어 있어 단추에 같이), 모자라면 빨강
+            const need = craft ? craft.shards : owned0 && gc ? gc.shards : null;
+            $('lab-grade-cost-v2').innerHTML = !valid ? '' : need != null
+                ? `${icon('shard', 12)}<b class="${need > progress.shards ? 'is-poor' : ''}">${need}</b><i>/${progress.shards}</i>` : !owned0 ? '구매 후' : 'MAX';
             gBtn.title = craft ? `파츠 조각 ${craft.shards}개로 만들기 — ${gradeOf(craft.grade).name} (보유 ${progress.shards})`
                 : gc ? `파츠 조각 ${gc.shards}개로 ${gradeOf(gc.grade).name} (보유 ${progress.shards})` : '';
         }
@@ -547,8 +677,12 @@ export class LabController {
         const cart = gameState.getCartObjects();
         const config = rigConfigFor(cart, progress.character);
         const body = cart.body && cart.body.id !== 'none' ? cart.body : null;
-        $('lab-unit-name-v2').textContent = config ? RIG_CHARACTERS[config.character].name : '미완성 기체';
-        $('lab-faction-v2').textContent = body ? body.faction : '흐린 부위는 아직 없는 파츠예요';
+        const name = config ? RIG_CHARACTERS[config.character].name : '미완성 기체';
+        $('lab-unit-name-v2').textContent = name;
+        // 계열 이름 '거대로봇 (메카닉)'이 위 캐릭터 이름과 겹치면 괄호 안만 (11-05 피드백 19번 — 이름 두 번)
+        const faction = body ? body.faction : '';
+        const same = faction.startsWith(name) && faction.match(/\(([^)]*)\)\s*$/);
+        $('lab-faction-v2').textContent = !body ? '흐린 부위는 아직 없는 파츠예요' : same ? same[1] : faction.startsWith(name) ? '' : faction;
         $('lab-preview-tag-v2').textContent = progress.cartChanges() ? 'MODIFIED' : 'CURRENT';
         $('lab-empty-v2').hidden = !!config;
         if (!this.rig) return;
@@ -577,5 +711,6 @@ export class LabController {
     onLeave() {
         if (this.rig) this.rig.stop();
         this.rigOn = false;
+        this.hideSkillPreview();
     }
 }
