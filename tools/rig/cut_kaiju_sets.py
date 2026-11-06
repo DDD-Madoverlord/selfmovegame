@@ -43,9 +43,12 @@ HEAD_EXTRA = (252, 0, 380, 64)          # 머리 위 장식(가시 왕관 등)�
 HEAD_ADD = {'d': [(352, 66), (408, 76), (408, 124), (366, 124), (356, 116)],
             'l': [(376, 8), (402, 8), (402, 66), (376, 66)]}   # l 종말의 거신: 앞 뿔 끝 (x 380~389, 같은 종류 점검)
 JAW_ADD = {'d': [(350, 119), (374, 119), (374, 147), (346, 147)]}
-# 입안(윗니 줄 ~ 아래턱 윗면 사이)을 팔 없는 몸 대신 어두운 입안 색으로 — d는 팔 없는 몸에 회색 닫힌 턱이 그려져 있어
-# 입을 벌리면 턱이 두 겹처럼 보였음. 그 아래(턱 밑·목)는 팔 없는 몸 그대로 두어 턱을 다물 때 목이 보이게
-MOUTH_DARK = {'d': [(272, 97), (365, 104), (365, 121), (340, 126), (300, 122), (272, 112)]}
+# 입 틈: 원래 그림은 윗니와 아래턱 사이 입 틈이 뚫려 있음(배경이 보임). d는 팔 없는 몸에 회색 닫힌 턱이 그려져 있어,
+# 그걸로 턱 뒤를 채우면 입을 벌릴 때 턱이 두 겹처럼 보였고(디스코드 QA 11-05), 입안 색으로 칠해도 띠만 떠 보였음
+# → 아래턱을 가장 크게 벌리는 각도(kaijuRig 물기 +14°)로 돌려 봤을 때 드러나는 자리는 원래 입 틈처럼 비움.
+#   그 밖의 턱 뒤(목)는 몸통 조각에 팔 없는 몸으로 채워 턱을 다물 때 목이 보이게 (머리 조각에는 채우지 않음)
+MOUTH_OPEN = {'d': 14}
+MOUTH_THROAT_Y = 128   # 팔 없는 몸 d의 회색 닫힌 턱 아래 끝 (기본 좌표) — 이 아래만 목으로 채움
 # 자른 뒤 손으로 고친 그림 — 다시 잘라도 덮어쓰지 않음 (피드백 20: c 화산 등딱지 머리 위 연기를 옅게, 7739ee2)
 HAND_EDITED = {'head_c'}
 
@@ -127,6 +130,8 @@ def cut_set(v):
     # 팔: 차이 중 가장 오른쪽까지 뻗은 덩어리. 턱 밑(턱이 있던 자리)이 이어 붙어 나오므로 턱 둘레와 어깨 위는 뺌
     arm = component_in(diff & ~jaw_zone & (rows2 >= 135), rect_mask(shape, ARM_ZONE), pick='rightmost')
     arm = drop_specks(grow(arm, opaque & ~jaw_zone & (cols >= base.ARM_BODY_CUT_X - base.SEAM_OVERLAP - 1), 3), 40)
+    if v in MOUTH_OPEN:   # 아래턱 아래 테두리 선(기본 턱 선보다 몇 px 아래)이 몸통에 남으면 꽉 물 때 턱 밑에 줄로 떠 보임
+        jaw = jaw | (grow(jaw, opaque & ~arm & (limbless[..., 3] == 0), 4) & (rows2 >= 140))   # 팔 없는 몸에 없는 픽셀만, 아래로만
     tail = component_in(diff, cols < TAIL_ZONE_X)
     head_poly = poly_mask(shape, base.HEAD_POLY) | rect_mask(shape, HEAD_EXTRA)
     if v in HEAD_ADD:
@@ -136,6 +141,13 @@ def cut_set(v):
     head_piece = grow(head, opaque & ~jaw & (cols >= base.NECK_BAND_X - 12), base.SEAM_OVERLAP)
     leg_n = largest(poly_mask(shape, base.LEG_N_POLY) & opaque & ~tail & ~arm)
     leg_f = largest(poly_mask(shape, base.LEG_F_POLY) & opaque & ~arm)
+    mouth = np.zeros(shape[:2], bool)
+    if v in MOUTH_OPEN:   # 입을 벌리면 드러나는 자리 (아랫니 사이 틈까지 메운 턱 자리 - 벌린 각도로 돌린 턱)
+        import cv2
+        solid = cv2.morphologyEx(jaw.astype(np.uint8), cv2.MORPH_CLOSE, np.ones((5, 5), np.uint8))
+        rot = cv2.getRotationMatrix2D(tuple(float(c) for c in base.PIVOTS['jaw']), -MOUTH_OPEN[v], 1.0)   # cv2 음수 = 화면 시계 방향 = 턱 끝이 아래로
+        opened = cv2.warpAffine(solid, rot, (W, H), flags=cv2.INTER_NEAREST).astype(bool)
+        mouth = solid.astype(bool) & ~opened & ~head
 
     # 목 이음새 가림(NECK_BAND_X 왼쪽 머리를 몸통에도 남김)은 목 높이에서만 — 머리 위 장식(HEAD_EXTRA)까지 남기면
     # 머리를 움직일 때 장식이 몸통에 겹쳐 남아 두 개로 보임 (u 뿔, 같은 종류 점검)
@@ -149,20 +161,18 @@ def cut_set(v):
 
     # 몸통: 팔이 가리던 가슴과 턱 아래 목은 팔 없는 몸에서 (기본과 같은 방식)
     body_img = cut(src, body)
-    fill = ((rect_mask(shape, base.ARM_FILL_ZONE) | rect_mask(shape, JAW_ZONE) | arm)
+    jaw_fill = rect_mask(shape, JAW_ZONE)
+    if v in MOUTH_OPEN:   # 원래 빈 곳(입 틈)과 입을 벌리면 드러나는 자리는 비워 둠
+        # 팔 없는 몸의 회색 닫힌 턱(y < MOUTH_THROAT_Y)은 빼고 그 아래 목만 — 물기 때 머리가 젖혀지면 입 틈 뒤로 몸통이 보임
+        jaw_fill = jaw_fill & opaque & ~mouth & (rows2 >= MOUTH_THROAT_Y)
+    fill = ((rect_mask(shape, base.ARM_FILL_ZONE) | jaw_fill | arm)
             & (body_img[..., 3] == 0) & (limbless[..., 3] == 255) & (cols < W - 2))
     body_img[fill] = limbless[fill]
-    # 머리: 턱 뒤(입안)는 팔 없는 몸에서
+    # 머리: 턱 뒤(입안)는 팔 없는 몸에서 (MOUTH_OPEN 세트는 몸통이 맡음 — 머리에 채우면 입 틈이 막힘)
     head_img = cut(src, head_piece)
-    empty = head_img[..., 3] == 0
-    fill = rect_mask(shape, JAW_ZONE) & ~arm & empty & (limbless[..., 3] == 255) & (cols >= base.NECK_BAND_X)
-    head_img[fill] = limbless[fill]
-    if v in MOUTH_DARK:   # 입안 그림자색 (cut_kaiju_parts.py와 같은 방식) — 원래 머리 그림이 없던 곳만
-        interior = head & (src[..., 0] > src[..., 1] + 25) & (src[..., 0] > 70)   # 붉은 입안 픽셀
-        mouth_rgb = src[interior][:, :3].mean(0) * 0.45 if interior.any() else np.array([50, 18, 18])
-        dark = poly_mask(shape, MOUTH_DARK[v]) & empty & (cols >= base.NECK_BAND_X)
-        head_img[dark, :3] = mouth_rgb.astype(np.uint8)
-        head_img[dark, 3] = 255
+    if v not in MOUTH_OPEN:
+        fill = jaw_fill & ~arm & (head_img[..., 3] == 0) & (limbless[..., 3] == 255) & (cols >= base.NECK_BAND_X)
+        head_img[fill] = limbless[fill]
 
     parts = {'body': body_img, 'head': head_img, 'jaw': cut(src, jaw_piece), 'armF': cut(src, arm),
              'legN': cut(src, leg_n), 'legF': cut(src, leg_f)}
