@@ -148,6 +148,13 @@ def run(ctx):
     ctx.check(span(mech['armR_cannon_d'])[3] >= 900, '정찰 저격대 저격포: 총구까지 팔 조각', str(span(mech['armR_cannon_d'])))
     hd, bd = span(kaiju['head_d']), span(kaiju['body_d'])
     ctx.check(hd[2] >= 1190 and bd[2] <= 1130, '악어 턱 머리: 긴 코끝이 머리 조각 (몸통에 안 남음)', f'머리 {hd} 몸통 {bd}')
+    # 악어 턱 머리: 아래턱을 벌리면 잘라 돌린 턱 대신 입 벌린 머리 그림(반쯤·다)으로 바꿔 끼움 — 머리·아래턱 경계가 갈라져 보이던 것 (11-06)
+    rig_k = json.load(open(os.path.join(ROOT, 'assets/sprites/rig/kaiju/rig.json'), encoding='utf-8'))
+    swaps = rig_k.get('poseSwaps', {}).get('head_d', [])
+    ok = (len(swaps) == 2 and all(r['bone'] == 'jaw' and 'jaw' in r['hide'] and r['part'] in kaiju
+                                  and os.path.exists(os.path.join(ROOT, 'assets/sprites/rig/kaiju', kaiju[r['part']]['src'])) for r in swaps)
+          and rig_k.get('limits', {}).get('jaw_d', {}).get('min') == 0)
+    ctx.check(ok, '악어 턱 머리: 아래턱을 벌리면 입 벌린 머리 그림으로 바꿔 끼움 (반쯤·다) · 원래 자리 위로는 안 다묾', str(swaps))
     import numpy as np, cv2
     stray = {}
     for v in 'ucdvwlm':

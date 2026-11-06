@@ -64,9 +64,9 @@ MOUTH_ART_ZONE = (262, 95, 380, 151)
 CAVITY_MAX = 95   # 입안 그림 밝기 상한 (가장 밝은 채널) — 테두리의 밝은 빨강을 눌러 매끈한 어두운 입안으로   # 이 안에서 아래턱 자리이거나 원래 비어 있던 곳만 채움 (기본 좌표)
 
 
-def mouth_art(v, which, shape):
-    """입안 그림(which = base | open)을 기본 좌표 칸에 놓기 (칸마다 가운데 픽셀 — 도트 유지) → RGBA"""
-    name, (x0, y0, x1, y1) = MOUTH_ART[v][which], MOUTH_ART[v]['box']
+def mouth_art(v, which, shape, name=None):
+    """입안 그림(which = base | open | cavity …, 또는 파일 이름 name)을 기본 좌표 칸에 놓기 (칸마다 가운데 픽셀 — 도트 유지) → RGBA"""
+    name, (x0, y0, x1, y1) = name or MOUTH_ART[v][which], MOUTH_ART[v]['box']
     a = np.asarray(Image.open(f'{SRC_DIR}/{name}').convert('RGB'))
     ah, aw = a.shape[:2]
     w, h = x1 - x0, y1 - y0
@@ -79,6 +79,13 @@ def mouth_art(v, which, shape):
     bg = ~keymask(cell) | ((r - g > 50) & (b - g > 50))   # 마젠타 바탕 + 번진 보라 가장자리 (윗니 사이 보라 점)
     out[y0:y1, x0:x1, 3] = np.where(bg, 0, 255)
     return out
+# 입 벌린 머리 그림으로 바꿔 끼우기 (11-06 사용자 "머리·아래턱 경계가 갈라져 보임" → 방법 ①): 잘라 돌린 아래턱 대신,
+# 아래턱이 min° 이상 벌어지면 머리를 '입 벌린 머리 그림' 한 장으로 바꾸고 아래턱 조각은 숨김 (rig.json poseSwaps → rig.js).
+# 그림 = 이 도구가 아래턱을 deg°로 돌려 그린 기준 그림(*_ref.png, 6배·마젠타)을 Gemini가 '아래턱은 그대로, 입안·입가 이음매만
+# 한 장처럼' 다시 그린 것 — 입 둘레(머리·아래턱·그 사이)만 가져오고 나머지는 원래 머리 그림 그대로.
+MOUTH_FRAMES = {'d': [{'deg': 8, 'min': 4, 'name': 'half', 'src': 'kaiju_d_frame8_gemini.png'},
+                      {'deg': 14, 'min': 11, 'name': 'open', 'src': 'kaiju_d_frame14_gemini.png'}]}
+MOUTH_FRAME_ZONE = (262, 92, 396, 178)   # 그림을 가져오는 입 둘레 (기본 좌표)
 # 자른 뒤 손으로 고친 그림 — 다시 잘라도 덮어쓰지 않음 (피드백 20: c 화산 등딱지 머리 위 연기를 옅게, 7739ee2)
 HAND_EDITED = {'head_c'}
 
@@ -127,6 +134,47 @@ def component_in(mask, zone_mask, pick='largest'):
         return largest(m)
     right = max(ok, key=lambda i: st[i, cv2.CC_STAT_LEFT] + st[i, cv2.CC_STAT_WIDTH])
     return lab == right
+
+
+def jaw_turned(img, deg):
+    """아래턱 그림을 축(PIVOTS['jaw']) 기준 화면 시계 방향 deg°로 (cv2 각도 음수 = 턱 끝이 아래로)"""
+    import cv2
+    rot = cv2.getRotationMatrix2D(tuple(float(c) for c in base.PIVOTS['jaw']), -deg, 1.0)
+    return cv2.warpAffine(img, rot, (img.shape[1], img.shape[0]), flags=cv2.INTER_NEAREST)
+
+
+def mouth_frame_ref(v, parts, deg, path):
+    """Gemini에 보낼 기준 그림: 몸통 + 머리 + deg°로 벌린 아래턱 (앞발 없음), 입안 그림 칸을 6배·마젠타 바탕으로"""
+    can = np.zeros_like(parts['body'])
+    for p in (parts['body'], parts['head'], jaw_turned(parts['jaw'], deg)):
+        a = p[..., 3:] > 0
+        can = np.where(a, p, can)
+    x0, y0, x1, y1 = MOUTH_ART[v]['box']
+    crop = can[y0:y1, x0:x1]
+    rgb = np.where(crop[..., 3:] > 0, crop[..., :3], np.array([255, 0, 255], np.uint8))
+    Image.fromarray(rgb.astype(np.uint8)).resize(((x1 - x0) * 6, (y1 - y0) * 6), Image.NEAREST).save(path)
+
+
+def mouth_frame(v, fr, parts, shape, cols, rows2):
+    """입 벌린 머리 그림 한 장: 원래 머리 + deg°로 벌린 아래턱, 입 둘레만 Gemini 그림으로 (그림이 없으면 기준 그림만 만들고 멈춤)"""
+    import cv2
+    ref = f'{SRC_DIR}/{fr["src"].replace("_gemini.png", "_ref.png")}'
+    if not os.path.exists(ref):
+        mouth_frame_ref(v, parts, fr['deg'], ref)
+    if not os.path.exists(f'{SRC_DIR}/{fr["src"]}'):
+        raise SystemExit(f'[{v}] {fr["src"]} 없음 — 기준 그림 {ref}를 Gemini에 보내 입안·입가만 다시 그려 받을 것')
+    head, jaw = parts['head'], jaw_turned(parts['jaw'], fr['deg'])
+    out = np.where(jaw[..., 3:] > 0, jaw, head)                     # 머리 위에 벌린 아래턱 (z 순서대로)
+    sil = (head[..., 3] > 0) | (jaw[..., 3] > 0)
+    inner = cv2.morphologyEx(sil.astype(np.uint8), cv2.MORPH_CLOSE, np.ones((15, 15), np.uint8)).astype(bool)   # 두 턱 사이 입안까지
+    zone = rect_mask(shape, MOUTH_FRAME_ZONE) & (cols >= base.NECK_BAND_X)
+    take = zone & cv2.dilate(((inner & ~(head[..., 3] > 0)) | (jaw[..., 3] > 0)).astype(np.uint8), np.ones((5, 5), np.uint8)).astype(bool)
+    take |= zone & (head[..., 3] > 0) & cv2.dilate((jaw[..., 3] > 0).astype(np.uint8), np.ones((9, 9), np.uint8)).astype(bool)   # 입천장·윗니 둘레도
+    # 다문 아래턱 자리(머리 그림에 입안을 칠해 둔 곳)도 — 벌린 그림에선 드러나므로 Gemini 그림으로 (안 그러면 턱 끝 앞에 붉은 얼룩)
+    take |= zone & cv2.dilate((parts['jaw'][..., 3] > 0).astype(np.uint8), np.ones((5, 5), np.uint8)).astype(bool)
+    art = mouth_art(v, None, shape, name=fr['src'])
+    out[take] = art[take]                                            # 그림의 마젠타(빈 곳)는 비움
+    return out
 
 
 def cut_set(v):
@@ -270,6 +318,8 @@ def cut_set(v):
     if empty:
         raise SystemExit(f'[{v}] 비어 있는 조각: {empty} — 자리 범위(ARM_ZONE 등)를 확인')
     named = {f'{k}_{v}': p for k, p in parts.items()}
+    for fr in MOUTH_FRAMES.get(v, []):   # 입 벌린 머리 그림 (머리 기준 좌표 — 머리 뼈에 그대로 붙음)
+        named[f'head_{v}_{fr["name"]}'] = mouth_frame(v, fr, parts, shape, cols, rows2)
     old = json.load(open(f'{OUT_DIR}/rig.json', encoding='utf-8'))['parts']
     keep = {k: old[k] for k in named if k in HAND_EDITED and k in old}
     for k in keep:
@@ -292,6 +342,10 @@ def main():
     layout['parts'].pop('jawFar_d', None)
     # 입안 그림 세트의 아래턱은 원래 자리보다 위로 다물지 않음 (rig.js 회전 한도 — 그림 키 기준이라 이 세트만)
     layout['limits'] = {**layout.get('limits', {}), **{f'jaw_{x}': {'min': 0} for x in MOUTH_ART}}
+    # 입 벌린 머리 그림으로 바꿔 끼우기 (rig.js poseSwaps — 그림 키 기준이라 이 세트만)
+    layout['poseSwaps'] = {**layout.get('poseSwaps', {}), **{
+        f'head_{x}': [{'bone': 'jaw', 'min': fr['min'], 'part': f'head_{x}_{fr["name"]}', 'hide': ['jaw']} for fr in frs]
+        for x, frs in MOUTH_FRAMES.items()}}
     with open(path, 'w', encoding='utf-8') as f:
         json.dump(layout, f, ensure_ascii=False, indent=2)
     print('rig.json 부위 그림:', len(layout['parts']), '개')

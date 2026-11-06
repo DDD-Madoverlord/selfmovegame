@@ -634,6 +634,20 @@
       "y": 657,
       "w": 123,
       "h": 201
+    },
+    "head_d_half": {
+      "src": "head_d_half.png",
+      "x": 756,
+      "y": 66,
+      "w": 441,
+      "h": 423
+    },
+    "head_d_open": {
+      "src": "head_d_open.png",
+      "x": 756,
+      "y": 66,
+      "w": 441,
+      "h": 441
     }
   },
   "pivots": {
@@ -700,5 +714,25 @@
     "jaw_d": {
       "min": 0
     }
+  },
+  "poseSwaps": {
+    "head_d": [
+      {
+        "bone": "jaw",
+        "min": 4,
+        "part": "head_d_half",
+        "hide": [
+          "jaw"
+        ]
+      },
+      {
+        "bone": "jaw",
+        "min": 11,
+        "part": "head_d_open",
+        "hide": [
+          "jaw"
+        ]
+      }
+    ]
   }
 }
