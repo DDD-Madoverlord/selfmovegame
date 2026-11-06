@@ -209,7 +209,9 @@ export const MECH_SETS2 = packOf('mech', [
                     { at: 0.3, do: 'fx', on: 'self', x: 20, b: FOOT_B + 150, vfx: V.gold(90, 120), repeat: 6, repeatGap: 1 }] },
             mcShieldRush: { name: '방패 돌진', slot: 'arm', cd: 9, icon: 'shield', color: '#ffd76e', target: 'enemy', range: 160, clip: 'dash',
                 desc: '짧게 돌진 — 앞 적 크게 밀침 + 1초 기절',
-                steps: [{ do: 'dash', dist: 130, sec: 0.3, dmg: 1.2, knock: 1.6, status: { stun: 1 } },
+                // shove: 적을 뚫고 지나가지 않고 방패 앞에 붙여 밀고 감, 밀리지 않는 적 앞에선 멈춤 → 끝에 앞쪽 밀침 (디스코드 QA 11-05 홍도도)
+                steps: [{ do: 'dash', dist: 130, sec: 0.3, dmg: 1.2, knock: 0, shove: true, status: { stun: 1 } },
+                    { at: 0.32, do: 'push', range: 160, dist: 45 },   // 밀고 온 무리를 통째로 한 번 더 밀침 (간격 유지)
                     { at: 0.3, do: 'fx', on: 'self', x: 90, b: 110, vfx: V.gold(0, 150) }, { at: 0.3, do: 'shake', power: 4, ms: 150 }] }
         }
     },

@@ -239,10 +239,16 @@ export class Skeleton {
         for (const b of this.bones) {
             const p = pose[b.name] || {};
             const o = offsets[b.name] || {};
+            let rot = (p.rot || 0) + (o.rot || 0);
+            // 그림별 회전 한도 (rig.json limits, 그림 키 기준 — 세트 그림에만 걸 수 있음). 예: 악어 턱 머리 아래턱(jaw_d)은
+            // 원래 자리보다 위로 안 다묾 — 입이 벌어진 채 그려진 그림이라 더 다물면 턱 밑으로 입안 그림이 드러남 (D-113)
+            const lim = this.layout.limits && this.layout.limits[(this.partAlias && this.partAlias[b.part]) || b.part];
+            if (lim) rot = Math.min(lim.max ?? Infinity, Math.max(lim.min ?? -Infinity, rot));
+            b.rot = rot;   // 그림 바꿔 끼우기(poseSwaps)가 읽음
             const local = Mat.trs(
                 b.rest[0] + (p.x || 0) + (o.x || 0),
                 b.rest[1] + (p.y || 0) + (o.y || 0),
-                ((p.rot || 0) + (o.rot || 0)) * DEG,
+                rot * DEG,
                 (p.sx ?? 1) + (o.sx || 0),   // 더하기 동작의 크기 변화 (착지 눌림 — reactions.js)
                 (p.sy ?? 1) + (o.sy || 0)
             );
@@ -276,10 +282,34 @@ export class Skeleton {
         return Mat.apply(b.world, s[0] - b.pivot[0], s[1] - b.pivot[1]);
     }
 
-    draw(ctx, base) {
+    /**
+     * 자세에 따라 그림 바꿔 끼우기 (rig.json poseSwaps, 그림 키 기준 — 규칙이 있는 세트만).
+     * { "head_d": [{ "bone": "jaw", "min": 4, "part": "head_d_half", "hide": ["jaw"] }, ...] } — 뼈 회전이 min 이상인 마지막 규칙.
+     * 예: 악어 턱 머리는 아래턱을 벌릴 때 잘라 돌린 턱 대신 입 벌린 머리 그림 한 장으로 (턱과 머리 경계가 갈라져 보여서, D-113)
+     * @returns {{ keys: Object<string,string>, hidden: Set<string> } | null}
+     */
+    _poseSwaps() {
+        const rules = this.layout.poseSwaps;
+        if (!rules) return null;
+        const keys = {};
+        const hidden = new Set();
         for (const b of this.drawOrder) {
-            // partAlias: 세트 파츠 그림으로 바꿔 그림 (예: head → head_a, rigAvatar.setVariants). 색 필터는 원래 부위키로 찾음
             const key = (this.partAlias && this.partAlias[b.part]) || b.part;
+            let hit = null;
+            for (const r of rules[key] || []) if ((this.byName[r.bone]?.rot ?? 0) >= r.min) hit = r;
+            if (!hit) continue;
+            keys[b.name] = hit.part;
+            (hit.hide || []).forEach(n => hidden.add(n));
+        }
+        return { keys, hidden };
+    }
+
+    draw(ctx, base) {
+        const swap = this._poseSwaps();
+        for (const b of this.drawOrder) {
+            if (swap && swap.hidden.has(b.name)) continue;
+            // partAlias: 세트 파츠 그림으로 바꿔 그림 (예: head → head_a, rigAvatar.setVariants). 색 필터는 원래 부위키로 찾음
+            const key = (swap && swap.keys[b.name]) || (this.partAlias && this.partAlias[b.part]) || b.part;
             const img = this.images[key];
             const part = this.layout.parts[key];
             if (!img || !part) continue;

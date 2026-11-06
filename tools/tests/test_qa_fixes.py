@@ -117,6 +117,54 @@ def run(ctx):
     ctx.check(a['fight'] and z['fight'] and z['x'] > a['x'] + 20 and z['d'] - a['d'] < 3,
               '소환수: 아군이 앞에서 싸우면 주인공이 그 자리로 걸어감 (거리는 쌓지 않음)', f'{a} → {z}')
 
+    # 방패 돌진(거대로봇 방주 수호기 팔): 적을 뚫고 지나가지 않고 밀고 감 · 밀리지 않는 적 앞에선 멈춤 (11-05 디스코드 QA 홍도도)
+    def shield_rush(heavy):
+        g.js("b.stopBattle(); progress.selectStage('1-1'); window.madOverlordGameV2.switchScreen('menu');")
+        g.wait(300)
+        g.battle(('head_mech_w', 'body_mech_w', 'arm_mech_w', 'leg_mech_w'), wait_ms=1500)
+        g.js("b.setAutoSkills(false); b.spawnInterval = 999; b.playerSpeed = 0; b.playerDps = 0;"
+             "b.enemies.filter(e => !e.isBuilding).forEach(e => e.dom && e.dom.remove()); b.enemies = b.enemies.filter(e => e.isBuilding);")
+        g.place_enemies(n=3, gap=50, first=110, hp=999999, speed=0, dps=0)
+        return g.js(f"""const list = b.enemies.filter(e => !e.isBuilding);
+            if ({'true' if heavy else 'false'}) list[0].knockResist = true;
+            const x0 = list.map(e => e.x), m0 = b.monsterX;
+            b.skillCd.arm = 0; const used = b.useSkill('arm');
+            await new Promise(r => setTimeout(r, 900));
+            return {{ used, m0, m1: b.monsterX, front: b.frontX(), x0, x1: list.map(e => e.x) }};""")
+    st = shield_rush(False)
+    ctx.check(st['used'] and st['m1'] > st['m0'] + 60 and min(st['x1']) >= st['front'] - 2 and st['x1'][0] > st['x0'][0] + 40,
+              '방패 돌진: 앞으로 나가며 만난 적을 방패 앞으로 밀고 감 (뒤로 빠져나간 적 없음)', str(st))
+    st = shield_rush(True)
+    ctx.check(st['used'] and st['x1'][0] == st['x0'][0] and st['front'] <= st['x1'][0] + 1,
+              '방패 돌진: 밀리지 않는 적(방패병·보스) 바로 앞에서 멈춤', str(st))
+
+    # 세트 그림: 기본 자르는 선 밖으로 나온 장비 끝이 몸통 조각에 남아, 움직이면 그 끝만 떨어져 보이던 것 (11-05 디스코드 QA + 같은 종류 점검)
+    mech = json.load(open(os.path.join(ROOT, 'assets/sprites/rig/mech/rig.json'), encoding='utf-8'))['parts']
+    kaiju = json.load(open(os.path.join(ROOT, 'assets/sprites/rig/kaiju/rig.json'), encoding='utf-8'))['parts']
+    span = lambda p: (p['x'], p['y'], p['x'] + p['w'], p['y'] + p['h'])
+    sh, bw = span(mech['armR_fist_w']), span(mech['body_w'])
+    ctx.check(sh[1] <= 400 and sh[3] >= 900 and bw[2] <= sh[0] + 200,
+              '방주 수호기 방패: 위·아래 끝까지 팔 조각 하나 (몸통에 안 남음)', f'팔 {sh} 몸통 {bw}')
+    ctx.check(span(mech['armR_cannon_d'])[3] >= 900, '정찰 저격대 저격포: 총구까지 팔 조각', str(span(mech['armR_cannon_d'])))
+    hd, bd = span(kaiju['head_d']), span(kaiju['body_d'])
+    ctx.check(hd[2] >= 1190 and bd[2] <= 1130, '악어 턱 머리: 긴 코끝이 머리 조각 (몸통에 안 남음)', f'머리 {hd} 몸통 {bd}')
+    # 악어 턱 머리: 아래턱을 벌리면 잘라 돌린 턱 대신 입 벌린 머리 그림(반쯤·다)으로 바꿔 끼움 — 머리·아래턱 경계가 갈라져 보이던 것 (11-06)
+    rig_k = json.load(open(os.path.join(ROOT, 'assets/sprites/rig/kaiju/rig.json'), encoding='utf-8'))
+    swaps = rig_k.get('poseSwaps', {}).get('head_d', [])
+    ok = (len(swaps) == 2 and all(r['bone'] == 'jaw' and 'jaw' in r['hide'] and r['part'] in kaiju
+                                  and os.path.exists(os.path.join(ROOT, 'assets/sprites/rig/kaiju', kaiju[r['part']]['src'])) for r in swaps)
+          and rig_k.get('limits', {}).get('jaw_d', {}).get('min') == 0)
+    ctx.check(ok, '악어 턱 머리: 아래턱을 벌리면 입 벌린 머리 그림으로 바꿔 끼움 (반쯤·다) · 원래 자리 위로는 안 다묾', str(swaps))
+    import numpy as np, cv2
+    stray = {}
+    for v in 'ucdvwlm':
+        a = np.asarray(Image.open(os.path.join(ROOT, f'assets/sprites/rig/chimera/torso_{v}.png')).convert('RGBA'))[..., 3] > 0
+        n, _, st_, _ = cv2.connectedComponentsWithStats(a.astype(np.uint8), connectivity=8)
+        big = sorted(st_[1:, cv2.CC_STAT_AREA], reverse=True)[1:]
+        if big and big[0] > 300:
+            stray[v] = int(big[0])
+    ctx.check(not stray, '합성괴인 2차 세트 몸통: 떨어진 장비 조각(300px 넘는 덩어리) 없음 — 낫 끝·날개 끝은 그 조각으로', str(stray))
+
     # 적 그림: 걷기 중 가장 낮게 디딘 프레임의 발 아래 빈칸이 6px 이하 (처형인 성기사 15px·블라디미르 43px였음 — bake_sprite.py가 땅 아래를 자름)
     gaps = walk_float()
     floating = {n: round(v, 1) for n, v in gaps.items() if v > 6}

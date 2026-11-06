@@ -46,6 +46,14 @@ HEAD_TOP = [(380, 20), (600, 20), (600, 135), (380, 135)]
 for _v, _arm in {'u': 'fist', 'c': 'fist', 'd': 'cannon', 'v': 'cannon', 'w': 'fist', 'l': 'cannon', 'm': 'fist'}.items():
     SETS[_v] = {'full': f'mech_{_v}_full', 'less': f'mech_{_v}_armless', 'ref': base.SRC_FIST if _arm == 'fist' else base.SRC_MAIN,
                 'weapon': f'armR_{_arm}', 'head_extra': HEAD_TOP}
+# 방주 수호기(w) 방패: 기본 팔 선(y 549~815)보다 위·아래로 길어 위 끝·아래 끝이 몸통 조각에 남았음
+# → 팔을 휘두르면 가운데만 움직여 방패가 쪼개져 보임 (디스코드 QA 11-05 홍도도). 방패 전체를 팔 조각으로
+SETS['w']['arm_extra'] = [(18, 385), (78, 385), (84, 424), (204, 424), (224, 452), (224, 662), (208, 702),
+                          (208, 884), (152, 914), (58, 914), (18, 884)]
+# 사막 저격수(d) 저격포: 총구가 기본 팔 선 아래(y 815~)로 나와 다리·몸통 조각에 남았음 → 조준하면 총구만 떨어져 보임 (같은 종류 점검)
+SETS['d']['arm_extra'] = [(0, 790), (150, 770), (172, 800), (104, 872), (92, 918), (0, 918)]
+# 자른 뒤 손으로 고친 그림 — 다시 잘라도 덮어쓰지 않음 (피드백 18: a 조준경·d 렌즈·m 볏을 돔 앞으로, 9799f7b·05cb3ae)
+HAND_EDITED = {'head_a', 'head_d', 'head_m'}
 # 기본 선을 아래로 넓힌 것 (무기 끝·발이 기본보다 낮게 나옴)
 ARM_A_POLY = base.ARM_A_POLY[:8] + [(150, 790), (100, 840), (60, 862), (0, 862), (0, 549)]
 LEG_A_POLY = base.LEG_A_POLY[:7] + [(445, 1024), (155, 1024)]
@@ -85,7 +93,11 @@ def cut_set(v):
     no_legs = ~poly_mask(shape, LEG_A_POLY) & ~poly_mask(shape, LEG_B_POLY)
     no_pelvis = ~rect_mask(shape, base.PELVIS_BOX)
     arm_top = rows >= ARM_A_POLY[0][1] + 2
-    arm_a = largest(poly_mask(shape, ARM_A_POLY) & opaque)
+    arm_zone = poly_mask(shape, ARM_A_POLY)
+    extra = poly_mask(shape, cfg['arm_extra']) if cfg.get('arm_extra') else np.zeros(shape[:2], bool)
+    arm_zone |= extra
+    arm_top |= grow(extra, np.ones(shape[:2], bool), 6)   # 팔 선 위로 나온 장비(방패)는 그 둘레까지 넓힘
+    arm_a = largest(arm_zone & opaque)
     arm_a = drop_specks(grow(arm_a, opaque & arm_top & no_torso & no_legs), 80)
     arm_b = largest(poly_mask(shape, base.ARM_B_POLY) & opaque)
     arm_b = drop_specks(grow(arm_b, opaque & (rows >= base.ARM_B_POLY[0][1] + 2) & no_torso & no_legs), 80)
@@ -101,8 +113,8 @@ def cut_set(v):
     body = drop_specks(body)
 
     body_img = cut(src, body)
-    fill = ((rect_mask(shape, base.ARMPIT_A) | rect_mask(shape, base.ARMPIT_B) | rect_mask(shape, base.TORSO_BOX))
-            & (body_img[..., 3] == 0) & (armless[..., 3] == 255))
+    fill = ((rect_mask(shape, base.ARMPIT_A) | rect_mask(shape, base.ARMPIT_B) | rect_mask(shape, base.TORSO_BOX) | extra)
+            & (body_img[..., 3] == 0) & (armless[..., 3] == 255))   # extra: 방패가 가리던 어깨 (팔 없는 몸에서)
     body_img[fill] = armless[fill]
 
     leg_a_img = cut(src, leg_a | (rect_mask(shape, base.LEG_A_MARGIN) & opaque))
@@ -125,8 +137,14 @@ def cut_set(v):
     # ---- 저장: 좌우 반전 (머리는 내용 유지, 기본 머리와 같은 양만 옮김) ----
     shift = head_shift()
     layout = {}
+    old = json.load(open(f'{OUT_DIR}/rig.json', encoding='utf-8'))['parts']
     comp = Image.new('RGBA', (W, H), (0, 0, 0, 0))
     for name, img in parts.items():
+        key = f'{name}_{v}'
+        if key in HAND_EDITED and key in old:
+            layout[key] = old[key]
+            print(f'[{v}] {key}: 손으로 고친 그림이라 그대로 둠')
+            continue
         ys, xs = np.nonzero(img[..., 3])
         x0, y0, x1, y1 = xs.min(), ys.min(), xs.max() + 1, ys.max() + 1
         crop = img[y0:y1, x0:x1]
@@ -135,7 +153,6 @@ def cut_set(v):
         else:
             crop = crop[:, ::-1]
             nx = W - x1
-        key = f'{name}_{v}'
         Image.fromarray(np.ascontiguousarray(crop), 'RGBA').save(f'{OUT_DIR}/{key}.png')
         layout[key] = {'src': f'{key}.png', 'x': int(nx), 'y': int(y0), 'w': int(x1 - x0), 'h': int(y1 - y0)}
 

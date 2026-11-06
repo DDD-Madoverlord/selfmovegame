@@ -9,8 +9,9 @@
 
 import { Animator, Spring, Mat } from '../engine_v2/rig/rig.js';
 import { RIG_CHARACTERS, RIG_ENEMIES, RIG_NEW, attackClipOf, hitSocketOf } from '../engine_v2/rig/characters.js';
-import { loadRigAssets, applyRigEvent, applyUpgrades, buildSkeleton, restBounds, shieldGeom, ScaleTween, PHASE2_SCALE, variantAlias }
+import { loadRigAssets, applyRigEvent, applyUpgrades, buildSkeleton, restBounds, shieldGeom, ScaleTween, PHASE2_SCALE, variantAlias, mechArmOf }
     from '../engine_v2/rig/rigAvatar.js';
+import { V2_PARTS } from '../engine_v2/partsExtra_v2.js';
 import { RigEffects } from '../engine_v2/rig/rigEffects.js';
 import { VfxPlayer, preloadVfxSheets } from '../engine_v2/vfx/vfxPlayer.js';
 import { HERO_WAVE, HERO_ORB } from '../engine_v2/vfx/heroVfx.js';
@@ -579,7 +580,10 @@ function applyEquip() {
         applyUpgrades(skeleton, character, state.upgrades);
     }
     if (character.arms && parts.arm) {
-        const kind = parts.arm.attackType === 'melee' ? 'fist' : 'cannon';
+        // 게임과 같은 규칙 (rigAvatar.mechArmOf — 2차 세트는 rigArm). 카탈로그엔 rigArm이 없어 게임 파츠 표에서 찾음
+        // (예전엔 attackType만 봐서 d 저격포·v 냉각포가 주먹 팔, u·m 주먹이 캐논 팔로 보였음)
+        const game = V2_PARTS.arm.find(q => q.id === parts.arm.id);
+        const kind = game ? mechArmOf(game) : parts.arm.attackType === 'melee' ? 'fist' : 'cannon';
         if (character.arms[kind] && kind !== state.arm) setArm(kind);
     }
     renderWho();
