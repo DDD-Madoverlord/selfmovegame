@@ -56,9 +56,12 @@ MOUTH_THROAT_Y = 128   # 팔 없는 몸 d의 회색 닫힌 턱 아래 끝 (기�
 # 두 장: base = 아래턱 없는 머리(뒤쪽 목구멍만, 코 밑은 허공 — 첫 시도, 참고용),
 #       open = 코끝까지 입안(건너편 잇몸·위로 솟은 작은 이빨 — 입 틈과 벌릴 때 드러나는 곳에 씀)
 MOUTH_ART = {'d': {'base': 'kaiju_d_mouth_gemini.png', 'open': 'kaiju_d_mouth_open_gemini.png',
-                   'wide': 'kaiju_d_mouth_wide_gemini.png', 'wide_deg': 12, 'box': (225, 5, 425, 180)}}
+                   'wide': 'kaiju_d_mouth_wide_gemini.png', 'cavity': 'kaiju_d_mouth_cavity_gemini.png', 'box': (225, 5, 425, 180)}}
 # wide = 같은 머리에 아래턱만 더 벌린 그림(Gemini) — '건너편 아래턱' 조각을 만들어 보려던 참고 그림 (안 씀)
-MOUTH_ART_ZONE = (262, 95, 380, 151)   # 이 안에서 아래턱 자리이거나 원래 비어 있던 곳만 채움 (기본 좌표)
+# cavity = 아래턱을 지우고 입가~코끝을 이빨·잇몸 없는 매끈한 어두운 입안으로 (씀) — open(건너편 잇몸·이빨)은 벌리면 진짜 아래턱 위에
+#          가짜 아래턱이 한 겹 더 보여 찢어진 금처럼 보였음 (사용자 11-06 'gif에서 입이 여전히 찢어진다')
+MOUTH_ART_ZONE = (262, 95, 380, 151)
+CAVITY_MAX = 95   # 입안 그림 밝기 상한 (가장 밝은 채널) — 테두리의 밝은 빨강을 눌러 매끈한 어두운 입안으로   # 이 안에서 아래턱 자리이거나 원래 비어 있던 곳만 채움 (기본 좌표)
 
 
 def mouth_art(v, which, shape):
@@ -200,7 +203,7 @@ def cut_set(v):
     if v not in MOUTH_OPEN:
         fill = jaw_fill & ~arm & (head_img[..., 3] == 0) & (limbless[..., 3] == 255) & (cols >= base.NECK_BAND_X)
         head_img[fill] = limbless[fill]
-    if v in MOUTH_ART:   # 입안 (Gemini '코끝까지 입안' 그림): 아래턱 자리 + 입 틈의 머리 조각을 통째로 채움
+    if v in MOUTH_ART:   # 입안 (Gemini 매끈한 입안 그림 cavity): 아래턱 자리 + 입 틈의 머리 조각을 통째로 채움
         # 아래턱은 원래 자리보다 위로 다물지 않게(rig.json limits → rig.js) 해서 턱 밑으로 입안이 드러나지 않음 —
         # 그래서 그림을 자르지 않고 그대로 씀. (머리에 붙인 입안을 '꽉 물 때 가려지는 곳'으로 잘랐더니 벌릴 때 조각나 찢어져 보였고,
         #  아래턱과 같이 움직이는 '건너편 아래턱' 조각도 해 봤으나 Gemini 아래턱 모양이 원본과 달라 깔끔히 떼어 내지 못해 뺌)
@@ -208,10 +211,23 @@ def cut_set(v):
         solid = cv2.morphologyEx(jaw.astype(np.uint8), cv2.MORPH_CLOSE, np.ones((5, 5), np.uint8)).astype(bool)
         top = np.where(solid.any(0), solid.argmax(0), -1)
         gap = ~opaque & (rows2 < top[None, :])   # 입 틈 = 원래 비어 있던 곳 중 아래턱 윗면보다 위 (턱 밑·코 밑 허공은 비움)
-        art = mouth_art(v, 'open', shape)
-        put = (rect_mask(shape, MOUTH_ART_ZONE) & ~arm & (cols >= base.NECK_BAND_X) & (head_img[..., 3] == 0)
-               & (solid | gap) & (art[..., 3] == 255))
-        head_img[put] = art[put]
+        art = mouth_art(v, 'cavity', shape)
+        # 아랫니 사이 틈(solid엔 있고 jaw엔 없음)은 원본처럼 비움 — 채우면 다문 모습에서 턱 끝에 붉은 점
+        # 아래턱 가장자리(반투명 픽셀) 뒤도 비움 — 칠하면 다문 모습에서 턱 끝 테두리로 입안 색이 비침
+        edge = cv2.dilate((jaw & (src[..., 3] < 255)).astype(np.uint8), np.ones((3, 3), np.uint8)).astype(bool) & ~gap
+        # 앞쪽은 벌렸을 때(+MOUTH_OPEN°) 아래턱 끝 자리까지만 — 턱 끝은 벌리면 왼쪽 아래로 내려가서, 원래 턱 끝 자리의 입안이
+        # 턱 밖으로 혀처럼 튀어나와 보였음 (다문 모습에서도 턱 끝 앞 가는 띠)
+        pivot = tuple(float(c) for c in base.PIVOTS['jaw'])
+        opened = cv2.warpAffine(jaw.astype(np.uint8), cv2.getRotationMatrix2D(pivot, -MOUTH_OPEN[v], 1.0), (W, H), flags=cv2.INTER_NEAREST)
+        front = int(np.nonzero(opened.any(0))[0].max()) - 1   # cv2 음수 = 턱 끝이 아래로
+        put = (rect_mask(shape, MOUTH_ART_ZONE) & ~arm & (cols >= base.NECK_BAND_X) & (cols <= front) & (head_img[..., 3] == 0)
+               & (jaw | gap) & ~edge & (art[..., 3] == 255))
+        # 밝은 붉은 테두리(입안 그림의 아래 가장자리)는 어두운 입안 색조로 — 벌리면 아래턱 끝 앞으로 혀처럼 튀어나와 보였음
+        rgb = art[..., :3].astype(float)
+        peak = rgb.max(2, keepdims=True)
+        rgb = np.where(peak > CAVITY_MAX, rgb * (CAVITY_MAX / np.maximum(peak, 1)), rgb)
+        head_img[put, :3] = rgb[put].astype(np.uint8)
+        head_img[put, 3] = 255
 
     parts = {'body': body_img, 'head': head_img, 'jaw': cut(src, jaw_piece), 'armF': cut(src, arm),
              'legN': cut(src, leg_n), 'legF': cut(src, leg_f)}
