@@ -116,11 +116,29 @@ def cut_set(v):
     covered = torso | head | arm_f | arm_b | wing | tail | leg_f | leg_b
     left = opaque & ~covered
     print(f'[{v}] 어느 조각에도 안 들어간 px: {int(left.sum())}')
-    if v not in ('a', 'b'):   # 2차 세트 (D-071): 남은 픽셀은 날개 자리면 날개, 나머지는 몸통에 붙임 (장식이 기본 선 밖으로 큰 세트)
-        to_wing = left & poly_mask(shape, base.WING_POLY)
-        wing = wing | to_wing
-        torso_img[left & ~to_wing] = src[left & ~to_wing]
-        print(f'[{v}] → 날개 {int(to_wing.sum())}px · 몸통 {int((left & ~to_wing).sum())}px')
+    if v not in ('a', 'b'):   # 2차 세트 (D-071): 남은 픽셀(장식이 기본 선 밖으로 큰 세트)
+        # 남은 덩어리마다 맞닿은 움직이는 조각에 붙임 (낫 끝·날개 끝·발톱 끝) — 예전엔 몸통에 붙여서
+        # 그 조각이 움직이면 끝만 떨어져 보였음 (디스코드 QA 11-05 같은 종류 점검, v 낫 끝). 안 닿으면 날개 자리면 날개, 아니면 몸통
+        # 머리는 SEAM만큼 넓힌 조각(head)으로 봄 — 머리 장식 끝(d 박쥐 귀·l 투구 깃털·m 사슴뿔)은 그 바깥에서 이어짐
+        movers = {'armF': arm_f, 'armB': arm_b, 'legF': leg_f, 'legB': leg_b, 'tail': tail, 'wing': wing, 'head': head}
+        near = {k: cv2.dilate(m.astype(np.uint8), np.ones((5, 5), np.uint8)).astype(bool) for k, m in movers.items()}
+        n, lab = cv2.connectedComponents(left.astype(np.uint8), connectivity=8)
+        moved = {k: 0 for k in movers}
+        to_torso = np.zeros(shape[:2], bool)
+        for i in range(1, n):
+            comp = lab == i
+            touch = {k: int((near[k] & comp).sum()) for k in movers}
+            best = max(touch, key=touch.get)
+            if touch[best] == 0:
+                best = 'wing' if (comp & poly_mask(shape, base.WING_POLY)).any() else None
+            if best is None:
+                to_torso |= comp
+                continue
+            movers[best] |= comp
+            moved[best] += int(comp.sum())
+        arm_f, arm_b, leg_f, leg_b, tail, wing, head = (movers[k] for k in ('armF', 'armB', 'legF', 'legB', 'tail', 'wing', 'head'))
+        torso_img[to_torso] = src[to_torso]
+        print(f'[{v}] → ' + ' · '.join(f'{k} {px}px' for k, px in moved.items() if px) + f' · 몸통 {int(to_torso.sum())}px')
 
     parts = {
         'torso': torso_img,

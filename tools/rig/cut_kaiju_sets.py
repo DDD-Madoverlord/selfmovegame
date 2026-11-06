@@ -38,6 +38,16 @@ ARM_ZONE = (290, 90, W, 250)            # 앞으로 뻗은 팔 (집게·촉수�
 JAW_ZONE = (262, 95, 372, 165)
 TAIL_ZONE_X = 205                       # 꼬리: 이 x 왼쪽
 HEAD_EXTRA = (252, 0, 380, 64)          # 머리 위 장식(가시 왕관 등)은 기본 머리 다각형 위로 나옴
+# 세트별로 기본 머리·턱 선 밖으로 나오는 곳 (기본 좌표). 안 넣으면 그 끝이 몸통 조각에 남아 물기 때 떨어져 보임
+# d 늪지 포식자 '악어 턱 머리': 긴 코끝(x 372~404)·아래턱 끝(x 356~370) (디스코드 QA 11-05 홍도도)
+HEAD_ADD = {'d': [(352, 66), (408, 76), (408, 124), (366, 124), (356, 116)],
+            'l': [(376, 8), (402, 8), (402, 66), (376, 66)]}   # l 종말의 거신: 앞 뿔 끝 (x 380~389, 같은 종류 점검)
+JAW_ADD = {'d': [(350, 119), (374, 119), (374, 147), (346, 147)]}
+# 입안(윗니 줄 ~ 아래턱 윗면 사이)을 팔 없는 몸 대신 어두운 입안 색으로 — d는 팔 없는 몸에 회색 닫힌 턱이 그려져 있어
+# 입을 벌리면 턱이 두 겹처럼 보였음. 그 아래(턱 밑·목)는 팔 없는 몸 그대로 두어 턱을 다물 때 목이 보이게
+MOUTH_DARK = {'d': [(272, 97), (365, 104), (365, 121), (340, 126), (300, 122), (272, 112)]}
+# 자른 뒤 손으로 고친 그림 — 다시 잘라도 덮어쓰지 않음 (피드백 20: c 화산 등딱지 머리 위 연기를 옅게, 7739ee2)
+HAND_EDITED = {'head_c'}
 
 
 def keymask(rgb):
@@ -111,23 +121,29 @@ def cut_set(v):
     diff = drop_specks(opaque & ~less, 30)
 
     # 아래턱: 지워도 윤곽은 거의 그대로(입안 색만 바뀜)라 차이로는 안 잡힘 → 머리 자리가 맞으므로 기본 턱 다각형
-    jaw = largest(poly_mask(shape, base.JAW_POLY) & opaque)
-    jaw_zone = grow(poly_mask(shape, base.JAW_POLY), np.ones(shape[:2], bool), 6)
+    jaw_poly = poly_mask(shape, base.JAW_POLY) | (poly_mask(shape, JAW_ADD[v]) if v in JAW_ADD else False)
+    jaw = largest(jaw_poly & opaque)
+    jaw_zone = grow(jaw_poly, np.ones(shape[:2], bool), 6)
     # 팔: 차이 중 가장 오른쪽까지 뻗은 덩어리. 턱 밑(턱이 있던 자리)이 이어 붙어 나오므로 턱 둘레와 어깨 위는 뺌
     arm = component_in(diff & ~jaw_zone & (rows2 >= 135), rect_mask(shape, ARM_ZONE), pick='rightmost')
     arm = drop_specks(grow(arm, opaque & ~jaw_zone & (cols >= base.ARM_BODY_CUT_X - base.SEAM_OVERLAP - 1), 3), 40)
     tail = component_in(diff, cols < TAIL_ZONE_X)
-    head = (poly_mask(shape, base.HEAD_POLY) | rect_mask(shape, HEAD_EXTRA)) & opaque & ~jaw & ~arm & (rows2 < 150)
+    head_poly = poly_mask(shape, base.HEAD_POLY) | rect_mask(shape, HEAD_EXTRA)
+    if v in HEAD_ADD:
+        head_poly |= poly_mask(shape, HEAD_ADD[v])
+    head = head_poly & opaque & ~jaw & ~arm & (rows2 < 150)
     jaw_piece = grow(jaw, opaque, base.SEAM_OVERLAP)
     head_piece = grow(head, opaque & ~jaw & (cols >= base.NECK_BAND_X - 12), base.SEAM_OVERLAP)
     leg_n = largest(poly_mask(shape, base.LEG_N_POLY) & opaque & ~tail & ~arm)
     leg_f = largest(poly_mask(shape, base.LEG_F_POLY) & opaque & ~arm)
 
+    # 목 이음새 가림(NECK_BAND_X 왼쪽 머리를 몸통에도 남김)은 목 높이에서만 — 머리 위 장식(HEAD_EXTRA)까지 남기면
+    # 머리를 움직일 때 장식이 몸통에 겹쳐 남아 두 개로 보임 (u 뿔, 같은 종류 점검)
     body = (opaque
             & ~(tail & (cols < base.TAIL_BODY_CUT_X))
             & ~(arm & (cols >= base.ARM_BODY_CUT_X))
             & ~jaw
-            & ~(head & (cols >= base.NECK_BAND_X))
+            & ~(head & ((cols >= base.NECK_BAND_X) | (rows2 < HEAD_EXTRA[3])))
             & ~((leg_n | leg_f) & (rows2 >= base.LEG_BODY_CUT_Y)))
     body = drop_specks(body, 200)
 
@@ -138,8 +154,15 @@ def cut_set(v):
     body_img[fill] = limbless[fill]
     # 머리: 턱 뒤(입안)는 팔 없는 몸에서
     head_img = cut(src, head_piece)
-    fill = rect_mask(shape, JAW_ZONE) & ~arm & (head_img[..., 3] == 0) & (limbless[..., 3] == 255) & (cols >= base.NECK_BAND_X)
+    empty = head_img[..., 3] == 0
+    fill = rect_mask(shape, JAW_ZONE) & ~arm & empty & (limbless[..., 3] == 255) & (cols >= base.NECK_BAND_X)
     head_img[fill] = limbless[fill]
+    if v in MOUTH_DARK:   # 입안 그림자색 (cut_kaiju_parts.py와 같은 방식) — 원래 머리 그림이 없던 곳만
+        interior = head & (src[..., 0] > src[..., 1] + 25) & (src[..., 0] > 70)   # 붉은 입안 픽셀
+        mouth_rgb = src[interior][:, :3].mean(0) * 0.45 if interior.any() else np.array([50, 18, 18])
+        dark = poly_mask(shape, MOUTH_DARK[v]) & empty & (cols >= base.NECK_BAND_X)
+        head_img[dark, :3] = mouth_rgb.astype(np.uint8)
+        head_img[dark, 3] = 255
 
     parts = {'body': body_img, 'head': head_img, 'jaw': cut(src, jaw_piece), 'armF': cut(src, arm),
              'legN': cut(src, leg_n), 'legF': cut(src, leg_f)}
@@ -149,7 +172,11 @@ def cut_set(v):
     if empty:
         raise SystemExit(f'[{v}] 비어 있는 조각: {empty} — 자리 범위(ARM_ZONE 등)를 확인')
     named = {f'{k}_{v}': p for k, p in parts.items()}
-    layout_parts = save_parts(named, OUT_DIR, base.SCALE)
+    old = json.load(open(f'{OUT_DIR}/rig.json', encoding='utf-8'))['parts']
+    keep = {k: old[k] for k in named if k in HAND_EDITED and k in old}
+    for k in keep:
+        print(f'[{v}] {k}: 손으로 고친 그림이라 그대로 둠')
+    layout_parts = {**save_parts({k: p for k, p in named.items() if k not in keep}, OUT_DIR, base.SCALE), **keep}
     ref3 = src.repeat(base.SCALE, axis=0).repeat(base.SCALE, axis=1)
     order = ['tail3', 'tail2', 'tail1', 'legF', 'legN', 'body', 'head', 'jaw', 'armF']
     rest_check(OUT_DIR, {'parts': layout_parts}, [f'{k}_{v}' for k in order], ref3,
