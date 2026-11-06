@@ -15,7 +15,7 @@ android {
         applicationId "com.madoverlord.game"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 21          // app/build_www.py가 js/version_v2.js의 BUILD로 맞춤
+        versionCode 22          // app/build_www.py가 js/version_v2.js의 BUILD로 맞춤
         versionName "0.2.4"    // 〃 VERSION
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
