@@ -110,6 +110,8 @@ export const SET = {
     spit: { puddleSec: 2.5, puddleW: 70, puddleDps: 0.12 },
     orb: { splash: 70, splashMul: 0.5 },
     shotgun: { max: 4, mul: 0.55 },
+    // 밀고 가는 돌진 (방패 돌진, 디스코드 QA 11-05): 만난 적을 몸 앞 gap px에 붙여 같이 밀고 감 (battle/sets.js dashForward)
+    shove: { gap: 20, stack: 40 },   // stack: 밀려가는 적끼리 띄우는 간격 (한 자리에 겹쳐 하나처럼 보이지 않게)
     // 타락 기사 대검: 넓게 휩쓸기 (기본 근접 휩쓸기 60px·40%보다 넓고 셈)
     greatsword: { radius: 120, mul: 0.65 },
     // 버프: 오버드라이브(공격 속도·진격 속도·받는 피해), 아드레날린(주는 피해), 가시 갑옷(받는 피해·되돌림), 어둠의 서약(흡수 회복)

@@ -184,9 +184,9 @@ const STEP = {
             }
         });
     },
-    /** 돌진 (지나간 적마다 피해) */
+    /** 돌진 (지나간 적마다 피해). shove: 뚫고 지나가지 않고 만난 적을 밀고 감 (방패 돌진) */
     dash(b, s) {
-        b.dashForward(s.dist ?? 160, s.sec ?? 0.3, e => kitHit(b, e, s.dmg || 0, s), s.trail || null);
+        b.dashForward(s.dist ?? 160, s.sec ?? 0.3, e => kitHit(b, e, s.dmg || 0, s), s.trail || null, { shove: !!s.shove });
     },
     /** 순간 이동: 앞으로 dist (거점 앞에서 멈춤), 떠난 자리에 장판 */
     blink(b, s) {

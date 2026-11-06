@@ -384,25 +384,55 @@ export const SetMethods = {
     },
 
     // ---- 돌진 (로켓 돌진·광견 돌진) ----
-    /** dist px를 sec초 동안 앞으로 (거점 앞에서 멈춤), 지나간 적마다 onHit(e) 한 번 */
-    dashForward(dist, sec, onHit, trailFx) {
+    /** dist px를 sec초 동안 앞으로 (거점 앞에서 멈춤), 지나간 적마다 onHit(e) 한 번
+     *  opt.shove (방패 돌진): 뚫고 지나가지 않고 만난 적을 앞에 붙여 같이 밀고 감 — 밀리지 않는 적(보스·방패병 등)·바리케이드
+     *  앞에서는 멈춤 (디스코드 QA 11-05 홍도도 "돌진 스킬을 쓰면 적을 뚫고 지나감") */
+    dashForward(dist, sec, onHit, trailFx, opt = {}) {
         const building = this.enemies.find(e => e.isBuilding);
         const start = this.monsterX;
         const end = Math.max(start, Math.min(start + dist, building ? building.x - 110 : Infinity));
         const hit = new Set();
         const steps = 8;
+        const gap = opt.gap ?? SET.shove.gap;
+        const heavy = e => e.boss || e.knockResist || e.isBarricade;
+        let stopped = false;
         for (let i = 1; i <= steps; i++) {
             this.schedule((sec * i) / steps, () => {
-                if (!this.isActive) return;
-                this.monsterX = start + ((end - start) * i) / steps;
+                if (!this.isActive || stopped) return;
+                let x = start + ((end - start) * i) / steps;
+                if (opt.shove) {   // 밀리지 않는 적 바로 앞에서 멈춤 (이미 겹쳐 있으면 그 자리)
+                    const wall = this.enemies.filter(e => !e.isBuilding && e.hp > 0 && heavy(e) && e.x - this.frontX() >= -60)
+                        .sort((p, q) => p.x - q.x)[0];
+                    if (wall && x + 100 + gap > wall.x) {
+                        x = Math.max(this.monsterX, wall.x - gap - 100);
+                        stopped = true;
+                    }
+                }
+                this.monsterX = x;
                 monsterControllerV2.setMonsterPosition(this.monsterX);
                 if (trailFx) this.fx.play(trailFx, this.monsterX + 10, FOOT_B + 30);
                 const front = this.frontX();
                 [...this.enemies].forEach(e => {
-                    if (hit.has(e) || e.x - front > 40 || e.x - front < -150) return;
-                    hit.add(e);
-                    onHit(e);
+                    if (e.x - front > (opt.shove ? gap : 40) || e.x - front < -150) return;
+                    if (!hit.has(e)) {
+                        hit.add(e);
+                        onHit(e);
+                    }
                 });
+                if (opt.shove) {   // 방패 앞에 붙여 같이 밀림 — 앞 적이 뒤 적을 밀어내듯 서로 stack px 이상 띄움 (한 자리에 겹치지 않게)
+                    let edge = front + gap;
+                    this.enemies.filter(e => !e.isBuilding && !heavy(e) && e.hp > 0 && (hit.has(e) || e.x - front <= gap + SET.shove.stack * 3))
+                        .sort((p, q) => p.x - q.x)
+                        .forEach(e => {
+                            if (e.x - front < -150) return;
+                            if (e.x < edge) {
+                                if (!hit.has(e)) { hit.add(e); onHit(e); }
+                                e.x = edge;
+                                if (e.dom) e.dom.style.left = `${e.x}px`;
+                            }
+                            edge = e.x + SET.shove.stack;
+                        });
+                }
             });
         }
     },
