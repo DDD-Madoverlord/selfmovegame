@@ -239,10 +239,15 @@ export class Skeleton {
         for (const b of this.bones) {
             const p = pose[b.name] || {};
             const o = offsets[b.name] || {};
+            let rot = (p.rot || 0) + (o.rot || 0);
+            // 그림별 회전 한도 (rig.json limits, 그림 키 기준 — 세트 그림에만 걸 수 있음). 예: 악어 턱 머리 아래턱(jaw_d)은
+            // 원래 자리보다 위로 안 다묾 — 입이 벌어진 채 그려진 그림이라 더 다물면 턱 밑으로 입안 그림이 드러남 (D-113)
+            const lim = this.layout.limits && this.layout.limits[(this.partAlias && this.partAlias[b.part]) || b.part];
+            if (lim) rot = Math.min(lim.max ?? Infinity, Math.max(lim.min ?? -Infinity, rot));
             const local = Mat.trs(
                 b.rest[0] + (p.x || 0) + (o.x || 0),
                 b.rest[1] + (p.y || 0) + (o.y || 0),
-                ((p.rot || 0) + (o.rot || 0)) * DEG,
+                rot * DEG,
                 (p.sx ?? 1) + (o.sx || 0),   // 더하기 동작의 크기 변화 (착지 눌림 — reactions.js)
                 (p.sy ?? 1) + (o.sy || 0)
             );
