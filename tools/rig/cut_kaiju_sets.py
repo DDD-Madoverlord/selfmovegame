@@ -220,12 +220,45 @@ def cut_set(v):
         pivot = tuple(float(c) for c in base.PIVOTS['jaw'])
         opened = cv2.warpAffine(jaw.astype(np.uint8), cv2.getRotationMatrix2D(pivot, -MOUTH_OPEN[v], 1.0), (W, H), flags=cv2.INTER_NEAREST)
         front = int(np.nonzero(opened.any(0))[0].max()) - 1   # cv2 음수 = 턱 끝이 아래로
-        put = (rect_mask(shape, MOUTH_ART_ZONE) & ~arm & (cols >= base.NECK_BAND_X) & (cols <= front) & (head_img[..., 3] == 0)
+        # 윗니 쪽에서 벌린 턱 끝까지 완만하게 좁아지는 윤곽 (한 열에서 수직으로 끊지 않음).
+        front_line = front + np.rint(np.clip((139 - rows2) / 2, -4, 9)).astype(int)
+        hidden = jaw_piece & (src[..., 3] == 255)   # 다문 턱이 완전히 가리는 곳만 색·윤곽을 바꿀 수 있음
+        zone = rect_mask(shape, MOUTH_ART_ZONE) & ~arm & (cols >= base.NECK_BAND_X)
+        put = (zone & (cols <= front_line) & (head_img[..., 3] == 0)
                & (jaw | gap) & ~edge & (art[..., 3] == 255))
         # 밝은 붉은 테두리(입안 그림의 아래 가장자리)는 어두운 입안 색조로 — 벌리면 아래턱 끝 앞으로 혀처럼 튀어나와 보였음
         rgb = art[..., :3].astype(float)
         peak = rgb.max(2, keepdims=True)
         rgb = np.where(peak > CAVITY_MAX, rgb * (CAVITY_MAX / np.maximum(peak, 1)), rgb)
+        cavity_rgb = rgb.copy()
+        # 입천장 아래의 살색을 가까운 원본 픽셀에서 가져와 4단계로 입안 그림자에 이음.
+        # 원본의 어두운 턱 경계도 턱에 가려지는 2px 겹침 안에서만 함께 풀어 줌.
+        original = head_img[..., :3].astype(float)
+        roof = (zone & (head_img[..., 3] == 255) & (original[..., 1] < original[..., 0] * 0.55)
+                & (original[..., 2] < original[..., 0] * 0.5) & (original[..., 0] > 65))
+        if roof.any():
+            distance, labels = cv2.distanceTransformWithLabels((~roof).astype(np.uint8), cv2.DIST_L2, 5,
+                                                              labelType=cv2.DIST_LABEL_PIXEL)
+            palette = np.zeros((int(labels.max()) + 1, 3), float)
+            palette[labels[roof]] = original[roof]
+            flesh = palette[labels]
+            weight = np.clip(np.ceil((8 - distance) / 2) / 4, 0, 1)[..., None]
+            rgb = rgb * (1 - weight) + flesh * weight
+            # 입가 쐐기는 검은 금 대신 붉은 안쪽 살, 축에 가까울수록 원본 볼의 회색으로.
+            inner = np.median(src[jaw & (src[..., 0].astype(int) > src[..., 1].astype(int) + 30), :3], axis=0)
+            hinge = (np.clip((302 - cols) / 26, 0, 1) * np.clip((rows2 - 104) / 8, 0, 1))[..., None]
+            cheek = np.median(src[111:123, 268:276, :3], axis=(0, 1))
+            skin = np.clip((280 - cols) / 12, 0, 1)[..., None]
+            tissue = inner * (1 - skin) + cheek * skin
+            rgb = rgb * (1 - hinge) + tissue * hinge
+            blend = zone & hidden & ~edge & (head_img[..., 3] == 255) & ((distance <= 3) | ((cols < 300) & (distance <= 6)))
+            head_img[blend, :3] = rgb[blend].astype(np.uint8)
+        # 새로 드러나는 앞쪽 윤곽만 1px 그림자. 기존 입 틈·반투명 턱 뒤는 그대로 비움.
+        rim = put & hidden & (cols == front_line)
+        rgb[rim] *= 0.85
+        rgb[~hidden] = cavity_rgb[~hidden]   # 다문 모습에 보이는 기존 입 틈의 색은 보존
+        put &= hidden | (cols <= front)
+        head_img[zone & hidden & (cols > front_line)] = 0
         head_img[put, :3] = rgb[put].astype(np.uint8)
         head_img[put, 3] = 255
 
