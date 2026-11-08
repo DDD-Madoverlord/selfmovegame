@@ -310,6 +310,7 @@ export class BattleEngine {
     // 전투 정지 및 퇴각
     stopBattle() {
         this.isActive = false;
+        this.domEnemies?.querySelectorAll('.v2-kit-art').forEach(el => el.remove());
         this.clearPet();
         this.clearSupport();
         this.pSlowT = 0;

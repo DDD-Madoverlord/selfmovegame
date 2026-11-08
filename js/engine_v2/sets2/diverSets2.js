@@ -73,7 +73,7 @@ export const DIVER_SETS2 = packOf('diver', [
                     { at: 0.4, do: 'custom', fn: lureRanged, repeat: 3, repeatGap: 2.5 }] },
             dvGhostFire: { name: '유령 불길', slot: 'body', cd: 14, icon: 'fire', color: '#28dcbe', target: 'self', clip: 'cast',
                 desc: '5초간 몸 둘레 청록 유령 불길 — 지속 피해 + 안의 적 주는 피해 -30%',
-                steps: [{ at: 0.3, do: 'zone', follow: true, x: -90, w: 260, sec: 5, dps: 0.5, status: { weak: [1, 0.3] }, every: 0.5, puff: V.blast(130, 70, { dur: 0.45 }), puffEvery: 0.15 }] },
+                steps: [{ at: 0.3, do: 'zone', field: 'ghostFire', follow: true, x: -90, w: 260, sec: 5, dps: 0.5, status: { weak: [1, 0.3] }, every: 0.5 }] },
             dvChainSweep: { name: '사슬 휘두르기', slot: 'arm', cd: 9, icon: 'anchor', color: '#28dcbe', target: 'enemy', range: 240, clip: 'slam',
                 desc: '앞쪽 반원을 크게 휩쓸어 피해 + 앞으로 끌어옴',
                 steps: [{ at: 0.5, do: 'push', range: 240, dist: -60, dmg: 1.3 }, { at: 0.5, do: 'fx', x: 90, b: FOOT_B + 40, vfx: V.cleave(150, 200) }] }
@@ -169,10 +169,11 @@ export const DIVER_SETS2 = packOf('diver', [
             dvSteamVeil: { name: '증기 장막', slot: 'body', cd: 14, icon: 'shield', color: '#ff9650', target: 'self', clip: 'cast', p: { def: 0 },
                 desc: '6초간 증기 장막 — 원거리 피해 -60%, 둘레 적 초당 피해',
                 steps: [{ do: 'buff', key: 'steamVeil', sec: 6, mods: { rangedCut: 0.6, def: '$def' } },
-                    { at: 0.3, do: 'zone', follow: true, x: -90, w: 260, sec: 6, dps: 0.4, puff: V.motes(STEAM, 8), puffEvery: 0.15, puffB: 60 }] },
+                    { at: 0.3, do: 'zone', field: 'steam', follow: true, x: -90, w: 260, sec: 6, dps: 0.4 }] },
             dvSteamHammer: { name: '증기 해머', slot: 'arm', cd: 9, icon: 'hammer', color: '#ff9650', target: 'enemy', range: 260, clip: 'slam',
                 desc: '크게 내려쳐 앞쪽으로 충격파 — 피해 + 화상 3초',
-                steps: [{ at: 0.5, do: 'wave', from: 20, speed: 640, dist: 280, w: 50, dmg: 1.6, status: { burn: [3, 0.3] }, knock: 0.8, vfx: V.impact(10, 140, { dur: 0.35 }), vfxEvery: 0.07, b: FOOT_B },
+                steps: [{ at: 0.5, do: 'fx', x: 60, vfx: V.shock(50, 340) },
+                    { at: 0.5, do: 'wave', from: 20, speed: 640, dist: 280, w: 50, dmg: 1.6, status: { burn: [3, 0.3] }, knock: 0.8, vfx: V.impact(10, 190, { dur: 0.4, softEdges: 0.13 }), vfxEvery: 0.14, b: FOOT_B },
                     { at: 0.5, do: 'shake', power: 5, ms: 200 }] }
         }
     },
@@ -227,10 +228,10 @@ export const DIVER_SETS2 = packOf('diver', [
                     { at: 0.5, do: 'shake', power: 8, ms: 1400 }] },
             dvPressureField: { name: '심해 압력장', slot: 'body', cd: 15, icon: 'wave', color: '#28dcbe', target: 'self', clip: 'cast', p: { w: 400 },
                 desc: '8초간 넓은 압력장 — 적 느려짐·주는 피해 -30% + 초당 피해',
-                steps: [{ at: 0.4, do: 'zone', tag: 'pressure', x: 0, w: '$w', sec: 8, slow: true, dps: 0.4, status: { weak: [1, 0.3] }, every: 0.5, puff: V.water(-15, 80, { dur: 0.5 }), puffEvery: 0.2 }] },
+                steps: [{ at: 0.4, do: 'zone', tag: 'pressure', field: 'water', x: 0, w: '$w', sec: 8, slow: true, dps: 0.4, status: { weak: [1, 0.3] }, every: 0.5 }] },
             dvWhirlAnchor: { name: '소용돌이 닻', slot: 'arm', cd: 9, icon: 'whirl', color: '#28dcbe', target: 'self', clip: 'anchor',
                 desc: '닻을 돌려 3초간 둘레 적을 끌어모으며 여러 번 피해',
-                steps: [{ at: 0.45, do: 'zone', follow: true, x: -60, w: 240, sec: 3, pull: 200, dps: 0.8, puff: V.water(160, 90, { dur: 0.4 }), puffEvery: 0.12 }] }
+                steps: [{ at: 0.45, do: 'zone', field: 'water', follow: true, x: -60, w: 240, sec: 3, pull: 200, dps: 0.8 }] }
         }
     },
 

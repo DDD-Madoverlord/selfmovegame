@@ -162,6 +162,7 @@ export const AttackMethods = {
     applyShield(ratio, sec, color) {
         this.shieldHp = Math.max(this.shieldHp, this.maxPlayerHp * ratio);
         this.shieldTimer = sec;
+        this.shieldDuration = sec;
         monsterControllerV2.shieldOn(color);
         sound.play('shield_on');
         this.createDamagePopup(this.monsterX + 40, 210, '⬢ 실드 전개', false);

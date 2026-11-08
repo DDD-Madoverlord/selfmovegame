@@ -8,7 +8,9 @@
      layer 공통: { type, at(시작 초), dur(길이 초), color('r, g, b'), layer?('ground'|'front'),
                   dy?(기준점 위아래 px), pos?('to' = 목표 지점에 표시) }
      type (모양)
-       sprite  : 그림 프레임 이펙트 (Gemini 손그림 시트, VFX_SHEETS) {sheet, size, angle?, flipX?, squash?, blend?, alpha?, glow?, hue?(색 돌리기 도)}
+       sprite  : 그림 프레임 이펙트 {sheet, size?, width?·height?, frameRange?:[시작,끝], loopSec?, pingPong?, phase?,
+                 fadeIn?·fadeOut?(초), angle?, flipX?, squash?, blend?, alpha?, glow?, hue?, softEdges?(폭 비율 또는 변별 표)}
+       groundField: 판정 폭과 같은 타원형 장판 {style: 'swamp'|'plasma'|'rift'|'sonic', w, dur, remaining?()}
        starburst: 윤곽 별 섬광 {r, points, inner, stretch?, angle?, outline?, width?} (처음 0.05초 최대)
        speedlines: 삼각 속도선 {count, len, angle?, cone?, width, outline?}
        ribbon  : 단색 불길/광선/기둥 {len, w, angle?, jag?, outline?, width?} (to가 있으면 두 점 연결)
@@ -63,6 +65,9 @@
      onSfx(name, x): 효과음 연결 지점 (x = 이펙트 자리, 소리 좌우에 씀 — battleFx가 사운드 매니저를 연결)
    ========================================================================== */
 
+import { drawGroundField } from './groundFields.js';
+import { dispersedSheet, drawDispersion } from './spriteDispersion.js';
+
 const WHITE = '255, 255, 255';
 const GROUND_TYPES = new Set(['rune', 'glow', 'cracks', 'mist']);
 const MAX_PARTS = 700;   // 입자 상한: 넘으면 오래된 것부터 버림 (스킬이 겹쳐도 프레임 유지)
@@ -96,12 +101,12 @@ export class VfxPlayer {
         this.persistent.clear();
     }
 
-    /** 이펙트 재생. opts: { scale, follow: () => [x, y] (따라다닐 때), to: [x, y] (광선/목표 지점 레이어) } */
+    /** 이펙트 재생. opts: { scale, follow: () => [x, y], to: [x, y], alive?: () => boolean (판정 제거 시 함께 정리) } */
     play(def, x, y, opts = {}) {
         const s = opts.scale || 1;
         for (const layer of def.layers) {
             this.items.push({ ...layer, t: -(layer.at || 0), x, y, s, follow: opts.follow || null,
-                to: opts.to || null, started: false, owner: opts.owner });
+                to: opts.to || null, started: false, owner: opts.owner, alive: opts.alive });
         }
         if (def.sfx && this.onSfx) this.onSfx(def.sfx, x);
     }
@@ -165,6 +170,7 @@ export class VfxPlayer {
     // ------------------------------------------------------------------
     update(dt) {
         this.time += dt;
+        this.items = this.items.filter(it => !it.alive || it.alive());
         for (const it of this.items) {
             it.t += dt;
             if (!it.started && it.t >= 0) {
@@ -267,7 +273,7 @@ export class VfxPlayer {
         let x, y;
         if (it.pos === 'to' && it.to) [x, y] = it.to;
         else [x, y] = it.follow ? it.follow() : [it.x, it.y];
-        return [x, y + (it.dy || 0) * it.s];
+        return [x + (it.dx || 0) * it.s, y + (it.dy || 0) * it.s];
     }
 
     _cone(it) {
@@ -917,6 +923,7 @@ function impactAlpha(it, u) {
 // WebP 품질 90 (D-062) — 무손실 원본 띠는 png/, Gemini 원본은 src/
 // (tools/images/build_vfx_sheet.py가 Gemini 검은 배경 시트에서 만듦). 처음 쓸 때 불러오고, 다 불러오기 전에는 건너뜀
 export const VFX_SHEETS = {
+    ice_wall: { src: 'assets/sprites/vfx/art/ice_wall.webp', frames: 1 }, // 지속 빙벽 (투명 전용 그림)
     slash_violet: { src: 'assets/sprites/vfx/slash_violet.webp', frames: 9 },       // 타락 히어로 베기
     punch_cyan: { src: 'assets/sprites/vfx/punch_cyan.webp', frames: 9 },           // 거대로봇 주먹 (전기)
     bite_green: { src: 'assets/sprites/vfx/bite_green.webp', frames: 9 },           // 거대괴수 물기 (산성)
@@ -1068,34 +1075,85 @@ function hueSheet(name, hue) {
     hueSheets.set(key, c);
     return c;
 }
+// 선택한 시트만 프레임별로 넓게 페더링한다. 첫 사용에 한 번 만들고 재사용한다.
+const softSheets = new Map();
+function softSheet(name, hue, edge) {
+    const widths = ['left', 'right', 'top', 'bottom'].map(side => Math.max(0, Math.min(0.4,
+        typeof edge === 'number' ? edge : edge[side] || 0)));
+    const key = `${name}|${hue || 0}|${widths.join(',')}`;
+    if (softSheets.has(key)) return softSheets.get(key);
+    const img = hue ? hueSheet(name, hue) : sheetImage(name);
+    if (!img || typeof document === 'undefined') return null;
+    const c = document.createElement('canvas');
+    c.width = img.naturalWidth;
+    c.height = img.naturalHeight;
+    const g = c.getContext('2d'), fw = c.width / VFX_SHEETS[name].frames, fh = c.height;
+    g.drawImage(img, 0, 0);
+    g.globalCompositeOperation = 'destination-in';
+    for (let i = 0; i < VFX_SHEETS[name].frames; i++) {
+        const x = i * fw;
+        g.save();
+        g.beginPath();
+        g.rect(x, 0, fw, fh);
+        g.clip();
+        const sides = [[x, 0, x + fw * widths[0], 0], [x + fw, 0, x + fw * (1 - widths[1]), 0],
+            [0, 0, 0, fh * widths[2]], [0, fh, 0, fh * (1 - widths[3])]];
+        for (let side = 0; side < sides.length; side++) {
+            if (!widths[side]) continue;
+            const points = sides[side];
+            const mask = g.createLinearGradient(...points);
+            for (const t of [0, 0.25, 0.5, 0.75, 1]) mask.addColorStop(t, `rgba(0, 0, 0, ${t * t * (3 - 2 * t)})`);
+            g.fillStyle = mask;
+            g.fillRect(x, 0, fw, fh);
+        }
+        g.restore();
+    }
+    c.naturalWidth = c.width;
+    c.naturalHeight = c.height;
+    softSheets.set(key, c);
+    return c;
+}
 /** 시트를 미리 불러 둠 (첫 재생에 그림이 늦게 뜨지 않게) */
 export function preloadVfxSheets() {
     Object.keys(VFX_SHEETS).forEach(sheetImage);
 }
 
 const DRAW = {
+    groundField: drawGroundField,
     // 그림 프레임 재생 {sheet, size(px), anchorX?·anchorY?(프레임 안 기준점 0~1, 기본 0.5 — 바닥 기준 그림은 anchorY 0.9,
     //   입에서 뿜는 그림은 anchorX 0.03), angle?, flipX?, squash?, blend?('lighter' 기본 | 'normal'), alpha?, glow?(뒤에 퍼지는 빛 배수)}
     sprite(ctx, x, y, it, u, s) {
-        const img = it.hue ? hueSheet(it.sheet, it.hue) : sheetImage(it.sheet);   // hue: 색 돌리기 (도)
+        const img = it.softEdges && !it.dispersion ? softSheet(it.sheet, it.hue, it.softEdges) :
+            it.hue ? hueSheet(it.sheet, it.hue) : sheetImage(it.sheet);   // hue: 색 돌리기 (도)
         if (!img) return;
         const n = VFX_SHEETS[it.sheet].frames, fw = img.naturalWidth / n, fh = img.naturalHeight;
-        const f = Math.min(n - 1, Math.floor(u * n));
-        const size = (it.size ?? 160) * s;
+        const lo = Math.max(0, Math.min(n - 1, it.frameRange?.[0] ?? 0));
+        const hi = Math.max(lo, Math.min(n - 1, it.frameRange?.[1] ?? n - 1));
+        let progress = it.loopSec ? ((it.t + (it.phase || 0)) / it.loopSec) % 1 : u;
+        if (it.loopSec && it.pingPong) progress = 1 - Math.abs(2 * progress - 1);
+        const f = Math.min(hi, lo + Math.floor(progress * (hi - lo + 1)));
+        const w = (it.width ?? it.size ?? 160) * s, h = (it.height ?? it.size ?? 160) * s;
         ctx.save();
         ctx.globalCompositeOperation = it.blend === 'normal' ? 'source-over' : 'lighter';
-        ctx.globalAlpha = it.alpha ?? 1;
+        const remaining = it.remaining ? it.remaining() : it.dur - it.t;
+        const fade = it.fadeOut != null ? Math.min(1, Math.max(0, remaining) / it.fadeOut) :
+            it.softEdges ? Math.min(1, (1 - u) / 0.18) : 1;
+        const alpha = (it.alpha ?? 1) * fade * (it.fadeIn ? Math.min(1, it.t / it.fadeIn) : 1);
+        ctx.globalAlpha = alpha;
         ctx.translate(x, y);
         ctx.rotate(it.angle || 0);
         ctx.scale(it.flipX ? -1 : 1, it.squash ?? 1);
         const ax = it.anchorX ?? 0.5, ay = it.anchorY ?? 0.5;
+        const core = it.dispersion ? dispersedSheet(img, n, it.dispersion) : img;
         if (it.glow) {                                   // 뒤로 번지는 빛: 같은 프레임을 크게·옅게 한 번 더
-            ctx.globalAlpha = (it.alpha ?? 1) * 0.35;
-            const g = size * it.glow;
-            ctx.drawImage(img, f * fw, 0, fw, fh, -g * ax, -g * ay, g, g);
-            ctx.globalAlpha = it.alpha ?? 1;
+            ctx.globalAlpha = alpha * 0.35;
+            const gw = w * it.glow, gh = h * it.glow;
+            ctx.drawImage(core, f * fw, 0, fw, fh, -gw * ax, -gh * ay, gw, gh);
+            ctx.globalAlpha = alpha;
         }
-        ctx.drawImage(img, f * fw, 0, fw, fh, -size * ax, -size * ay, size, size);
+        // 시트 경계 밖에서도 실제 그림 조각이 이동하며 흩어지도록 그린다.
+        if (it.dispersion) drawDispersion(ctx, img, n, f, it, w, h, ax, ay, alpha, u);
+        ctx.drawImage(core, f * fw, 0, fw, fh, -w * ax, -h * ay, w, h);
         ctx.restore();
     },
     starburst(ctx, x, y, it, u, s) {

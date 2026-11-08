@@ -1060,11 +1060,40 @@
 }
 @keyframes v2-font-pulse { 50% { opacity: 0.55; } }
 /* 그림 있는 장판 (battle/kit.js kitZone art, D-079): 장판 자리에 세우는 모양 — Gemini 그림 전까지 CSS로 그림 */
+/* 실제 캐릭터 머리 위 체력바에 붙는, 활성 상태와 함께 사라지는 버프 표식 */
+#screen-battle-v2 .v2-buff-marks {
+    position: absolute; z-index: 42; width: max-content; max-width: 180px;
+    display: flex; flex-wrap: wrap; justify-content: center; gap: 4px;
+    transform: translate(-50%, -100%); pointer-events: none;
+}
+#screen-battle-v2 .v2-buff-marks[hidden] { display: none; }
+#screen-battle-v2 .v2-buff-mark {
+    --buff-color: #a9efba; --buff-left: 1;
+    position: relative; display: grid; place-items: center; width: 28px; height: 28px;
+    flex: 0 0 28px; border-radius: 50%; color: var(--buff-color); pointer-events: auto;
+    background: conic-gradient(var(--buff-color) calc(var(--buff-left) * 360deg), #263447 0);
+    box-shadow: 0 1px 4px #000c; animation: v2-buff-mark-in .18s ease-out;
+}
+#screen-battle-v2 .v2-buff-mark__icon {
+    display: grid; place-items: center; width: 24px; height: 24px; border-radius: 50%; background: #111b29;
+}
+#screen-battle-v2 .v2-buff-mark__time {
+    position: absolute; right: -2px; bottom: -3px; min-width: 12px; padding: 0 2px;
+    border-radius: 3px; color: #f4fff7; background: #101820; font: bold 10px/12px sans-serif;
+}
+#screen-battle-v2 .v2-buff-mark__time:empty { display: none; }
+@keyframes v2-buff-mark-in { from { opacity: 0; transform: translateY(5px) scale(.8); } to { opacity: 1; transform: none; } }
 #screen-battle-v2 .v2-kit-art {
     position: absolute; bottom: 58px; height: 170px; pointer-events: none; z-index: 8;
     transform-origin: 50% 100%; animation: v2-kit-art-in 0.35s ease-out;
 }
 #screen-battle-v2 .v2-kit-art.is-gone { animation: v2-kit-art-out 0.45s ease-in forwards; }
+#screen-battle-v2 .v2-kit-art.is-icewall {
+    background: url('assets/sprites/vfx/art/ice_wall.webp') center bottom / contain no-repeat;
+    filter: drop-shadow(0 0 5px #6ee6ff99); z-index: 11;
+}
+#screen-battle-v2 .v2-kit-art.is-icewall.is-gone { animation: v2-icewall-crumble .45s ease-in forwards; }
+@keyframes v2-icewall-crumble { to { transform: translateY(30px) scale(.96, .55) rotate(5deg); opacity: 0; } }
 @keyframes v2-kit-art-in { from { transform: scaleY(0.05); opacity: 0.3; } to { transform: none; opacity: 1; } }
 @keyframes v2-kit-art-out { to { transform: translateY(18px) scaleY(0.3) rotate(4deg); opacity: 0; } }
 /* 철골 바리케이드 (철거의 설계자 강제 재건): Gemini 시트 steel_scaffold 5번째 칸을 세워 둔 그림 (assets/sprites/vfx/art, 알파 = 밝기 → 빛나는 철골) */

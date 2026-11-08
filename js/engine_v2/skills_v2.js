@@ -14,6 +14,7 @@ import { HERO_VFX, MECH_VFX, KAIJU_VFX, CHIMERA_VFX, SET_VFX, meleeHitVfx } from
 import { aimAt } from './bases_v2.js';
 import { sound } from './audio/sound_v2.js';
 import { SET, FOOT_B } from './battle/tuning.js';
+import { breathImage } from './vfx/imageEffects.js';
 
 export const SLOT_KEYS = { arm: '1', body: '2', head: '3', mod1: '4', mod2: '5' };   // mod = 전술 모듈 (Q-006)
 export const ULT_FILL = { perSec: 1 / 24, perHit: 0.03 };   // 필살기 게이지: 24초 + 기본 공격 1타당 3%
@@ -449,7 +450,7 @@ Object.assign(SKILLS, {
             b.schedule(0.35, () => {
                 const x = b.frontX() + 10;
                 b.fx.play(SET_VFX.toxicBreath, x + 150, FOOT_B);
-                b.addZone({ x, w: 300, sec: 6, dps: b.playerDps * 0.4, slow: true, puff: SET_VFX.toxicPuff, every: 0.18,
+                b.addZone({ x, w: 300, sec: 6, dps: b.playerDps * 0.4, slow: true, field: 'poison',
                     baseMul: b.setOn('kaiju_b') ? SET.setBonus.toxicBaseMul : 1 });   // 독안개 4부위: 거점 2배
             });
         }
@@ -463,17 +464,18 @@ Object.assign(SKILLS, {
             const T = SET.dragonBreath;
             monster.playSkillAnim('breath');
             const mouth = () => monster.getSocketPoint('mouth', 'head') || monster.getMuzzlePoint() || { x: b.monsterX + 90, bottom: 130 };
-            const n = Math.round(T.breathSec / 0.1);
-            for (let k = 0; k < n; k++) {
-                b.schedule(0.4 + k * 0.1, () => { const m = mouth(); b.fx.play(SET_VFX.flame, m.x, m.bottom); });
-            }
+            b.schedule(0.4, () => {
+                const m = mouth();
+                b.fx.play(breathImage('breath_fire', T.width + 100, T.breathSec), m.x, m.bottom,
+                    { follow: () => { const p = mouth(); return [p.x, p.bottom]; } });
+            });
             b.schedule(0.5, () => {
                 const x = b.frontX() - 10;
                 b.director.shake(5, 220);
                 enemiesAhead(b, -20, b.playerRange + this.range).forEach(e => {
                     b.dealDamageToEnemy(e, b.unit() * T.hitMul, false, { knock: 0.8 });
                 });
-                b.addZone({ x, w: T.width, sec: T.zoneSec, dps: b.playerDps * T.zoneDps, puff: SET_VFX.flameTick, every: 0.12 });
+                b.addZone({ x, w: T.width, sec: T.zoneSec, dps: b.playerDps * T.zoneDps, field: 'fire' });
             });
         }
     },
@@ -657,13 +659,11 @@ Object.assign(SKILLS, {
         desc: '3초간 앞쪽 화염 지속 피해',
         use(b) {
             monster.playSkillAnim('spray');
-            b.addZone({ x: b.frontX() - 10, w: b.playerRange + this.range, sec: 3, dps: b.playerDps * 0.7, puff: SET_VFX.flameTick, every: 0.14 });
-            for (let k = 0; k < 25; k++) {
-                b.schedule(k * 0.12, () => {
-                    const m = monster.getMuzzlePoint() || { x: b.monsterX + 90, bottom: 120 };
-                    b.fx.play(SET_VFX.flame, m.x, m.bottom);
-                });
-            }
+            b.addZone({ x: b.frontX() - 10, w: b.playerRange + this.range, sec: 3, dps: b.playerDps * 0.7, field: 'fire' });
+            const muzzle = () => monster.getMuzzlePoint() || { x: b.monsterX + 90, bottom: 120 };
+            const m = muzzle();
+            b.fx.play(breathImage('breath_fire', b.playerRange + this.range + 80, 3), m.x, m.bottom,
+                { follow: () => { const p = muzzle(); return [p.x, p.bottom]; } });
         }
     }
 });

@@ -63,6 +63,7 @@ function moduleSkill(id, level, b) {
         case 'barrier': return { ...base, target: 'self',
             use(bb) {
                 bb.ccImmuneT = m.sec;
+                bb.ccImmuneDuration = m.sec;
                 bb.pSlowT = 0;
                 bb.pRootT = 0;
                 if (!(bb.overloadT > 0)) bb.pStunT = 0;   // 과부하(긴급 수리)는 그대로

@@ -17,6 +17,7 @@ import { ensureEnemyStyles } from '../enemies_v2.js';
 import { SETS } from '../sets_v2.js';
 import { KIT_PASSIVES, runKitStep, spr, fxOf } from '../skillKit_v2.js';
 import { FOOT_B, SET, SAINT, DOLL } from './tuning.js';
+import { playImageField } from '../vfx/imageEffects.js';
 
 const ART_FOOT_B = 58;
 const DOT_FX = {
@@ -270,8 +271,8 @@ export const KitMethods = {
 
     // ---- 버프 ----
     /** key 버프를 sec초 (같은 key면 새로). mods: { dmg, def, move, atkSpd, cdRate, ult, dodge, dodgeMelee, dodgeRanged, regen, lifesteal, allyDmg, ccCut, flags[], counter(step) } */
-    addKitBuff(key, sec, mods, vfx = null) {
-        this.kitBuffs[key] = { t: sec, mods };
+    addKitBuff(key, sec, mods, vfx = null, display = null) {
+        this.kitBuffs[key] = { t: sec, duration: sec, mods, display };
         this.kitModCache = null;
         if (vfx) this.fx.play(vfx, this.monsterX + 35, FOOT_B, { follow: () => [this.monsterX + 35, FOOT_B] });
     },
@@ -374,6 +375,7 @@ export const KitMethods = {
     // ---- 장판 ----
     /** o: { x(frontX 기준), w, sec, dps(×playerDps), slow?, vuln?[초,비율], status?(every초마다), every?, heal?(안에 있으면 나 초당 비율), allyHeal?,
      *       puff(이펙트), puffEvery?, baseMul?, follow?(나를 따라옴), end?{ dmg, radius, vfx }, wall?(보스가 아닌 적은 넘어오지 못함),
+     *       field?(imageEffects.js IMAGE_FIELDS 키): 판정 폭·수명과 함께 움직이는 이미지 장판,
      *       art?{ cls(ui_v2.css 모양 — 철골 바리케이드·음파 장막), w?, h?, dx? } (장판 자리에 세우는 그림, 끝나면 무너지며 사라짐) } */
     kitZone(o) {
         const x = (o.follow ? this.monsterX + 60 : this.frontX()) + (o.x ?? 0);
@@ -389,6 +391,10 @@ export const KitMethods = {
             el.style.left = `${x + z.artDx}px`;
         }
         this.kitZones.push(z);
+        if (o.field) {
+            playImageField(this.fx, o.field, z.w, z.sec, () => [z.x + z.w / 2, FOOT_B],
+                () => z.t > 0 && this.kitZones.includes(z), () => z.t);
+        }
     },
     /** 그림 있는 장판: 자리 맞추기 / 끝나면 무너지며 사라짐 */
     kitZoneArt(z, gone = false) {
@@ -421,7 +427,10 @@ export const KitMethods = {
             z.puffT -= dt;
             if (z.puff && z.puffT <= 0) {
                 z.puffT = z.puffEvery || 0.35;
-                this.fx.play(z.puff, z.x + Math.random() * z.w, FOOT_B + (z.puffB ?? 8), { scale: z.scale || 1 });
+                const offset = Math.random() * z.w;
+                this.fx.play(z.puff, z.x + offset, FOOT_B + (z.puffB ?? 8), { scale: z.scale || 1,
+                    ...(z.field ? { follow: () => [z.x + offset, FOOT_B + (z.puffB ?? 8)],
+                        alive: () => z.t > 0 && this.kitZones.includes(z) } : {}) });
             }
             z.tickT -= dt;
             const statusNow = z.status && z.tickT <= 0;
@@ -585,7 +594,7 @@ export const KitMethods = {
     // ---- 변신 ----
     /** o: { key, sec, giant?, mods?, attack?(새 기본 공격), vfx? } */
     kitTransform(o) {
-        this.kitXform = { t: o.sec, attack: o.attack || null, giant: o.giant || 1, key: o.key };
+        this.kitXform = { t: o.sec, duration: o.sec, attack: o.attack || null, giant: o.giant || 1, key: o.key };
         if (o.giant && o.giant !== 1) monsterControllerV2.rigBattle?.setGiant?.(o.giant);
         if (o.mods) this.addKitBuff(`xform_${o.key}`, o.sec, o.mods, o.vfx || null);
         sound.play('rampage_roar', { vol: 0.7 });
@@ -717,7 +726,8 @@ export const KitMethods = {
     /** 스킬을 쓸 때 (skillKit_v2.js kitSkill.use · 기존 스킬은 attacks.js useSkill) */
     kitOnSkill(skill) {
         const ps = this.kitPassive;
-        if (ps?.onSkill) this.addKitBuff('p_onSkill', ps.onSkill.sec, ps.onSkill.mods);
+        if (ps?.onSkill) this.addKitBuff('p_onSkill', ps.onSkill.sec, ps.onSkill.mods, null,
+            { name: ps.name, icon: 'overdrive', color: '#ffcf83' });
         if (ps?.nextMul) this.kitNextMul = Math.max(this.kitNextMul, ps.nextMul);
         this.kitFire(skill.slot === 'head' ? 'ult' : 'skill', { skill });
     },

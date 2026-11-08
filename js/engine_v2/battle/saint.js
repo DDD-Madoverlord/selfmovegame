@@ -15,6 +15,7 @@ import { monsterControllerV2 } from '../monster_v2.js';
 import { SAINT_VFX, BLOOD } from '../vfx/saintVfx.js';
 import { aimAt as aimOf } from '../bases_v2.js';
 import { SAINT, FOOT_B } from './tuning.js';
+import { playImageField } from '../vfx/imageEffects.js';
 
 const solid = e => e.isBuilding || e.isBarricade;
 const hitPoint = e => {
@@ -83,6 +84,9 @@ export const SaintMethods = {
     // ---- 몸통 스킬: 생명 봉인 ----
     lifeSeal() {
         this.seal = { t: SAINT.sealSec, tick: 0 };
+        const seal = this.seal;
+        playImageField(this.fx, 'seal', SAINT.sealZone[1] - SAINT.sealZone[0], SAINT.sealSec,
+            () => [this.frontX() + SAINT.sealDx, FOOT_B], () => this.seal === seal && seal.t > 0, () => seal.t);
         this.fx.play(SAINT_VFX.sealOpen, this.frontX() + SAINT.sealDx, FOOT_B);
         this.fx.setAura('seal', SAINT_VFX.sealField, () => [this.frontX() + SAINT.sealDx, FOOT_B],
             () => this.enemies.filter(e => e.sealed).map(e => ({ key: e.id, x: aimOf(e).x, b: FOOT_B, w: 14 })));

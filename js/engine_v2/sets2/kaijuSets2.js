@@ -6,6 +6,7 @@
    ========================================================================== */
 
 import { packOf, V, fxOf, spr } from './common.js';
+import { breathImage } from '../vfx/imageEffects.js';
 import { kitHit, pickTargets, enemiesNear } from '../skillKit_v2.js';
 import { aimAt } from '../bases_v2.js';
 import { FOOT_B } from '../battle/tuning.js';
@@ -61,7 +62,7 @@ export const KAIJU_SETS2 = packOf('kaiju', [
             kjDoomBeam: { name: '멸망의 숨결', slot: 'head', ult: true, cd: 0, icon: 'breath', color: '#a0ff32', target: 'enemy', range: 380,
                 desc: '등지느러미가 차례로 빛난 뒤 4초간 초록 열선 — 일직선 지속 피해, 거점 2배', clip: 'breath', sfx: 'kaiju_breath',
                 steps: [{ at: 0, do: 'fx', on: 'self', vfx: V.aura(-60, 260), follow: true },
-                    { at: 0.4, do: 'line', dmg: 0.9, baseMul: 2, decay: 0.9, vfx: V.sheet('primal_beam', 430, { anchorX: 0.03, dur: 0.45, glow: 1.1 }), hitVfx: V.acid(0, 70), repeat: 10, repeatGap: 0.4, knock: 0.3 },
+                    { at: 0.4, do: 'line', from: 'mouth', dmg: 0.9, baseMul: 2, decay: 0.9, vfx: breathImage('primal_beam', 490, 0.45), hitVfx: V.acid(0, 70), repeat: 10, repeatGap: 0.4, knock: 0.3 },
                     { at: 0.4, do: 'shake', power: 5, ms: 4000 }] },
             kjMolt: { name: '진화 탈피', slot: 'body', cd: 15, icon: 'egg', color: '#a0ff32', target: 'self', clip: 'brace', cast: true, sfx: 'shield_on',
                 desc: '허물을 벗어 체력 25% 회복 + 해로운 효과 풀림 + 5초 진격 속도 +30%',
@@ -82,13 +83,13 @@ export const KAIJU_SETS2 = packOf('kaiju', [
         arm: { name: '흑요석 발톱', look: '검게 빛나는 흑요석 발톱', skill: 'kjLavaClaw', desc: '용암 할퀴기: 3번 할퀴기 — 3초 화상' },
         leg: { name: '바위 다리', look: '현무암 덩어리 같은 다리', desc: '열기 발자국: 지나간 자리 2초 불씨 (밟은 적 화상)',
             passive: { name: '열기 발자국', desc: '지나간 자리에 2초 불씨 — 밟은 적 화상',
-                step: { do: 'zone', x: -110, w: 70, sec: 2, status: { burn: [2, 0.15] }, every: 0.5, puff: V.embers(LAVA), puffEvery: 0.3 } } },
+                step: { do: 'zone', field: 'lava', x: -110, w: 70, sec: 2, status: { burn: [2, 0.15] }, every: 0.5 } } },
         skills: {
             kjEruption: { name: '화산 분화', slot: 'head', ult: true, cd: 0, icon: 'fire', color: '#ff7a1a', target: 'enemy', range: 420, clip: 'roar', sfx: 'kaiju_roar',
                 desc: '등에서 용암탄이 솟아 앞쪽에 떨어짐 — 범위 피해 + 4초 용암 장판', p: { count: 8 },
                 steps: [{ at: 0, do: 'fx', on: 'self', vfx: V.blast(0, 220, { anchorY: 0.9 }), b: FOOT_B + 120 },
                     { at: 0.4, do: 'rain', count: '$count', x: [60, 520], every: 0.16, radius: 70, dmg: 2.2, delay: 0.25, vfx: V.sheet('lava_burst', 210, { anchorY: 0.85, dur: 0.6 }), shake: 4,
-                        zone: { w: 90, sec: 4, dps: 0.5, puff: V.embers(LAVA), puffEvery: 0.35 }, sfx: 'mech_missile_blast' }] },
+                        zone: { field: 'lava', w: 90, sec: 4, dps: 0.5 }, sfx: 'mech_missile_blast' }] },
             kjLavaSkin: { name: '용암 갑옷', slot: 'body', cd: 14, icon: 'shield', color: '#ff7a1a', target: 'self', clip: 'brace', cast: true,
                 desc: '6초간 받는 피해 -30%, 근접으로 때린 적은 화상',
                 steps: [{ do: 'buff', sec: 6, mods: { def: 0.3, reflectStatus: { burn: [3, 0.3] } }, vfx: V.aura(-140, 230) }] },
@@ -111,7 +112,7 @@ export const KAIJU_SETS2 = packOf('kaiju', [
         skills: {
             kjSwamp: { name: '늪 삼키기', slot: 'head', ult: true, cd: 0, icon: 'acid', color: '#7a9a30', target: 'enemy', range: 400, clip: 'slam', sfx: 'chimera_slam',
                 desc: '앞쪽 바닥이 8초간 늪으로 — 적이 느려지고 초당 피해',
-                steps: [{ at: 0.4, do: 'zone', tag: 'swamp', x: 20, w: 380, sec: 8, dps: 0.4, slow: true, puff: V.sheet('swamp_bubble', 110, { anchorY: 0.85, dur: 0.8 }), puffEvery: 0.22, puffB: 0, scale: 1 },
+                steps: [{ at: 0.4, do: 'zone', tag: 'swamp', field: 'swamp', x: 20, w: 380, sec: 8, dps: 0.4, slow: true },
                     { at: 0.4, do: 'fx', x: 200, vfx: V.impact(-40, 260) }] },
             kjSubmerge: { name: '늪 위장', slot: 'body', cd: 14, icon: 'egg', color: '#7a9a30', target: 'self', clip: 'lay',
                 desc: '4초간 늪에 잠겨 받는 피해 -70%, 나오며 앞 적을 물어 2초 기절',
@@ -167,7 +168,7 @@ export const KAIJU_SETS2 = packOf('kaiju', [
                 steps: [{ at: 0.3, do: 'buff', sec: 8, mods: { onHit: { do: 'chain', n: 2, dmg: 0.45, jump: 200, vfx: V.chainBolt(SEA), hitVfx: V.bolt(0, 70), status: { stun: '$stun' } } }, vfx: V.bolt(0, 200) }] },
             kjVortex: { name: '소용돌이', slot: 'arm', cd: 9, icon: 'whirl', color: '#50dcff', target: 'enemy', range: 200, clip: 'slam',
                 desc: '앞쪽 소용돌이 3초 — 적을 가운데로 모으며 초당 피해',
-                steps: [{ at: 0.4, do: 'zone', x: 90, w: 180, sec: 3, dps: 0.9, pull: 90, puff: V.water(0, 110, { dur: 0.5 }), puffEvery: 0.2 }] }
+                steps: [{ at: 0.4, do: 'zone', field: 'water', x: 90, w: 180, sec: 3, dps: 0.9, pull: 90 }] }
         }
     },
 
@@ -197,7 +198,7 @@ export const KAIJU_SETS2 = packOf('kaiju', [
                 desc: '심장이 3번 고동 — 박동마다 넓은 충격파 + 체력 4% 회복',
                 steps: [{ do: 'hit', pick: 'all', range: 260, dmg: 1.2, knock: 1, repeat: 3, repeatGap: 0.6 },
                     { do: 'heal', ratio: 0.04, repeat: 3, repeatGap: 0.6 },
-                    { do: 'fx', on: 'self', x: 40, vfx: V.ring(DOOM, 200), repeat: 3, repeatGap: 0.6 }] },
+                    { do: 'fx', on: 'self', x: 40, vfx: V.shock(50, 440), repeat: 3, repeatGap: 0.6 }] },
             kjOverturn: { name: '대지 뒤집기', slot: 'arm', cd: 9, icon: 'slam', color: '#ff4628', target: 'enemy', range: 40, clip: 'slam', p: { range: 220 },
                 desc: '앞쪽 땅을 뒤집어 적을 띄움 — 큰 피해 + 1.5초 기절',
                 steps: [{ at: 0.4, do: 'hit', pick: 'all', range: '$range', dmg: 2.6, status: { stun: 1.5 }, vfx: V.impact(-20, 180), ground: true, knock: 0.4 },
@@ -219,8 +220,8 @@ export const KAIJU_SETS2 = packOf('kaiju', [
         skills: {
             kjKingBreath: { name: '용왕의 숨결', slot: 'head', ult: true, cd: 0, icon: 'breath', color: '#ffd25a', target: 'enemy', range: 420, clip: 'breath', sfx: 'kaiju_breath', p: { trail: 0 },
                 desc: '6초간 금빛 숨결로 앞을 쓸어내림 — 매초 피해 + 3초 화상, 거점 2배',
-                steps: [{ at: 0.35, do: 'line', dmg: 0.9, baseMul: 2, decay: 0.95, vfx: V.sheet('breath_gold', 430, { anchorX: 0.03, dur: 0.55 }), status: { burn: [3, 0.3] }, repeat: 12, repeatGap: 0.5, knock: 0.2 },
-                    { at: 0.6, do: 'zone', x: 0, w: 420, sec: 9.5, status: { burn: [2, 0.3] }, every: 0.8, puff: V.blast(25, 80), puffEvery: 0.18, when: b => b.kitPatch?.kjKingBreath?.trail > 0 }] },
+                steps: [{ at: 0.35, do: 'line', from: 'mouth', dmg: 0.9, baseMul: 2, decay: 0.95, vfx: breathImage('breath_gold', 500, 0.55), status: { burn: [3, 0.3] }, repeat: 12, repeatGap: 0.5, knock: 0.2 },
+                    { at: 0.6, do: 'zone', field: 'goldFire', x: 0, w: 420, sec: 9.5, status: { burn: [2, 0.3] }, every: 0.8, when: b => b.kitPatch?.kjKingBreath?.trail > 0 }] },
             kjGale: { name: '날개 돌풍', slot: 'body', cd: 14, icon: 'wave', color: '#ffd25a', target: 'enemy', range: 400, clip: 'roar', p: { rush: 0 },
                 desc: '날개를 펴 돌풍 — 앞 적 모두 멀리 밀어냄',
                 steps: [{ at: 0.3, do: 'push', range: 420, dist: 170, dmg: 0.8 },

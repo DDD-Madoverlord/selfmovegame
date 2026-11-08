@@ -149,10 +149,10 @@ export const SAINT_SETS2 = packOf('saint', [
                     { at: 0.45, do: 'zone', tag: 'healRain', x: -220, w: 820, sec: 8, slow: true, allyHeal: 0.03, puff: V.sheet('heal_rain', 160, { dur: 0.6 }), puffEvery: 0.15, puffB: 120 }] },
             stHerbSmoke: { name: '약초 연기', slot: 'body', cd: 13, icon: 'spore', color: '#96ffa0', target: 'enemy', range: 220, clip: 'cast',
                 desc: '앞 적에게 5초 독 연기 + 내 해로운 효과 풀림',
-                steps: [{ do: 'cleanse' }, { at: 0.45, do: 'zone', tag: 'smoke', x: 0, w: 220, sec: 5, status: { poison: [2, 0.3] }, every: 1, puff: V.spore(40, 90, { dur: 0.6 }), puffEvery: 0.2 }] },
+                steps: [{ do: 'cleanse' }, { at: 0.45, do: 'zone', tag: 'smoke', field: 'herb', x: 0, w: 220, sec: 5, status: { poison: [2, 0.3] }, every: 1 }] },
             stPotionThrow: { name: '약병 투척', slot: 'arm', cd: 8, icon: 'syringe', color: '#96ffa0', target: 'enemy', range: 320, clip: 'throw',
                 desc: '약병 3개를 던짐 — 터진 자리 3초 장판 (적 피해·나·아군 회복)',
-                steps: [{ at: 0.35, do: 'rain', count: 3, every: 0.15, radius: 60, dmg: 0.8, delay: 0.35, vfx: V.acid(60, 110), zone: { w: 120, sec: 3, dps: 0.3, heal: 0.02, allyHeal: 0.02, puff: V.motes(HERB, 5), puffEvery: 0.3 } }] }
+                steps: [{ at: 0.35, do: 'rain', count: 3, every: 0.15, radius: 60, dmg: 0.8, delay: 0.35, vfx: V.acid(60, 160), zone: { field: 'herb', w: 120, sec: 3, dps: 0.3, heal: 0.02, allyHeal: 0.02 } }] }
         }
     },
 

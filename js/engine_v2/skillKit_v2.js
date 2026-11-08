@@ -17,6 +17,7 @@ import { monsterControllerV2 as monster } from './monster_v2.js';
 import { sound } from './audio/sound_v2.js';
 import { aimAt } from './bases_v2.js';
 import { FOOT_B } from './battle/tuning.js';
+import { imageField } from './vfx/imageEffects.js';
 
 /** 다리 파츠 id → 부품 패시브 (registerSets2가 채움, battle/kit.js가 읽음) */
 export const KIT_PASSIVES = {};
@@ -105,7 +106,8 @@ const STEP = {
     /** 일직선 관통: 총구에서 range 끝까지, 뒤로 갈수록 × decay */
     line(b, s, ctx) {
         const range = s.range ?? ctx.range;
-        const from = monster.getMuzzlePoint() || { x: b.monsterX + 90, bottom: 120 };
+        const from = (s.from === 'mouth' && monster.getSocketPoint('mouth', 'head')) ||
+            monster.getMuzzlePoint() || { x: b.monsterX + 90, bottom: 120 };
         const endX = b.frontX() + range;
         if (s.vfx) b.fx.play(s.vfx, from.x, s.b ?? from.bottom, { to: [endX, s.b ?? 100] });
         let mul = 1;
@@ -201,7 +203,8 @@ const STEP = {
         if (s.dmg) b.enemies.filter(e => aimAt(e).x > start + 60 && aimAt(e).x < end + 160).forEach(e => kitHit(b, e, s.dmg, s));
     },
     buff(b, s, ctx) {
-        b.addKitBuff(s.key || ctx.skill.id, s.sec, s.mods || {}, s.vfx);
+        b.addKitBuff(s.key || ctx.skill.id, s.sec, s.mods || {}, s.vfx,
+            { name: ctx.skill.name, icon: ctx.skill.icon, color: ctx.skill.color });
     },
     shield(b, s) {
         b.applyShield(s.ratio, s.sec, s.color || '255, 224, 138');
@@ -232,6 +235,11 @@ const STEP = {
     /** 화면의 모든 적 (거점은 baseMul) */
     screen(b, s) {
         const list = b.enemies.filter(e => (s.units ? isUnit(e) : true) && e.x - b.monsterX < (s.reach ?? 1200));
+        if (s.field && list.length) {
+            const xs = list.map(e => aimAt(e).x);
+            const left = Math.min(...xs) - 100, right = Math.max(...xs) + 100;
+            b.fx.play(imageField(s.field, right - left, s.fieldSec ?? 0.65), (left + right) / 2, FOOT_B);
+        }
         list.forEach((e, i) => {
             if (s.vfx && i < (s.maxFx ?? 10)) b.fx.play(s.vfx, aimAt(e).x, s.ground ? FOOT_B : aimAt(e).b);
             kitHit(b, e, s.dmg || 0, s);
