@@ -207,7 +207,7 @@ const STEP = {
             { name: ctx.skill.name, icon: ctx.skill.icon, color: ctx.skill.color });
     },
     shield(b, s) {
-        b.applyShield(s.ratio, s.sec, s.color || '255, 224, 138');
+        b.applyShield(s.ratio, s.sec, s.color || '255, 224, 138', !!s.quiet);   // quiet: 스킬이 자기 막 그림을 그림 (방주 방벽, D-118)
         if (s.allies) b.allies.forEach(a => { a.kitShield = Math.max(a.kitShield || 0, a.maxHp * s.ratio); });
     },
     /** 회복: ratio = 최대 체력 비율 (바로), over = [초, 초당 비율] (시간에 걸쳐), allies면 아군도 */

@@ -14,7 +14,7 @@
 import { MECH_VFX, KAIJU_VFX, CHIMERA_VFX, DIVER_VFX, SAINT_VFX, FROST_VFX, DOLL_VFX } from '../engine_v2/vfx/vfxDefs.js';
 import { SET_VFX } from '../engine_v2/vfx/setVfx.js';
 import { LEG, SET, SAINT, FOOT_B } from '../engine_v2/battle/tuning.js';
-import { SKILLS } from '../engine_v2/skills_v2.js';
+import { SKILLS, KAIJU_THORN_FX } from '../engine_v2/skills_v2.js';
 import { imageField, breathImage } from '../engine_v2/vfx/imageEffects.js';
 
 // 전투에 별도 이펙트가 없는 수치 패시브: 발밑에 작은 팩션 색 고리와 빛가루만.
@@ -161,7 +161,10 @@ export function kitPreview(key, slot) {
                     break;
                 case 'summon': for (let i = 0; i < Math.min(3, Math.round(valOf(sk, s.n, 1))); i++) play(v || aura, api.CHAR_X + (70 + i * 24) * k, api.GROUND_Y); break;
                 case 'shake': api.shake(Math.min(10, s.power ?? 6), (s.ms ?? 250) / 1000); break;
-                case 'custom': play(v, api.dummies[0].x, chestY); break;
+                case 'custom':   // 단계가 자기 미리보기를 주면 그것 (D-118 — preview(api, scale)), 없으면 이펙트 하나
+                    if (typeof s.preview === 'function') s.preview(api, api.VFX_SCALE);
+                    else play(v, api.dummies[0].x, chestY);
+                    break;
                 default: play(v || aura, api.CHAR_X, api.GROUND_Y);   // buff · shield · heal · cleanse · transform · gauge
             }
         };
@@ -316,6 +319,8 @@ export const SKILL_PREVIEWS = {
     // 가시 갑옷: 몸의 가시 발동 뒤 공격자를 찌르는 반사 스파크.
     thornArmor: api => {
         api.atSelf(SET_VFX.thornOn);
+        const back = () => ['backTop', 'backMid', 'backLow'].map(k => api.socket(k, 'body'));   // 등껍질에 가시 (D-118)
+        api.vfx.play(KAIJU_THORN_FX.back(3), api.CHAR_X, api.GROUND_Y, { scale: api.VFX_SCALE, path: back });
         api.later(0.7, () => { api.at(SET_VFX.thornReflect, 0); api.hit(0); });
     },
     // 독 포자 폭발: 몸 둘레 독주머니 폭발 뒤 적들에게 4초 부식 틱.
@@ -329,12 +334,29 @@ export const SKILL_PREVIEWS = {
         api.atSelf(KAIJU_VFX.roarBurst);
         api.dummies.forEach((d, i) => api.hit(i, 2));
     }),
-    // 가시 폭풍: 포효하며 뼈 가시를 사방으로 쏘고 4초간 출혈 방울.
-    spikeStorm: api => playAt(api, 'victory', 0.35, () => {
-        api.atSelf(SET_VFX.spikeStorm);
-        api.dummies.forEach((d, i) => api.hit(i));
-        tickTargets(api, SET_VFX.bleedTick, 4);
-    }),
+    // 가시 폭풍: 등에서 충전 → 높은 포물선 → 착탄 섬광과 4초 가시독.
+    spikeStorm: api => {
+        api.playClip('brace');
+        const p = api.socket('backTop', 'body');
+        let released = false;
+        api.vfx.play(KAIJU_THORN_FX.charge, p[0], p[1], { scale: api.VFX_SCALE, alive: () => !released });
+        api.later(0.65, () => {
+            released = true;
+            api.playClip('roar');
+            api.atSelf(SET_VFX.spikeStorm);
+            const from = api.socket('backTop', 'body');   // 등에서 가시가 날아가 발밑에 가시독 (D-118)
+            api.dummies.forEach((d, i) => {
+                const fly = KAIJU_THORN_FX.flight((d.x - from[0]) / api.VFX_SCALE, i);
+                api.vfx.play(KAIJU_THORN_FX.shot(fly, i), from[0], from[1], { scale: api.VFX_SCALE, to: [d.x, api.enemyChestY()] });
+                api.later(fly, () => {
+                    api.hit(i);
+                    api.vfx.play(KAIJU_THORN_FX.hit, d.x, api.enemyChestY(), { scale: api.VFX_SCALE });
+                    api.vfx.play(KAIJU_THORN_FX.poison(4), d.x, api.GROUND_Y, { scale: api.VFX_SCALE });
+                });
+            });
+            tickTargets(api, SET_VFX.bleedTick, 4);
+        });
+    },
     // 독안개 숨결: 포효 뒤 앞쪽 독 구름, 6초간 0.18초 간격 퍼프와 감속.
     toxicBreath: api => playAt(api, 'victory', 0.35, () => {
         api.at(SET_VFX.toxicBreath, 1, true);

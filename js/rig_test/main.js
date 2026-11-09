@@ -9,7 +9,7 @@
 
 import { Animator, Spring, Mat } from '../engine_v2/rig/rig.js';
 import { RIG_CHARACTERS, RIG_ENEMIES, RIG_NEW, attackClipOf, hitSocketOf } from '../engine_v2/rig/characters.js';
-import { loadRigAssets, applyRigEvent, applyUpgrades, buildSkeleton, restBounds, shieldGeom, ScaleTween, PHASE2_SCALE, variantAlias, mechArmOf }
+import { loadRigAssets, applyRigEvent, applyUpgrades, buildSkeleton, restBounds, shieldGeom, ScaleTween, PHASE2_SCALE, variantAlias, variantSocketsFor, mechArmOf }
     from '../engine_v2/rig/rigAvatar.js';
 import { V2_PARTS } from '../engine_v2/partsExtra_v2.js';
 import { RigEffects } from '../engine_v2/rig/rigEffects.js';
@@ -574,6 +574,7 @@ function applyEquip() {
     for (const [slot, p] of Object.entries(parts)) if (p && p.variant) variants[slot] = p.variant;
     const { alias, tint } = variantAlias(character.id, layout, variants);
     skeleton.partAlias = alias;
+    skeleton.variantSockets = variantSocketsFor(skeleton, alias);   // 세트 포신 총구 (D-118)
     skeleton.partFilters = Object.keys(tint).length ? tint : null;
     if (character.upgrade) {
         SLOTS.forEach(([slot]) => { state.upgrades[slot] = !!(parts[slot] && parts[slot].upgrade); });

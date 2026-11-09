@@ -73,16 +73,47 @@ export const AttackMethods = {
             // 유도 미사일: 포물선으로 날아가 폭발 (목표가 먼저 쓰러지면 마지막 위치에 떨어짐)
             this.fireMissile(targetEnemy, finalDmg * 1.2, {}, isCrit);
         }
+        else if (this.armShotFx) {
+            // 총구 섬광 + 탄이 날아가 맞힘 (장거리 저격포·플라즈마 방사 팔, D-118) — 맞는 순간의 판정은 아래 근접과 같음
+            this.fireShotFx(targetEnemy, finalDmg, isCrit, hitScale, this.armShotFx);
+        }
         else {
             // 캐릭터별 타격 이펙트 (로봇 주먹 / 괴수 물기 / 히어로 베기 / 합성괴인 주먹·클로 / 페이퍼돌 기본 베기)
-            const aim = aimOf(targetEnemy);
-            this.fx.play(meleeHitVfx(monsterControllerV2.getCharacterId(), this.equippedArmId), aim.x, aim.b + 5);
-            const cleave = CLEAVE_BY_ARM[this.equippedArmId] || MELEE_CLEAVE;
-            const near = this.enemies.filter(o => o !== targetEnemy && !o.isBuilding && Math.abs(o.x - targetEnemy.x) <= cleave.radius);
-            this.dealDamageToEnemy(targetEnemy, finalDmg * MELEE_CLEAVE.dmg, isCrit, { knock: 1, stop: hitScale >= 1 });   // 근접 주 대상 피해 상향 (11-03)
-            near.forEach(o => this.dealDamageToEnemy(o, finalDmg * cleave.mul, false, { knock: 0.6 }));
-            if (this.equippedArmId === 'arm_mutant') this.applyAcid(targetEnemy);   // 산성 이빨
+            this.meleeStrike(targetEnemy, finalDmg, isCrit, hitScale, meleeHitVfx(monsterControllerV2.getCharacterId(), this.equippedArmId));
         }
+    },
+
+    /** 기본 근접 타격 판정 (주 대상 + 휩쓸기) — vfx: 맞은 자리 이펙트 */
+    meleeStrike(targetEnemy, finalDmg, isCrit, hitScale, vfx) {
+        const aim = aimOf(targetEnemy);
+        if (vfx) this.fx.play(vfx, aim.x, aim.b + 5);
+        const cleave = CLEAVE_BY_ARM[this.equippedArmId] || MELEE_CLEAVE;
+        const near = this.enemies.filter(o => o !== targetEnemy && !o.isBuilding && Math.abs(o.x - targetEnemy.x) <= cleave.radius);
+        this.dealDamageToEnemy(targetEnemy, finalDmg * MELEE_CLEAVE.dmg, isCrit, { knock: 1, stop: hitScale >= 1 });   // 근접 주 대상 피해 상향 (11-03)
+        near.forEach(o => this.dealDamageToEnemy(o, finalDmg * cleave.mul, false, { knock: 0.6 }));
+        if (this.equippedArmId === 'arm_mutant') this.applyAcid(targetEnemy);   // 산성 이빨
+    },
+
+    /**
+     * 팔 shotFx 기본 공격 (D-118): 총구 섬광 → 탄이 적에게 날아감 → 도착하면 meleeStrike와 같은 피해 (수치·범위 그대로)
+     * shot: { hue?(시트 색 돌리기), speed?(px/초), size?(탄 그림), flash?(섬광 크기), hitVfx }
+     */
+    fireShotFx(target, dmg, isCrit, hitScale, shot) {
+        const m = monsterControllerV2.getMuzzlePoint() || { x: this.monsterX + 90, bottom: 125 };
+        const aim = aimOf(target);
+        const dur = Math.max(0.06, Math.min(0.24, Math.hypot(aim.x - m.x, aim.b - m.bottom) / (shot.speed || 1900)));
+        // 총구 섬광: 진홍 찌르기 섬광 시트(needle_crimson)의 별빛 칸 · 탄: 같은 시트의 빛줄기 칸이 날아감 (hue로 색)
+        const hue = shot.hue || 0;
+        this.fx.play({ layers: [
+            { type: 'sprite', sheet: 'needle_crimson', at: 0, dur: 0.14, size: shot.flash || 82, frameRange: [2, 3], hue, glow: 1.3 },
+            { type: 'smoke', at: 0.04, count: 3, spread: 6, spreadY: 4, size: 7, life: [0.35, 0.55], rise: 18, color: '150, 150, 150' }
+        ] }, m.x, m.bottom);
+        this.fx.play({ layers: [{ type: 'sprite', sheet: 'needle_crimson', at: 0, dur, size: shot.size || 120, frameRange: [1, 1], hue,
+            travel: true, anchorX: 0.6, glow: 1.2 }] }, m.x, m.bottom, { to: [aim.x, aim.b] });
+        this.schedule(dur, () => {
+            if (!this.isActive || !this.enemies.includes(target)) return;
+            this.meleeStrike(target, dmg, isCrit, hitScale, shot.hitVfx);
+        });
     },
 
     // [타락 히어로 팔] 어둠 파동: 칼끝에서 초승달 파동이 앞으로 날아가며 지나가는 적 전부에게 피해 + 감속
@@ -159,11 +190,11 @@ export const AttackMethods = {
     },
 
     // [반사 실드] 최대 체력 ratio만큼 흡수하는 실드를 sec초 동안
-    applyShield(ratio, sec, color) {
+    applyShield(ratio, sec, color, quiet = false) {
         this.shieldHp = Math.max(this.shieldHp, this.maxPlayerHp * ratio);
         this.shieldTimer = sec;
         this.shieldDuration = sec;
-        monsterControllerV2.shieldOn(color);
+        if (!quiet) monsterControllerV2.shieldOn(color);   // quiet: 리그 실드 막을 그리지 않음 (방주 방벽은 금빛 돔 그림, D-118)
         sound.play('shield_on');
         this.createDamagePopup(this.monsterX + 40, 210, '⬢ 실드 전개', false);
     },

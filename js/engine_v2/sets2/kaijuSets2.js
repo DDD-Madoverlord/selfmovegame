@@ -10,25 +10,67 @@ import { breathImage } from '../vfx/imageEffects.js';
 import { kitHit, pickTargets, enemiesNear } from '../skillKit_v2.js';
 import { aimAt } from '../bases_v2.js';
 import { FOOT_B } from '../battle/tuning.js';
+import { monsterControllerV2 as monster } from '../monster_v2.js';
 
 const GREEN = '160, 255, 60', LAVA = '255, 120, 40', CRYSTAL = '150, 240, 255', SEA = '80, 220, 255', GOLD = '255, 210, 90', DOOM = '255, 70, 40';
 
+// ---- D-118 스킬 이펙트 개선: 기존 손그림 시트를 그대로/색 돌려 씀 ----
+// 수정 감옥: ice_shatter 앞 칸(솟는 수정 덩어리)이 적을 감싸 3초 유지 → 같은 시트 뒤 칸으로 깨짐
+// 겹쳐 더하면(lighter) 하얗게 타서 수정 결이 안 보임 → 한 장만, 보통 섞기 + 옅은 빛
+const CAGE = (sec, size) => fxOf(spr('ice_shatter', size, { anchorY: 0.86, dur: sec, frameRange: [1, 1], glow: 0, blend: 'normal', alpha: 0.9, fadeIn: 0.12 }),
+    { type: 'glow', at: 0, dur: sec, r: size * 0.32, color: CRYSTAL });
+const CAGE_BREAK = size => fxOf(spr('ice_shatter', size, { anchorY: 0.9, dur: 0.6, frameRange: [3, 8], glow: 1.2 }),
+    { type: 'shards', at: 0, count: 10, speed: 300, size: 7, spin: 8, life: [0.7, 1.1], shape: 'ice', color: CRYSTAL, dy: -50, floor: 50 });
 // 수정 감옥: 가둔 적을 기억했다가 3초 뒤 깨뜨림 (파편이 옆 적에게)
 function crystalPrison(b, ctx, s) {
     const list = pickTargets(b, 'strongest', s.n, b.playerRange + 700).filter(e => !e.isBuilding);
     list.forEach(e => {
         b.kitStatus(e, { stun: s.sec });
-        b.fx.play(V.shatter(0, 150, { dur: 0.6 }), aimAt(e).x, FOOT_B);
+        const size = e.boss ? 300 : e.elite ? 240 : 210;
+        b.fx.play(CAGE(s.sec, size), aimAt(e).x, FOOT_B, { follow: () => [aimAt(e).x, FOOT_B], alive: () => b.enemies.includes(e) });
     });
     b.schedule(s.sec, () => {
         list.forEach(e => {
             if (!b.enemies.includes(e)) return;
             const x = aimAt(e).x;
-            b.fx.play(V.ice(0, 170), x, aimAt(e).b);
+            b.fx.play(CAGE_BREAK(e.boss ? 300 : 220), x, FOOT_B);
+            b.fx.play(V.ice(0, 150), x, aimAt(e).b);
             kitHit(b, e, s.dmg, { knock: 1 });
             enemiesNear(b, x, 110).filter(o => o !== e).forEach(o => kitHit(b, o, s.dmg * 0.4, { knock: 0.6 }));
         });
         b.director.shake(6, 250);
+    });
+}
+
+// 수정 창 투척: judgment_violet 검 칸을 청록으로 돌려 창처럼 날림 → 떨어진 자리 수정 깨짐 + 피해·속박 (판정은 예전 rain과 같음)
+const SPEAR_DIR = 1.94;   // 시트 그림 속 창끝 방향 (라디안, 아래 왼쪽)
+const SPEAR_FX = fly => fxOf(spr('judgment_violet', 150, { dur: fly, frameRange: [1, 1], hue: -95, travel: true, arc: 34, angleOffset: -SPEAR_DIR, glow: 1.2 }));
+function crystalSpears(b, ctx, s) {
+    const targets = pickTargets(b, 'random', s.count, b.playerRange + (ctx.skill.range || 0));
+    for (let i = 0; i < s.count; i++) {
+        b.schedule(i * s.every, () => {
+            if (!b.isActive) return;
+            const t = targets[i] && b.enemies.includes(targets[i]) ? aimAt(targets[i]).x : b.frontX() + 40 + Math.random() * (b.playerRange + 180);
+            const x = t + (Math.random() - 0.5) * 20;
+            const from = monster.getSocketPoint('claw', 'armF') || { x: b.monsterX + 120, bottom: 120 };
+            b.fx.play(SPEAR_FX(s.fly), from.x, from.bottom, { to: [x, FOOT_B + 12] });
+            b.schedule(s.fly, () => {
+                if (!b.isActive) return;
+                b.fx.play(V.shatter(0, 140, { dur: 0.55 }), x, FOOT_B);
+                enemiesNear(b, x, s.radius).forEach(e => kitHit(b, e, s.dmg, s));
+            });
+        });
+    }
+}
+
+// 열기 발자국: 걸음마다 발밑 불씨가 앞으로 튀어 앞쪽 적에게 화상 (예전: 뒤에 남는 2초 용암 장판)
+function heatStep(b, ctx, s) {
+    const foot = b.frontX() - 55;
+    b.fx.play(fxOf(spr('power_aura', 70, { anchorY: 0.92, dur: 0.6, frameRange: [5, 7], glow: 0, alpha: 0.85 }),
+        { type: 'embers', at: 0, count: 9, speed: 260, angle: -0.35, cone: 0.7, size: 2.2, life: [0.4, 0.7], drag: 1.2, color: '255, 170, 70' }), foot, FOOT_B);
+    enemiesNear(b, b.frontX() + s.reach / 2, s.reach / 2, true).forEach(e => {
+        b.kitStatus(e, { burn: s.burn });
+        b.fx.play(V.blast(0, 70, { dur: 0.35 }), aimAt(e).x, FOOT_B + 20);
     });
 }
 
@@ -81,9 +123,9 @@ export const KAIJU_SETS2 = packOf('kaiju', [
         head: { name: '분화구 머리', look: '정수리에 김이 오르는 분화구', skill: 'kjEruption', desc: '필살기 화산 분화: 용암탄 8개 (범위 피해 + 4초 용암 장판)' },
         body: { name: '현무암 등딱지', look: '검은 현무암 판, 틈새로 흐르는 용암', skill: 'kjLavaSkin', desc: '용암 갑옷: 6초간 받는 피해 -30%, 근접으로 때린 적 화상' },
         arm: { name: '흑요석 발톱', look: '검게 빛나는 흑요석 발톱', skill: 'kjLavaClaw', desc: '용암 할퀴기: 3번 할퀴기 — 3초 화상' },
-        leg: { name: '바위 다리', look: '현무암 덩어리 같은 다리', desc: '열기 발자국: 지나간 자리 2초 불씨 (밟은 적 화상)',
-            passive: { name: '열기 발자국', desc: '지나간 자리에 2초 불씨 — 밟은 적 화상',
-                step: { do: 'zone', field: 'lava', x: -110, w: 70, sec: 2, status: { burn: [2, 0.15] }, every: 0.5 } } },
+        leg: { name: '바위 다리', look: '현무암 덩어리 같은 다리', desc: '열기 발자국: 걸음마다 불씨가 튀어 앞쪽 적 화상',
+            passive: { name: '열기 발자국', desc: '걸음마다 발밑 불씨가 앞으로 튐 — 앞쪽 적 2초 화상',
+                step: { do: 'custom', fn: heatStep, reach: 220, burn: [2, 0.15] } } },   // D-118: 전방 적 화상 (같은 화상 수치)
         skills: {
             kjEruption: { name: '화산 분화', slot: 'head', ult: true, cd: 0, icon: 'fire', color: '#ff7a1a', target: 'enemy', range: 420, clip: 'roar', sfx: 'kaiju_roar',
                 desc: '등에서 용암탄이 솟아 앞쪽에 떨어짐 — 범위 피해 + 4초 용암 장판', p: { count: 8 },
@@ -138,14 +180,21 @@ export const KAIJU_SETS2 = packOf('kaiju', [
         skills: {
             kjPrison: { name: '수정 감옥', slot: 'head', ult: true, cd: 0, icon: 'icecage', color: '#9ff0ff', target: 'enemy', range: 700, clip: 'roar', sfx: 'frost_freeze',
                 desc: '강한 적부터 6명을 수정에 3초 가둠 → 깨지며 큰 피해, 파편이 옆 적에게', p: { n: 6 },
-                steps: [{ at: 0.35, do: 'custom', fn: crystalPrison, n: '$n', sec: 3, dmg: 3.5 }] },
+                steps: [{ at: 0.35, do: 'custom', fn: crystalPrison, n: '$n', sec: 3, dmg: 3.5, preview: (api, k) => api.dummies.forEach((d, i) => {
+                    api.vfx.play(CAGE(3, 210), d.x, api.GROUND_Y, { scale: k }); api.hit(i, 3);
+                    api.later(3, () => { api.vfx.play(CAGE_BREAK(220), d.x, api.GROUND_Y, { scale: k }); api.hit(i); });
+                }) }] },
             kjVeil: { name: '반사 수정막', slot: 'body', cd: 15, icon: 'shield', color: '#9ff0ff', target: 'self', clip: 'brace', cast: true, p: { burst: 0 },
                 desc: '5초간 원거리 피해를 되돌리고 근접 피해 -30%',
                 steps: [{ do: 'buff', sec: 5, mods: { rangedReflect: true, def: 0.3 }, vfx: V.shatter(0, 220, { dur: 0.7 }) },
                     { at: 5, do: 'hit', pick: 'all', range: 220, dmg: '$burst', vfx: V.ice(0, 160), when: b => b.kitPatch?.kjVeil?.burst > 0 }] },
             kjCrystalSpear: { name: '수정 창 투척', slot: 'arm', cd: 9, icon: 'spikes', color: '#9ff0ff', target: 'enemy', range: 220, clip: 'spit',
                 desc: '수정 창 3개를 던짐 — 떨어진 자리 피해 + 1초 속박',
-                steps: [{ at: 0.15, do: 'rain', count: 3, every: 0.18, radius: 55, dmg: 1.6, vfx: V.shatter(0, 130), status: { root: 1 }, delay: 0.15 }] }
+                steps: [{ at: 0.15, do: 'custom', fn: crystalSpears, count: 3, every: 0.18, fly: 0.22, radius: 55, dmg: 1.6, status: { root: 1 }, preview: (api, k) => api.dummies.forEach((d, i) => api.later(i * 0.18, () => {
+                    const [x, y] = api.muzzle();
+                    api.vfx.play(SPEAR_FX(0.22), x, y, { scale: k, to: [d.x, api.GROUND_Y - 12 * k] });
+                    api.later(0.22, () => { api.vfx.play(V.shatter(0, 140, { dur: 0.55 }), d.x, api.GROUND_Y, { scale: k }); api.hit(i); });
+                })) }] }
         }
     },
 
@@ -168,7 +217,8 @@ export const KAIJU_SETS2 = packOf('kaiju', [
                 steps: [{ at: 0.3, do: 'buff', sec: 8, mods: { onHit: { do: 'chain', n: 2, dmg: 0.45, jump: 200, vfx: V.chainBolt(SEA), hitVfx: V.bolt(0, 70), status: { stun: '$stun' } } }, vfx: V.bolt(0, 200) }] },
             kjVortex: { name: '소용돌이', slot: 'arm', cd: 9, icon: 'whirl', color: '#50dcff', target: 'enemy', range: 200, clip: 'slam',
                 desc: '앞쪽 소용돌이 3초 — 적을 가운데로 모으며 초당 피해',
-                steps: [{ at: 0.4, do: 'zone', field: 'water', x: 90, w: 180, sec: 3, dps: 0.9, pull: 90 }] }
+                steps: [{ at: 0.4, do: 'zone', field: 'vortex', x: 90, w: 180, sec: 3, dps: 0.9, pull: 90,   // D-118: 물방울(water) 대신 회전하는 소용돌이
+                    puff: V.water(-10, 90, { dur: 0.45, frameRange: [1, 4], glow: 0 }), puffEvery: 0.45, puffB: 20 }] }
         }
     },
 

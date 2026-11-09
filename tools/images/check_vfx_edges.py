@@ -18,12 +18,12 @@ VFX_PNG = os.path.join('assets', 'sprites', 'vfx', 'png')
 FRAMES = 9
 BAND = (18, 26)      # 칸 가장자리에서 이 범위(px)의 띠 — build_vfx_sheet.py FADE(18) 바로 안쪽
 LIMIT = 0.15         # 이보다 진하면 '닿음' (빨간 선)
-SERIOUS = 0.4        # 이보다 진하면 눈에 띄게 잘림 — 11-05 한눈에 보기로 눈으로 맞춤(숨결 오른쪽 끝·버섯구름 위·장막 양옆 등)
+SERIOUS = 0.25       # 이보다 진하면 눈에 띄게 잘림 — 11-05엔 0.4, 11-09 수정 창 착지(0.36)도 잘려 보인다는 피드백으로 낮춤 (D-118)
 SIDES = ('top', 'bottom', 'left', 'right')
 # 일부러 그 변에서 시작하는 그림 (vfxPlayer.js VFX_SHEETS 주석: '입 기준, 오른쪽으로'·'왼쪽 기준'·'바닥 기준')
 ALLOWED = {
     'breath_fire': {'left'}, 'breath_gold': {'left'}, 'roar_green': {'left'},
-    'orbital_beam': {'top'}, 'pillar_gold': {'top'}, 'judgment_violet': {'top'},   # 하늘에서 내려오는 빛기둥
+    'orbital_beam': {'top'}, 'pillar_gold': {'top'}, 'judgment_violet': {'top'}, 'revive_crimson': {'top'},   # 하늘에서 내려오는 빛기둥 (vfxPlayer BEAM_UP이 위로 늘려 그림)
     'crusher_claw': {'top'},   # 화면 밖에서 뻗어 들어오는 집게 팔
 }
 # 바닥 기준 그림(anchorY 0.9 — 칸 아래 10%는 땅선 아래): 아래 변은 soften_vfx_edges.py로 24px 옅게 함 (11-05) → 아래 변은 빼고 잼

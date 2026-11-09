@@ -6,13 +6,42 @@
    스킬은 부품 단계(skillKit_v2.js), 동작은 rig/mechRig.js (drill·doomCannon은 2차에서 더함)
    ========================================================================== */
 
-import { packOf, V, fxOf } from './common.js';
+import { packOf, V, fxOf, spr } from './common.js';
 import { kitHit, pickTargets, enemiesNear } from '../skillKit_v2.js';
 import { aimAt } from '../bases_v2.js';
 import { monsterControllerV2 as monster } from '../monster_v2.js';
 import { FOOT_B } from '../battle/tuning.js';
 
 const CYAN = '120, 240, 255', AMBER = '255, 180, 70', PLASMA = '215, 235, 255', GOLD = '255, 215, 110', RED = '255, 70, 60', STAR = '150, 255, 240';
+
+// ---- D-118 스킬 이펙트 개선 (MD/스킬_이펙트_변경사항_공유.md 2차) — 기존 손그림 시트를 색 돌려 씀 ----
+const muzzleAt = b => monster.getMuzzlePoint() || { x: b.monsterX + 90, bottom: 125 };
+/** 기본 공격 발사 (장거리 저격포·플라즈마 방사 팔 공용, attacks.js fireShotFx): 총구 섬광 + 빛줄기 탄, 맞는 판정은 예전 근접과 같음 */
+const SNIPER_SHOT = { hue: 35, speed: 1900, size: 120, flash: 82, hitVfx: V.blast(20, 90, { dur: 0.32 }) };
+/** 관통 저격 충전: 둘레 빛이 총구로 모임 — 저음 폭발(bass_drop) 고리를 거꾸로 틀어 줄어들게 + 모이는 빛줄기 */
+function snipeCharge(b, ctx, s) {
+    const at = () => { const m = muzzleAt(b); return [m.x, m.bottom]; };
+    const [x, y] = at();
+    b.fx.play(chargeFx(s.sec), x, y, { follow: at });
+}
+const chargeFx = sec => fxOf(
+    { type: 'sprite', sheet: 'bass_drop', at: 0, dur: sec, size: 150, frameRange: [1, 4], reverse: true, hue: 115, glow: 0, fadeIn: 0.12 },
+    { type: 'gather', at: 0, dur: sec, r: 95, count: 16, color: AMBER });
+const FLASH_FX = fxOf({ type: 'sprite', sheet: 'needle_crimson', at: 0, dur: 0.22, size: 170, frameRange: [2, 4], hue: 35, glow: 1.3 },
+    { type: 'sprite', sheet: 'golden_burst', at: 0.02, dur: 0.25, size: 110, frameRange: [1, 3], glow: 0 });
+/** 관통 저격 발사 순간: 총구 섬광 (needle_crimson 별빛 칸) */
+function snipeFlash(b) {
+    const m = muzzleAt(b);
+    b.fx.play(FLASH_FX, m.x, m.bottom);
+}
+/** 표적 지정 포격 한 발: 큰 궤도 광선(주황) + 대폭발 + 충격파 */
+const STRIKE_FX = fxOf(
+    { type: 'sprite', sheet: 'orbital_beam', at: 0, dur: 0.7, width: 300, height: 470, anchorY: 0.93, hue: -150, glow: 1.15 },
+    { type: 'sprite', sheet: 'explosion_big', at: 0.16, dur: 0.85, size: 330, anchorY: 0.9, frameRange: [1, 7], glow: 0, blend: 'normal', alpha: 0.95, dispersion: 'burst' },
+    { type: 'sprite', sheet: 'ground_impact', at: 0.14, dur: 0.6, size: 300, anchorY: 0.85, dispersion: 'burst', glow: 1.2 },
+    ...V.shock(460, 0, 0.6).layers.map(l => ({ ...l, at: 0.15 })),
+    { type: 'shards', at: 0.16, count: 10, speed: 360, size: 8, spin: 7, life: [0.7, 1.1], shape: 'rock', color: '95, 85, 75', floor: 0 }
+);
 
 // 천둥 폭풍 한 번: 무작위 적에게 하늘에서 번개 → 옆 적 jumps명에게 튐
 function thunder(b, ctx, s) {
@@ -42,13 +71,15 @@ function thunder(b, ctx, s) {
 function targetStrike(b, ctx, s) {
     const list = pickTargets(b, 'strongest', s.n, b.playerRange + 500);
     list.forEach((t, i) => {
-        b.fx.play(fxOf({ type: 'ring', at: 0, dur: s.delay, r: 30, color: RED, width: 3 }), aimAt(t).x, aimAt(t).b);
+        // 조준 표식: 적을 따라다니며 줄어들어 고정 (D-118 — 예전 작은 고리 대신)
+        b.fx.play(fxOf({ type: 'reticle', at: 0, dur: s.delay + i * 0.15 + 0.12, r: 46, color: RED }), aimAt(t).x, aimAt(t).b,
+            { follow: () => [aimAt(t).x, aimAt(t).b] });
         b.schedule(s.delay + i * 0.15, () => {
             if (!b.enemies.includes(t)) return;
-            b.fx.play(V.orbital(-150, 230, { dur: 0.6 }), aimAt(t).x, FOOT_B);
+            b.fx.play(STRIKE_FX, aimAt(t).x, FOOT_B);
             kitHit(b, t, s.dmg, { knock: 1.2, baseMul: 1.5 });
             enemiesNear(b, aimAt(t).x, 70, true).filter(e => e !== t).forEach(e => kitHit(b, e, s.dmg * 0.3, { knock: 0.6 }));
-            b.director.shake(5, 180);
+            b.director.shake(9, 320);
         });
     });
 }
@@ -70,6 +101,18 @@ function arkRelease(b) {
     b.fx.play(V.gold(0, 200), b.monsterX + 110, FOOT_B + 60);
     b.enemiesInRange(260).forEach(e => b.dealDamageToEnemy(e, dmg, false, { knock: 1.2 }));
     b.createDamagePopup(b.monsterX + 40, 220, '방주 반격!', false);
+}
+
+const DRONES = [[-80, -200, 0], [22, -240, 2.1], [118, -195, 4.2]];   // 머리 위 자리 [x, y, 흔들림 위상]
+const droneFx = (sec, ox, oy, phase, i) => fxOf({ type: 'drone', at: 0, dur: sec, size: 52, ox, oy, phase, tx: (i - 1) * 14, ty: -85, color: '125, 255, 154' });
+// 수리 드론 3기: 캐릭터를 따라 떠다니며 치료 광선 (vfx/skillFx2.js drone)
+function repairDrones(b, ctx, s) {
+    const at = () => [b.monsterX + 60, FOOT_B];
+    DRONES.forEach(([ox, oy, phase], i) => b.schedule(i * 0.12, () => {
+        if (!b.isActive) return;
+        b.fx.play(droneFx(s.sec - i * 0.12, ox, oy, phase, i), ...at(), { follow: at });
+    }));
+    b.fx.play(V.sheet('heal_rain', 260, { dur: 1.2, frameRange: [2, 7], glow: 0, dy: -110 }), b.monsterX + 60, FOOT_B);
 }
 
 // 기신 보행: 걸음마다 앞 적 작은 피해, 10% 확률 0.5초 기절
@@ -126,9 +169,12 @@ export const MECH_SETS2 = packOf('mech', [
                     { at: 0.4, do: 'shake', power: 7, ms: 900 }] },
             mcSteelWall: { name: '강철 방벽', slot: 'body', cd: 14, icon: 'fort', color: '#ffd23c', target: 'self', clip: 'guard', p: { atk: 0 },
                 desc: '앞에 강철 벽 5초 — 적이 넘어오지 못하고 투사체를 막음, 끝날 때 무너지며 앞쪽 피해',
-                steps: [{ at: 0.2, do: 'zone', tag: 'wall', wall: true, x: 30, w: 46, sec: 5, puff: V.pillar(175, 150, { dur: 0.5 }), puffEvery: 0.2, end: { dmg: 2.5, radius: 160, vfx: V.impact(30, 220) } },
+                // D-118: 위에서 쏘는 빛기둥(pillar) 대신 강철 벽 그림이 솟음 (판정 폭 46px 그대로, 그림은 kit.js art · ui_v2.css is-steelwall)
+                steps: [{ at: 0.2, do: 'zone', tag: 'wall', wall: true, x: 30, w: 46, sec: 5, art: { cls: 'is-steelwall', sheet: 'steel_wall', w: 140, h: 200, dx: -47 },
+                    end: { dmg: 2.5, radius: 160, vfx: fxOf(...V.impact(30, 240).layers, { type: 'shards', at: 0, count: 12, speed: 320, size: 9, spin: 6, life: [0.8, 1.2], shape: 'rock', color: '130, 135, 145', floor: 0, dy: -60 }) } },
                     { at: 0.2, do: 'buff', key: 'steelWall', sec: 5, mods: { flags: ['projBlock'], atkSpd: '$atk' } },
-                    { at: 0.2, do: 'fx', x: 53, vfx: V.impact(30, 170) }, { at: 0.2, do: 'shake', power: 5, ms: 200 }] },
+                    { at: 0.2, do: 'fx', x: 53, vfx: V.sheet('bulldozer_dust', 190, { anchorY: 0.9, dur: 0.6, frameRange: [1, 6], blend: 'normal', alpha: 0.8, glow: 0 }) },
+                    { at: 0.2, do: 'fx', x: 53, vfx: V.impact(30, 150) }, { at: 0.2, do: 'shake', power: 5, ms: 200 }] },
             mcDrill: { name: '드릴 관통', slot: 'arm', cd: 8, icon: 'pile', color: '#ffd23c', target: 'enemy', range: 60, clip: 'drill',
                 desc: '가장 가까운 적을 6번 갈아냄 (방어 무시) — 마지막에 크게 밀침',
                 steps: [{ at: 0.2, do: 'hit', times: 6, every: 0.15, dmg: 0.7, pierce: 1, knock: 0.1, vfx: V.punch(-150, 90, { dur: 0.2 }) },
@@ -143,20 +189,31 @@ export const MECH_SETS2 = packOf('mech', [
         kit: { 4: { patch: { mcSnipe: { stun: 1.5, cd: -2 } } } },
         head: { name: '정찰 바이저', look: '돔 앞의 큰 주황 조준 렌즈와 안테나', skill: 'mcTargetStrike', desc: '필살기 표적 지정 포격: 강한 적 3명(엘리트·보스 먼저)에 표적 → 1.2초 뒤 정밀 포격' },
         body: { name: '광학 위장 장갑', look: '모래색 위장 무늬 장갑', skill: 'mcCloak', desc: '광학 위장: 4초간 받는 피해 -80%, 끝나면 다음 기본 공격 3배' },
-        arm: { name: '장거리 저격포', look: '아주 긴 저격포 포신', skill: 'mcSnipe', desc: '관통 저격: 사거리 끝까지 꿰뚫는 한 발, 엘리트·보스 피해 2배', rigArm: 'cannon' },
+        arm: { name: '장거리 저격포', look: '아주 긴 저격포 포신', skill: 'mcSnipe', desc: '관통 저격: 사거리 끝까지 꿰뚫는 한 발, 엘리트·보스 피해 2배', rigArm: 'cannon', shotFx: SNIPER_SHOT },
         leg: { name: '지지대 다리', look: '땅에 박는 지지대가 달린 다리', desc: '원거리 조준: 200px보다 먼 적에게 피해 +15%',
             passive: { name: '원거리 조준', desc: '200px보다 먼 적에게 주는 피해 +15%', target: [{ when: 'far', dist: 200, dmg: 0.15 }] } },
         skills: {
             mcTargetStrike: { name: '표적 지정 포격', slot: 'head', ult: true, cd: 0, icon: 'orbital', color: '#ffb446', target: 'enemy', range: 500, clip: 'call',
                 desc: '강한 적 3명(엘리트·보스 먼저)에 표적 → 1.2초 뒤 정밀 포격 (각각 큰 피해)',
-                steps: [{ at: 0.25, do: 'custom', fn: targetStrike, n: 3, delay: 1.2, dmg: 6 }] },
+                steps: [{ at: 0.25, do: 'custom', fn: targetStrike, n: 3, delay: 1.2, dmg: 6, preview: (api, k) => api.dummies.forEach((d, i) => {
+                    api.vfx.play(fxOf({ type: 'reticle', at: 0, dur: 1.2 + i * 0.15, r: 46, color: RED }), d.x, api.enemyChestY(), { scale: k });
+                    api.later(1.2 + i * 0.15, () => { api.vfx.play(STRIKE_FX, d.x, api.GROUND_Y, { scale: k }); api.hit(i); api.shake(8, 0.3); });
+                }) }] },
             mcCloak: { name: '광학 위장', slot: 'body', cd: 15, icon: 'clone', color: '#ffb446', target: 'self', clip: 'guard',
                 desc: '4초간 받는 피해 -80% — 끝나면 다음 기본 공격 3배',
                 steps: [{ do: 'buff', key: 'cloak', sec: 4, mods: { def: 0.8, onEnd: { do: 'custom', fn: b => { b.kitNextMul = Math.max(b.kitNextMul, 3); } } }, vfx: V.motes('210, 230, 255', 14) },
                     { do: 'custom', fn: cloak, sec: 4 }] },
             mcSnipe: { name: '관통 저격', slot: 'arm', cd: 9, icon: 'rail', color: '#ffb446', target: 'enemy', range: 600, clip: 'rail', p: { stun: 0 },
                 desc: '사거리 끝까지 꿰뚫는 한 발 — 엘리트·보스 피해 2배',
-                steps: [{ at: 1.0, do: 'line', dmg: 3, eliteMul: 2, pierce: 0.5, decay: 1, knock: 0.8, vfx: V.beam(AMBER, 10), hitVfx: V.blast(20, 70, { dur: 0.3 }) },
+                // D-118: 0.05~1초 총구로 빛이 모이는 충전 → 섬광 + 호박색 광선 (apocalypse_beam 색 돌림)
+                steps: [{ at: 0.05, do: 'custom', fn: snipeCharge, sec: 0.95, preview: (api, k) => { const [x, y] = api.muzzle(); api.vfx.play(chargeFx(0.95), x, y, { scale: k, follow: () => api.muzzle() }); } },
+                    { at: 1.0, do: 'custom', fn: snipeFlash, preview: (api, k) => { const [x, y] = api.muzzle(); api.vfx.play(FLASH_FX, x, y, { scale: k }); } },
+                    { at: 1.0, do: 'line', dmg: 3, eliteMul: 2, pierce: 0.5, decay: 1, knock: 0.8,
+                        // 강한 저격탄: 큰 빛줄기 탄이 화면 끝까지 날아가고, 지나간 자리에 호박색 탄도(누운 궤도 광선 기둥)가 탄과 같이 뻗었다 사라짐
+                        vfx: fxOf(spr('needle_crimson', 300, { dur: 0.12, frameRange: [1, 1], hue: 35, travel: true, anchorX: 0.62, glow: 1.4 }),
+                            ...V.laser(-150, 1100, 110, { dur: 0.45, growIn: 0.12, fadeOut: 0.3 }).layers,
+                            ...V.laser(-150, 1100, 44, { dur: 0.4, growIn: 0.12, fadeOut: 0.25, glow: 0 }).layers),
+                        hitVfx: V.blast(20, 80, { dur: 0.3 }) },
                     { at: 1.0, do: 'hit', pick: 'nearest', range: 600, dmg: 0, status: { stun: '$stun' } }] }
         }
     },
@@ -168,14 +225,17 @@ export const MECH_SETS2 = packOf('mech', [
         kit: { 2: { patch: { mcPlasmaRing: { back: true } } }, 4: { patch: { mcPlasmaCarpet: { vuln: 0.25 } } } },
         head: { name: '정화 헬름', look: '흰 장갑 헬름과 청백 빛 줄', skill: 'mcPlasmaCarpet', desc: '필살기 플라즈마 융단: 앞쪽 전체 폭격 → 6초 타는 장판 (거점에도)' },
         body: { name: '냉각 배기 동체', look: '흰 장갑 동체, 등에 냉각 배기구', skill: 'mcCoolant', desc: '냉각 배출: 내 해로운 효과 풀림 + 앞 적 밀침 + 2초 감속' },
-        arm: { name: '플라즈마 방사 팔', look: '청백 빛 고리가 감긴 방사기 팔', skill: 'mcPlasmaRing', desc: '플라즈마 고리: 도는 고리가 앞으로 날아가며 지나는 적을 여러 번', rigArm: 'cannon' },
+        arm: { name: '플라즈마 방사 팔', look: '청백 빛 고리가 감긴 방사기 팔', skill: 'mcPlasmaRing', desc: '플라즈마 고리: 도는 고리가 앞으로 날아가며 지나는 적을 여러 번', rigArm: 'cannon', shotFx: SNIPER_SHOT },   // 기본 공격 = 장거리 저격포와 같은 발사 연출 (D-118)
         leg: { name: '내열 다리', look: '붉게 달아오른 냉각핀 다리', desc: '과열 순환: 스킬을 쓰면 3초간 기본 공격에 화상',
             passive: { name: '과열 순환', desc: '스킬을 쓰면 3초간 기본 공격에 화상', onSkill: { sec: 3, mods: { hitStatus: { burn: [3, 0.3] } } } } },
         skills: {
             mcPlasmaCarpet: { name: '플라즈마 융단', slot: 'head', ult: true, cd: 0, icon: 'fire', color: '#d7ebff', target: 'enemy', range: 520, clip: 'salvo', p: { vuln: 0 },
                 desc: '앞쪽 전체에 플라즈마 폭격 → 6초간 타는 장판 (거점에도)',
-                steps: [{ at: 0.2, do: 'rain', count: 8, every: 0.12, x: [40, 520], aim: false, radius: 70, dmg: 1.4, baseMul: 1.5, vfx: V.sheet('plasma_white', 210, { anchorY: 0.85, dur: 0.6, dispersion: 'burst', softEdges: 0.18 }), shake: 3 },
-                    { at: 1.2, do: 'zone', tag: 'plasma', field: 'plasma', x: 30, w: 500, sec: 6, dps: 0.4, baseMul: 1, vuln: '$vuln' }] },
+                // D-118: 연기 시트 대신 하늘에서 내리꽂는 청백 레이저(orbital_beam) → 바닥이 타는 장판(plasmaBurn = power_aura 불꽃을 청백으로)
+                steps: [{ at: 0.2, do: 'rain', count: 8, every: 0.12, x: [40, 520], aim: false, radius: 70, dmg: 1.4, baseMul: 1.5, delay: 0.12, shake: 3,
+                        vfx: fxOf(spr('orbital_beam', 0, { width: 190, height: 430, anchorY: 0.93, dur: 0.6, hue: 10, glow: 1.25 }),
+                            spr('lightning_burst', 150, { at: 0.12, dur: 0.35, hue: 150, frameRange: [1, 5], glow: 0, dy: -20 })) },
+                    { at: 1.2, do: 'zone', tag: 'plasma', field: 'plasmaBurn', x: 30, w: 500, sec: 6, dps: 0.4, baseMul: 1, vuln: '$vuln' }] },
             mcCoolant: { name: '냉각 배출', slot: 'body', cd: 14, icon: 'wave', color: '#d7ebff', target: 'self', clip: 'power',
                 desc: '증기 분출 — 내 해로운 효과 풀림 + 앞 적 밀침 + 2초 감속',
                 steps: [{ do: 'cleanse' }, { at: 0.2, do: 'push', range: 200, dist: 110, dmg: 0.6, status: { slow: 2 } },
@@ -201,12 +261,16 @@ export const MECH_SETS2 = packOf('mech', [
             mcArkWall: { name: '방주 방벽', slot: 'head', ult: true, cd: 0, icon: 'shield', color: '#ffd76e', target: 'self', clip: 'guard', p: { store: 0 },
                 desc: '6초간 금빛 돔 — 받는 피해 -70%, 적 투사체 막음, 아군에게 보호막',
                 steps: [{ do: 'buff', key: 'ark', sec: 6, mods: { def: 0.7, flags: ['projBlock'], store: '$store', onEnd: { do: 'custom', fn: arkRelease } } },
-                    { do: 'shield', ratio: 0.2, sec: 6, allies: true, color: GOLD },
-                    { at: 0.1, do: 'fx', on: 'self', x: 30, follow: true, vfx: V.sheet('dome_gold', 360, { anchorY: 0.9, dur: 0.9 }), repeat: 7, repeatGap: 0.82 }] },
+                    // D-118: 리그 실드 막(quiet)과 0.82초마다 겹쳐 틀던 돔이 두 겹으로 보였음 → 금빛 돔 하나를 6초 이어 틀기 (빛 번짐 사본 없음, 잘린 마지막 칸 제외)
+                    { do: 'shield', ratio: 0.2, sec: 6, allies: true, color: GOLD, quiet: true },
+                    { at: 0.05, do: 'fx', on: 'self', x: 30, follow: true, vfx: V.sheet('dome_gold', 340, { anchorY: 0.88, dur: 5.95, frameRange: [1, 6], loopSec: 1.6, pingPong: true,
+                        glow: 0, fadeIn: 0.25, fadeOut: 0.45, mask: 'dome', rim: GOLD }) }] },   // 칸 좌우에 닿아 세로로 잘리던 벽 → 돔 윤곽으로 가림 + 빛 테두리
             mcRepairDrones: { name: '수리 드론', slot: 'body', cd: 15, icon: 'drone', color: '#ffd76e', target: 'self', clip: 'launch',
                 desc: '수리 드론 3기 6초 — 초당 체력 2% (아군도)',
-                steps: [{ at: 0.3, do: 'zone', follow: true, x: -170, w: 360, sec: 6, heal: 0.02, allyHeal: 0.02, puff: V.motes('125, 255, 154', 6), puffEvery: 0.25, puffB: 130 },
-                    { at: 0.3, do: 'fx', on: 'self', x: 20, b: FOOT_B + 150, vfx: V.gold(90, 120), repeat: 6, repeatGap: 1 }] },
+                // D-118: 드론 3기(art/repair_drone)가 머리 위를 떠다니며 1초마다 치료 광선 — 회복 판정(장판)은 그대로
+                steps: [{ at: 0.3, do: 'zone', follow: true, x: -170, w: 360, sec: 6, heal: 0.02, allyHeal: 0.02 },
+                    { at: 0.3, do: 'custom', fn: repairDrones, sec: 6, preview: (api, k) => DRONES.forEach(([ox, oy, phase], i) =>
+                        api.vfx.play(droneFx(4, ox, oy, phase, i), api.CHAR_X + 40 * k, api.GROUND_Y, { scale: k })) }] },
             mcShieldRush: { name: '방패 돌진', slot: 'arm', cd: 9, icon: 'shield', color: '#ffd76e', target: 'enemy', range: 160, clip: 'dash',
                 desc: '짧게 돌진 — 앞 적 크게 밀침 + 1초 기절',
                 // shove: 적을 뚫고 지나가지 않고 방패 앞에 붙여 밀고 감, 밀리지 않는 적 앞에선 멈춤 → 끝에 앞쪽 밀침 (디스코드 QA 11-05 홍도도)

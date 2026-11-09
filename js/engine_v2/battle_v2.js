@@ -256,6 +256,7 @@ export class BattleEngine {
         this.playerRange = stats.range;
         this.playerSpeed = stats.speed;
         this.attackType = equippedObjs.arm ? (equippedObjs.arm.attackType || 'melee') : 'melee';
+        this.armShotFx = equippedObjs.arm?.shotFx || null;   // 총구 섬광 + 날아가는 탄 (D-118, attacks.js fireShotFx)
         this.skills = skillsForParts(equippedObjs);
         this.setupGrowth(equippedObjs);   // 옵션·스킬 레벨·전술 모듈·전장 변이 (battle/growth.js, Q-006)
         this.setupKit(equippedObjs);      // 2차 세트 패시브·세트 효과·새 기본 공격 (battle/kit.js, D-071)

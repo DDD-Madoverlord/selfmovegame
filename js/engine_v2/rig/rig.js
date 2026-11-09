@@ -275,7 +275,8 @@ export class Skeleton {
 
     socketWorld(socketName, boneName) {
         // socketAlias: 강화 그림으로 바꿔 끼운 부위의 소켓 (예: 더 긴 강화 물대포의 총구, rigAvatar.applyUpgrades)
-        const s = this.layout.sockets[this.socketAlias?.[socketName] ?? socketName];
+        // variantSockets: 세트 그림 부위의 소켓 (예: 더 긴 저격포·레일건 포신의 총구 muzzle_cannon_d, rigAvatar._applyVariants — D-118)
+        const s = this.layout.sockets[this.socketAlias?.[socketName] ?? this.variantSockets?.[socketName] ?? socketName];
         const b = this.byName[boneName];
         if (!b) return [0, 0];                       // 없는 뼈: 루트 위치 (이펙트만 어긋나고 멈추지 않게)
         if (!s) return [b.world[4], b.world[5]];     // 없는 소켓: 뼈 피벗 위치

@@ -92,7 +92,7 @@ def run(ctx):
         ctx.check(row['ok'], f"{row['sheet']}: 가장자리는 부드럽게·중심 보존", str(row))
 
     # 실제 파츠 스킬을 사용해, 새 연출이 전투의 타이밍·판정에 연결되는지 확인.
-    for char, letter, slot, style in [('kaiju', 'd', 'head', 'swamp'), ('mech', 'v', 'head', 'plasma'),
+    for char, letter, slot, style in [('kaiju', 'd', 'head', 'swamp'), ('mech', 'v', 'head', 'plasmaBurn'),
                                      ('mech', 'm', 'body', 'rift'), ('broadcaster', 'v', 'head', 'sonic')]:
         g.js("progress.selectStage('2-1');")
         g.battle(tuple(f'{s}_{char}_{letter}' for s in ('head', 'body', 'arm', 'leg')), wait_ms=2800)
@@ -124,7 +124,7 @@ def run(ctx):
     page.on('pageerror', lambda e: g.errors.append(str(e)))
     page.goto(f'{g.base}/rig_test.html?embed=1')
     page.evaluate('async () => { await rigTest.ready; rigTest.pause(); }')
-    for char, part, style in [('kaiju', 'head_kaiju_d', 'swamp'), ('mech', 'head_mech_v', 'plasma'),
+    for char, part, style in [('kaiju', 'head_kaiju_d', 'swamp'), ('mech', 'head_mech_v', 'plasmaBurn'),
                               ('mech', 'body_mech_m', 'rift'), ('broadcaster', 'head_broadcaster_v', 'sonic')]:
         state = page.evaluate("""async ([char, part, style]) => {
             await rigTest.setCharacter(char); rigTest.pause();

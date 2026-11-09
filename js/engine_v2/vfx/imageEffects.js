@@ -16,7 +16,11 @@ export const IMAGE_FIELDS = {
     acid: { sheet: 'swamp_bubble', frameRange: [1, 5], hue: 15, span: 140, h: 115, anchorY: 0.85, loopSec: 1.5, alpha: 0.8 },
     herb: { sheet: 'spore_burst', frameRange: [5, 7], hue: 25, span: 140, h: 125, anchorY: 0.8, loopSec: 1.5, alpha: 0.6 },
     moon: { sheet: 'summon_portal', frameRange: [1, 2], hue: 185, span: 230, h: 150, anchorY: 0.76, loopSec: 2.2, alpha: 0.65 },
-    seal: { sheet: 'fate_thread', frameRange: [2, 6], hue: -40, span: 1000, h: 115, anchorY: 0.5, loopSec: 2.3, alpha: 0.85, layer: 'ground' }
+    seal: { sheet: 'fate_thread', frameRange: [2, 6], hue: -40, span: 1000, h: 115, anchorY: 0.5, loopSec: 2.3, alpha: 0.85, layer: 'ground' },
+    // D-118: 플라즈마 융단 뒤 타는 바닥 — power_aura 불꽃 칸을 청백으로 (연기 시트 plasma_white 대신)
+    plasmaBurn: { sheet: 'power_aura', frameRange: [5, 7], hue: 185, span: 125, h: 150, anchorY: 0.93, loopSec: 0.9, alpha: 0.9, base: 'plasma' },
+    // D-118: 소용돌이 — eternal_winter 소용돌이 칸을 바닥에 눕힘 (squash) (물방울 water_burst 대신)
+    vortex: { sheet: 'eternal_winter', frameRange: [4, 6], hue: -15, span: 1000, h: 230, squash: 0.42, spin: 4.2, anchorY: 0.5, loopSec: 0.75, alpha: 0.95, layer: 'ground' }
 };
 
 export function imageShockwave(w = 360, hue = 0, sec = 0.65) {
@@ -39,13 +43,14 @@ export function imageField(style, w, sec) {
     const tile = w / count;
     const layers = [];
     if (['swamp', 'plasma', 'rift'].includes(style)) layers.push({ ...groundField(style, w, sec), alpha: 0.18 });
+    if (p.base) layers.push({ ...groundField(p.base, w, sec), alpha: 0.45 });   // 그을린 바닥 (plasmaBurn)
     for (let i = 0; i < count; i++) {
         layers.push({ type: 'sprite', sheet: p.sheet, fieldStyle: style, fieldWidth: w, frameRange: p.frameRange, hue: p.hue || 0,
             width: Math.max(100, tile * (count === 1 ? 1.2 : 1.45)),
             height: Math.min(p.h, Math.max(100, w * 1.3)) * (count === 1 ? 1 : 1 + 0.08 * Math.sin(i * 2.4 + 0.6)),
-            anchorY: p.anchorY, dx: -w / 2 + tile * (i + 0.5), dur: sec, loopSec: p.loopSec,
+            anchorY: p.anchorY, dx: -w / 2 + tile * (i + 0.5), dur: sec, loopSec: p.loopSec, ...(p.squash ? { squash: p.squash, spin: p.spin || 0 } : {}),
             pingPong: true, phase: i * 0.29, alpha: p.alpha, layer: p.layer || 'front',
-            dispersion: ['rift', 'moon', 'seal', 'web'].includes(style) ? 'rune' : 'cloud',
+            dispersion: ['rift', 'moon', 'seal', 'web', 'vortex'].includes(style) ? 'rune' : 'cloud',
             softEdges: 0.14, fadeIn: 0.14, fadeOut: 0.45 });
     }
     return { layers };

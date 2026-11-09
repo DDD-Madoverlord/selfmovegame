@@ -271,8 +271,8 @@ export const KAIJU = {
     wind: [{ bone: 'tail1', rot: 2 }, { bone: 'tail2', rot: 3 }, { bone: 'tail3', rot: 5 }],   // 빨리 걸을수록 꼬리가 들림 — 느린 기본 괴수는 반대로 처짐 (Q-008 Q6)
     skillClips: [['돌진', 'lunge'], ['내려찍기', 'slam'], ['침 뱉기', 'spit'], ['웅크렸다 부풀기', 'brace'], ['알 낳기', 'lay'], ['포효', 'roar'], ['숨결', 'breath'],
         ['세 번 할퀴기', 'claw3'], ['하늘 포효', 'roarSky']],   // rig_test.html 동작 버튼 (뒤 둘은 2차 세트, D-071)
-    // 이펙트용 소켓 (원본 3배 좌표): 아래턱 끝, 가슴
-    sockets: { jawDrip: [960, 430], chest: [880, 470] },
+    // 이펙트용 소켓 (원본 3배 좌표): 아래턱 끝, 가슴, 등선 위·가운데·아래 (가시 갑옷 등 가시, D-118)
+    sockets: { jawDrip: [960, 430], chest: [880, 470], backTop: [735, 206], backMid: [605, 326], backLow: [515, 466] },
     // 컨셉의 산성 점액: 턱/가슴/발톱에서 방울이 떨어져 지면에 퍼짐
     ambient: [
         { kind: 'drip', socket: 'jawDrip', bone: 'jaw', rate: 4, spread: [45, 6], size: [6, 10],

@@ -79,7 +79,8 @@ export class BattleFx {
     play(def, x, b, opts = {}) {
         const follow = opts.follow ? () => { const [fx, fb] = opts.follow(); return [fx, this.H - fb]; } : null;
         const to = opts.to ? [opts.to[0], this.H - opts.to[1]] : null;
-        this.vfx.play(def, x, this.H - b, { ...opts, follow, to });
+        const path = opts.path ? () => opts.path().map(([px, pb]) => [px, this.H - pb]) : null;   // 여러 점 (등 가시, D-118)
+        this.vfx.play(def, x, this.H - b, { ...opts, follow, to, path });
     }
 
     /** follow() → [x, b]. targets() → [{key, x, b, w}] (장판 안 대상, 저주 장판의 촉수 위치) */

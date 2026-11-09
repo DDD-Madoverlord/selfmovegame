@@ -327,8 +327,9 @@ export const SetMethods = {
     },
 
     // ---- 자동 포탑 (포격 사령부 몸통): 어깨 포탑이 가장 가까운 적을 연사 ----
+    // 포탑 총구 = 포격 사령부 몸통 그림(body_a) 왼쪽 어깨 위 연발 포탑의 포신 끝 (rig/mechRig.js turretGun, D-118 — 전엔 캐니스터 윗부분)
     turretPoint() {
-        return monsterControllerV2.getSocketPoint('droneBay', 'canister') || { x: this.monsterX + 40, bottom: 230 };
+        return monsterControllerV2.getSocketPoint('turretGun', 'body') || monsterControllerV2.getSocketPoint('droneBay', 'canister') || { x: this.monsterX + 40, bottom: 230 };
     },
 
     startTurret(sec) {

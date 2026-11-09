@@ -197,6 +197,7 @@ export class MonsterController {
                 this.rigMenu.setVariants(config.variants);
                 this.rigMenu.setUpgrades(config.upgrades);
             }
+            this.rigBattle.quietFire = !!config.quietFire;   // 팔 shotFx가 총구 연출을 그림 (D-118)
             if (config.arm) {
                 this.rigBattle.setArm(config.arm);
                 if (this.rigMenu) this.rigMenu.setArm(config.arm);

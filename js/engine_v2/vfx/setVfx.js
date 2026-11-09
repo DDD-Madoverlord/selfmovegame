@@ -205,7 +205,7 @@ export const SET_VFX = {
         sfx: 'shield_on',
         layers: [
             { type: 'ring', at: 0, dur: 0.25, r: 75, inward: true, color: ACID, width: 3, dy: -60 },
-            { type: 'crystals', at: 0.08, dur: 0.8, count: 7, h: 60, spread: 55, color: BONE, dy: -45 },
+            // D-118: 바닥에서 솟던 결정 가시(crystals)는 뺌 — 가시는 등껍질에 붙음 (skills_v2.js thornArmor THORN_BACK)
             { type: 'flash', at: 0.08, dur: 0.12, r: 28, color: BONE, dy: -60 },
             { type: 'motes', at: 0.1, count: 8, spread: 45, rise: [20, 45], life: [0.5, 0.8], size: 2, color: ACID, dy: -45 },
             { type: 'glow', at: 0.08, dur: 0.8, r: 70, color: ACID }

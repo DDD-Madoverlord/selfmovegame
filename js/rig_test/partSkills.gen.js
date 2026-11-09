@@ -1172,7 +1172,7 @@ export const PART_CATALOG = {
    "kind": "패시브",
    "skillName": "열기 발자국",
    "cd": "",
-   "desc": "지나간 자리에 2초 불씨 — 밟은 적 화상",
+   "desc": "걸음마다 발밑 불씨가 앞으로 튐 — 앞쪽 적 2초 화상",
    "kit": true
   },
   {

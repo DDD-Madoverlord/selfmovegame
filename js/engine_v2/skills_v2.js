@@ -21,6 +21,25 @@ export const ULT_FILL = { perSec: 1 / 24, perHit: 0.03 };   // 필살기 게이�
 
 const aim = aimAt;   // 적 몸통 중앙 (건물은 그림 크기의 가운데)
 
+// ---- D-118 거대괴수 가시 (가시 폭풍·가시 갑옷) ----
+const THORN_BONE = '230, 220, 170', THORN_TIP = '170, 255, 60';
+/** 등선 위 점들 [x, b] (리그 소켓 backTop·backMid·backLow — 리그가 아니면 빈 배열) */
+function backPoints() {
+    return ['backTop', 'backMid', 'backLow'].map(k => monster.getSocketPoint(k, 'body')).filter(Boolean).map(p => [p.x, p.bottom]);
+}
+/** 날아가는 뼛가시 하나 (vfx/skillFx2.js travel) */
+const THORN_SHOT = (fly, i) => ({ layers: [{ type: 'travel', at: 0, dur: fly, arc: 26 + (i % 3) * 14, len: 30, w: 9, color: THORN_BONE, tip: THORN_TIP }] });
+/** 적 발밑 가시독: 가시덤불(coral_pink)을 독빛으로 돌려 바닥에 박힌 가시 + 독 빛 */
+const THORN_POISON = sec => ({ layers: [
+    { type: 'sprite', sheet: 'coral_pink', at: 0, dur: sec, size: 82, anchorY: 0.88, frameRange: [3, 5], loopSec: 1.3, pingPong: true, hue: 125, glow: 0, fadeIn: 0.15, fadeOut: 0.4, layer: 'ground' },
+    { type: 'glow', at: 0, dur: sec, r: 34, color: '140, 255, 60' }
+] });
+/** 등 가시 갑각: 등선 세 점을 따라 가시덤불(coral_pink)을 바깥쪽으로 비스듬히 세움 — 위치는 play opts.path */
+export const KAIJU_THORN_FX = { shot: (fly, i) => THORN_SHOT(fly, i), poison: sec => THORN_POISON(sec), back: sec => THORN_BACK(sec) };   // 연구소 미리보기
+const THORN_BACK = sec => ({ layers: [
+    { type: 'spineSprites', at: 0, dur: sec, sheet: 'coral_pink', size: 72, hue: 125, frameRange: [3, 5], loopSec: 1.2 }
+] });
+
 // ---- 스킬 정의 ----
 // target: 'enemy'(사거리 안에 적이 있어야 사용) | 'self'(언제나) , range: 전방 사거리 추가 px
 export const SKILLS = {
@@ -345,9 +364,11 @@ Object.assign(SKILLS, {
         use(b) {
             monster.playSkillAnim(b.setOn('mech_a') ? 'railQuick' : 'rail');   // 충전 시간에 맞춘 반동 (포격 사령부 4부위 0.7초)
             const muzzle = () => monster.getMuzzlePoint() || { x: b.monsterX + 90, bottom: 120 };
-            b.fx.play(SET_VFX.railCharge, muzzle().x, muzzle().bottom, { follow: () => [muzzle().x, muzzle().bottom] });
+            let fired = false;   // 충전 빛은 발사 순간에 걷음 (4부위 0.7초 충전에도 겹치지 않게, D-118)
+            b.fx.play(SET_VFX.railCharge, muzzle().x, muzzle().bottom, { follow: () => [muzzle().x, muzzle().bottom], alive: () => !fired });
             const charge = b.setOn('mech_a') ? SET.setBonus.railCharge : 1.0;   // 포격 사령부 4부위
             b.schedule(charge, () => {
+                fired = true;
                 const from = muzzle();
                 b.fx.play(SET_VFX.railBig, from.x, from.bottom, { to: [1300, from.bottom - 10] });
                 enemiesAhead(b, -60, Infinity).sort((p, q) => p.x - q.x).forEach((e, i) => b.schedule(i * 0.03, () => {
@@ -408,10 +429,23 @@ Object.assign(SKILLS, {
             monster.playSkillAnim('roar');
             b.schedule(0.35, () => {
                 b.fx.play(SET_VFX.spikeStorm, b.monsterX + 50, FOOT_B);
-                b.enemiesInRange(b.playerRange + this.range).forEach(e => {
-                    b.dealDamageToEnemy(e, b.unit() * 2.5, false, { knock: 1.5, stop: true });
-                    b.applyBleed(e, 4, b.playerDps * 0.3);
+                // D-118: 등에서 가시가 앞으로 날아가 맞은 적 발밑에 가시독 (coral_pink 가시덤불을 독빛으로) — 피해·가시 독 수치 그대로, 맞는 순간만 도착 때
+                const from = backPoints()[0] || [b.monsterX + 60, FOOT_B + 150];
+                b.enemiesInRange(b.playerRange + this.range).forEach((e, i) => {
+                    const fly = 0.16 + Math.min(0.2, Math.abs(aim(e).x - from[0]) / 2200) + (i % 4) * 0.03;
+                    b.fx.play(THORN_SHOT(fly, i), from[0], from[1], { to: [aim(e).x, aim(e).b] });
+                    b.schedule(fly, () => {
+                        if (!b.enemies.includes(e)) return;
+                        b.dealDamageToEnemy(e, b.unit() * 2.5, false, { knock: 1.5, stop: true });
+                        if (!b.enemies.includes(e)) return;
+                        b.applyBleed(e, 4, b.playerDps * 0.3);
+                        b.fx.play(THORN_POISON(4), aim(e).x, FOOT_B, { follow: () => [aim(e).x, FOOT_B], alive: () => b.enemies.includes(e) && e.bleedT > 0 });
+                    });
                 });
+                for (let k = 0; k < 6; k++) {   // 빈 곳으로도 몇 개 흩뿌림
+                    const fly = 0.2 + k * 0.03;
+                    b.fx.play(THORN_SHOT(fly, k + 7), from[0], from[1], { to: [b.frontX() + 30 + k * 55 + Math.random() * 30, FOOT_B + 10] });
+                }
             });
         }
     },
@@ -422,6 +456,9 @@ Object.assign(SKILLS, {
             monster.playCast(() => {   // 움츠렸다 부풀 때 가시가 돋음 (brace 'cast')
                 b.fx.play(SET_VFX.thornOn, b.monsterX + 35, FOOT_B);
                 b.addBuff('thornArmor', SET.thorn.sec);
+                // D-118: 바닥에서 솟던 가시 대신 등껍질을 따라 가시 갑각이 돋아 버프 동안 붙어 다님
+                const pts = () => { const p = backPoints(); return p.length >= 2 ? p : [[b.monsterX + 70, FOOT_B + 160], [b.monsterX + 10, FOOT_B + 80]]; };
+                b.fx.play(THORN_BACK(SET.thorn.sec), b.monsterX + 35, FOOT_B, { path: pts, alive: () => b.isActive && !!b.buffs.thornArmor });
             }, 'brace');
         }
     },

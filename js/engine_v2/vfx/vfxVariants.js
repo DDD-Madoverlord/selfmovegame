@@ -194,6 +194,29 @@ const D_MORE = [
     [MECH_VFX, 'MECH_VFX', 'landing', '출격 착지', sc('mech', 'selfGround'),
         d => def(groundSpr('ground_impact', 210), ...keep(d, 'cracks'))],
     [SET_VFX, 'SET_VFX', 'railHit', '레일건 적중', sc('mech', 'hit'), d => def(hit('punch_cyan', 80, { dur: 0.3 }))],
+    // D-118: 레일건 발사 — 총구 청록 전기 섬광(punch_cyan) + 빛줄기 탄(needle_crimson 칸을 청록으로)이 사거리 끝까지 + 가는 궤적
+    [SET_VFX, 'SET_VFX', 'railShot', '레일건 발사', sc('mech', 'beam', { arm: 'cannon', part: 'arm_mech_a' }),
+        d => def(spr('punch_cyan', 100, { dur: 0.18, frameRange: [1, 4], glow: 1.2 }),
+            spr('needle_crimson', 170, { at: 0.01, dur: 0.13, frameRange: [1, 1], hue: 195, travel: true, anchorX: 0.6, glow: 1.3 }),
+            { type: 'beam', at: 0.02, dur: 0.2, w: 2.2, color: '120, 240, 255' }, ...keep(d, 'smoke'))],   // 끝 섬광 없음 — 맞은 적에만 railHit
+    // D-118: 자동 포탑 한 발 — 포신 끝 작은 섬광(needle_crimson 별빛 칸 청록) + 짧은 빛줄기 탄, 맞은 자리는 A의 불티·연기
+    [SET_VFX, 'SET_VFX', 'turretShot', '자동 포탑 사격', sc('mech', 'beam', { part: 'body_mech_a' }),
+        d => def(spr('needle_crimson', 46, { dur: 0.09, frameRange: [2, 3], hue: 195, glow: 1.3 }),
+            spr('needle_crimson', 80, { at: 0.005, dur: 0.08, frameRange: [1, 1], hue: 195, travel: true, anchorX: 0.6, glow: 1.2 }),
+            spr('punch_cyan', 44, { at: 0.07, dur: 0.16, frameRange: [1, 3], glow: 0, pos: 'to' }), ...keep(d, 'streaks', 'smoke'))],
+    // D-118: 충전 레일 사격 — 충전: 저음 고리(bass_drop)를 청록으로 거꾸로 틀어 총구로 줄어듦 + 모이는 빛줄기 + 전기 튐(lightning_burst 청록)
+    [SET_VFX, 'SET_VFX', 'railCharge', '충전 레일 사격 충전', sc('mech', 'self', { arm: 'cannon', part: 'arm_mech_a' }),
+        d => def(spr('bass_drop', 160, { dur: 0.95, frameRange: [1, 4], reverse: true, hue: -95, glow: 0, fadeIn: 0.1 }),
+            { type: 'gather', at: 0, dur: 0.95, r: 100, count: 18, color: '120, 240, 255' },
+            spr('lightning_burst', 90, { at: 0.25, dur: 0.22, frameRange: [1, 3], hue: 135, glow: 0 }),
+            spr('lightning_burst', 110, { at: 0.6, dur: 0.22, frameRange: [1, 3], hue: 135, glow: 0, flipX: true }))],
+    // D-118: 충전 레일 사격 발사 — 굵은 청록 광선(apocalypse_beam 색 돌림) + 총구 섬광, 가는 심 광선은 화면 끝까지
+    [SET_VFX, 'SET_VFX', 'railBig', '충전 레일 사격 광선', sc('mech', 'beam', { arm: 'cannon', part: 'arm_mech_a' }),
+        // 레이저포: 궤도 광선(orbital_beam)의 곧은 청록 기둥을 떼어 오른쪽으로 눕혀 총구에서 화면 끝까지 뻗음 (불꽃 같던 apocalypse_beam 대신)
+        d => def(...[[170, 1.15, 0.55], [70, 0, 0.5]].map(([thick, glow, dur]) => spr('orbital_beam', 0, { width: thick, height: 1100,
+                crop: [0.22, 0.02, 0.78, 0.5], frameRange: [2, 3], loopSec: 0.12, angle: -Math.PI / 2, anchorX: 0.5, anchorY: 0, dur, glow,
+                growIn: 0.07, fadeOut: 0.25 })),
+            spr('punch_cyan', 190, { dur: 0.28, frameRange: [2, 5], glow: 1.2 }), ...keep(d, 'smoke', 'streaks'))],
     [SET_VFX, 'SET_VFX', 'rocketHit', '로켓 돌진 충돌', sc('mech', 'melee', { clip: 'attack' }),
         d => def(spr('punch_cyan', 170), ...keep(d, 'debris'))],
     [SET_VFX, 'SET_VFX', 'pileHit', '파일 벙커', sc('mech', 'melee', { clip: 'attack' }),

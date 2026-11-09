@@ -200,7 +200,8 @@ export function rigConfigFor(partsObj, fallback = null) {
         if (part && part.rigUpgrade && characterOfPart(part) === character) upgrades[slot] = true;
     }
     if (character !== 'mech') return { character, filters, variants, upgrades };
-    return { character, arm: mechArmOf(partsObj.arm), filters, variants, upgrades };
+    // quietFire: 팔이 자기 발사 연출(shotFx)을 그리면 리그의 총구 충전 점·섬광은 끔 (D-118)
+    return { character, arm: mechArmOf(partsObj.arm), filters, variants, upgrades, quietFire: !!partsObj?.arm?.shotFx };
 }
 
 /** 거대로봇 팔 파츠 → 'cannon'|'fist' (2차 세트 팔은 rigArm으로 정함, D-071) — 전투 리그와 연구소 카드 그림(lab_v2.js)이 같이 씀 */
@@ -283,6 +284,16 @@ const EMPTY_SLOT = 'grayscale(1) brightness(0.45) opacity(0.55)';
  * 세트 부위 그림 { alias: { 부위키: '<부위키>_a' } | null, tint: { 부위키: 세트 색 } } — variants = { 슬롯: 'a'|'b'|'dragon' }
  * (게임 RigAvatar와 rig_test.html 공용) 그 부위의 세트 그림이 rig.json에 있으면 그림을 바꾸고, 없으면 세트 색
  */
+/** 세트 그림 <부위>_<글자>에 맞춘 소켓 <소켓>_<글자>가 있으면 그것으로 (긴 포신의 총구 끝 — 이펙트가 포신 가운데서 나가지 않게, D-118) */
+export function variantSocketsFor(skeleton, alias) {
+    const vs = {}, sk = skeleton.layout.sockets || {};
+    for (const [key, set] of Object.entries(alias || {})) {
+        const suffix = set.slice(key.length), tag = `_${key.split('_').pop()}`;   // armR_cannon → muzzle_cannon 만
+        for (const name of Object.keys(sk)) if (name.endsWith(tag) && sk[name + suffix]) vs[name] = name + suffix;
+    }
+    return vs;
+}
+
 export function variantAlias(character, layout, variants) {
     const slots = SLOT_PARTS[character] || {};
     const alias = {};
@@ -586,6 +597,7 @@ export class RigAvatar {
     _applyVariants() {
         const { alias, tint } = variantAlias(this.character.id, this.layout, this.variants);
         this.skeleton.partAlias = alias;
+        this.skeleton.variantSockets = variantSocketsFor(this.skeleton, alias);
         this.variantTint = tint;
         this._mergeFilters();
     }
@@ -719,7 +731,7 @@ export class RigAvatar {
     _handleEvent(name, data) {
         if (!this._built) return;   // 교체 대기 중인 이전 캐릭터의 이벤트는 무시
         if (name === 'stomp' || name === 'land') this.react(name);   // 쿵·착지 눌림 (reactions.js, Q6)
-        applyRigEvent(name, data, {
+        if (!(this.quietFire && (name === 'fire' || name === 'charge'))) applyRigEvent(name, data, {
             effects: this.effects, skeleton: this.skeleton, character: this.character, arm: this.arm,
             toScreen: p => this._toCanvas(p), groundY: this.opts.rootY,
             onGrow: mult => this.setGiant(mult), onShield: () => this.shieldOn()

@@ -267,6 +267,7 @@ export class BattleDirector {
                 </div>
             </div>`);
         el.style.setProperty('--sk', sk.color);
+        this.ultCutInUntil = performance.now() + 1250;
         setTimeout(() => el.remove(), 1250);
     }
 

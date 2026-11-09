@@ -87,6 +87,7 @@ export function packOf(character, list) {
             if (d.kitAttack) { part.attackType = 'kit'; part.kitAttack = d.kitAttack; }
             if (slot === 'arm' && !part.attackType && BASE_ATTACK[character]) part.attackType = BASE_ATTACK[character];
             if (d.rigArm) part.rigArm = d.rigArm;
+            if (d.shotFx) part.shotFx = d.shotFx;   // 기본 공격 발사 연출 (D-118 — attacks.js fireShotFx)
             if (d.stats) Object.assign(part.stats, d.stats);
             pack.parts[slot].push(part);
             if (d.skill) pack.partSkill[id] = d.skill;
@@ -154,6 +155,9 @@ export const V = {
     sheet: (sheet, size = 200, extra = {}) => fxOf(spr(sheet, size, extra)),
     shock: (hue = 0, width = 360, sec = 0.65) => imageShockwave(width, hue, sec),
     ring: (color, r = 120, extra = {}) => fxOf({ type: 'shockwave', at: 0, dur: 0.45, r, width: 12, ground: true, color, ...extra }),
+    /** 누운 레이저 (D-118): 궤도 광선 시트의 곧은 기둥만 떼어(crop) 오른쪽으로 눕힘 — 총구에서 len만큼 growIn초에 뻗음 */
+    laser: (hue = 0, len = 1000, thick = 120, extra = {}) => fxOf(spr('orbital_beam', 0, { width: thick, height: len, crop: [0.22, 0.02, 0.78, 0.5],
+        frameRange: [2, 3], loopSec: 0.12, angle: -Math.PI / 2, anchorX: 0.5, anchorY: 0, dur: 0.5, hue, glow: 1.15, growIn: 0.07, fadeOut: 0.25, ...extra })),
     beam: (color, w = 26) => fxOf({ type: 'beam', at: 0, dur: 0.35, w, color }, { type: 'flash', at: 0, dur: 0.12, r: 40, color }),
     chainBolt: color => fxOf({ type: 'bolt', at: 0, dur: 0.25, count: 1, jag: 14, branches: 1, width: 3, flicker: 0.05, color }),
     motes: (color, count = 10) => fxOf({ type: 'motes', at: 0, count, spread: 40, rise: [30, 80], life: [0.5, 0.9], size: 2.4, color }),

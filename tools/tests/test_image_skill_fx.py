@@ -5,9 +5,9 @@ EXPECTED = {
     'earthSmash': 'subwoofer_blast', 'kjHeartbeat': 'subwoofer_blast', 'dvSteamHammer': 'subwoofer_blast',
     'bcSubBomb': 'subwoofer_blast', 'dragonBreath': 'breath_fire', 'kjKingBreath': 'breath_gold',
     'kjDoomBeam': 'primal_beam', 'toxicBreath': 'poison', 'flamethrower': 'fire', 'acidSpit3': 'acid',
-    'mcPlasmaCarpet': 'plasma', 'kjEruption': 'lava', 'kjSwamp': 'swamp', 'lifeSeal': 'seal',
+    'mcPlasmaCarpet': 'plasmaBurn', 'kjEruption': 'lava', 'kjSwamp': 'swamp', 'lifeSeal': 'seal',
     'stPotionThrow': 'herb', 'stHerbSmoke': 'herb', 'fsMoonFall': 'moon', 'cmWebTrap': 'web',
-    'dvGhostFire': 'ghostFire', 'dvSteamVeil': 'steam', 'kjVortex': 'water',
+    'dvGhostFire': 'ghostFire', 'dvSteamVeil': 'steam', 'kjVortex': 'vortex',
     'dvPressureField': 'water', 'dvWhirlAnchor': 'water'
 }
 

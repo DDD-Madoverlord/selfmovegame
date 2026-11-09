@@ -354,7 +354,8 @@ export const MECH = {
         ['드릴 관통', 'drill'], ['종말의 포', 'doomCannon']],   // rig_test.html 동작 버튼 (뒤 둘은 2차 세트, D-071)
     arms: ARM_OPTIONS,           // 교체 가능한 무기 팔 (attack 클립, 총구 소켓 포함)
     defaultArm: 'cannon',
-    sockets: { droneBay: [693, 70] },   // 스웜 드론 발사구 (캐니스터 윗부분, 원본 px)
+    // muzzle_cannon_<글자>: 세트 포신 그림의 총구 끝 (rig.json 좌표, 쉬는 자세) — 레일건(a)·저격포(d)는 기본 캐논보다 길고 아래로 처짐 (D-118)
+    sockets: { droneBay: [693, 70], muzzle_cannon_a: [903, 810], muzzle_cannon_d: [912, 886], turretGun: [327, 238] },   // turretGun: 몸통 a 어깨 포탑 포신 끝 (D-118)   // 스웜 드론 발사구 (캐니스터 윗부분, 원본 px)
     debugSockets: DEBUG_SOCKETS,
     shadow: { rx: 417, ry: 38 }  // 발밑 그림자 (원본 픽셀)
 };

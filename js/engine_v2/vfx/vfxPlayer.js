@@ -67,6 +67,7 @@
 
 import { drawGroundField } from './groundFields.js';
 import { dispersedSheet, drawDispersion } from './spriteDispersion.js';
+import { EXTRA_DRAW, preloadSkillArt } from './skillFx2.js';
 
 const WHITE = '255, 255, 255';
 const GROUND_TYPES = new Set(['rune', 'glow', 'cracks', 'mist']);
@@ -106,7 +107,7 @@ export class VfxPlayer {
         const s = opts.scale || 1;
         for (const layer of def.layers) {
             this.items.push({ ...layer, t: -(layer.at || 0), x, y, s, follow: opts.follow || null,
-                to: opts.to || null, started: false, owner: opts.owner, alive: opts.alive });
+                to: opts.to || null, ...(opts.path ? { path: opts.path } : {}), started: false, owner: opts.owner, alive: opts.alive });
         }
         if (def.sfx && this.onSfx) this.onSfx(def.sfx, x);
     }
@@ -924,6 +925,7 @@ function impactAlpha(it, u) {
 // (tools/images/build_vfx_sheet.py가 Gemini 검은 배경 시트에서 만듦). 처음 쓸 때 불러오고, 다 불러오기 전에는 건너뜀
 export const VFX_SHEETS = {
     ice_wall: { src: 'assets/sprites/vfx/art/ice_wall.webp', frames: 1 }, // 지속 빙벽 (투명 전용 그림)
+    steel_wall: { src: 'assets/sprites/vfx/art/steel_wall.webp', frames: 1 }, // 강철 방벽 (투명 전용 그림, D-118)
     slash_violet: { src: 'assets/sprites/vfx/slash_violet.webp', frames: 9 },       // 타락 히어로 베기
     punch_cyan: { src: 'assets/sprites/vfx/punch_cyan.webp', frames: 9 },           // 거대로봇 주먹 (전기)
     bite_green: { src: 'assets/sprites/vfx/bite_green.webp', frames: 9 },           // 거대괴수 물기 (산성)
@@ -1113,17 +1115,70 @@ function softSheet(name, hue, edge) {
     softSheets.set(key, c);
     return c;
 }
+// 돔 모양 가림 (D-118 방주 방벽): 칸 좌우에 닿아 세로로 잘려 보이던 돔 벽을 돔 윤곽(위 반타원 + 바닥 타원)으로 둥글게 자르고 가장자리를 흐림
+const SHAPES = {
+    dome: { cx: 0.5, rx: 0.445, top: 0.6, ry: 0.475, base: 0.865, by: 0.05 }
+};
+function shapePath(g, d, x0, fw, fh) {
+    const X = v => x0 + v * fw, Y = v => v * fh;
+    g.beginPath();
+    g.moveTo(X(d.cx - d.rx), Y(d.base));
+    g.lineTo(X(d.cx - d.rx), Y(d.top));
+    g.ellipse(X(d.cx), Y(d.top), d.rx * fw, d.ry * fh, 0, Math.PI, Math.PI * 2);
+    g.lineTo(X(d.cx + d.rx), Y(d.base));
+    g.ellipse(X(d.cx), Y(d.base), d.rx * fw, d.by * fh, 0, 0, Math.PI);
+    g.closePath();
+}
+const shapeSheets = new Map();
+function shapeSheet(name, hue, shape) {
+    const key = `${name}|${hue || 0}|${shape}`;
+    if (shapeSheets.has(key)) return shapeSheets.get(key);
+    const img = hue ? hueSheet(name, hue) : sheetImage(name);
+    if (!img || typeof document === 'undefined') return null;
+    const n = VFX_SHEETS[name].frames, c = document.createElement('canvas');
+    c.width = img.naturalWidth;
+    c.height = img.naturalHeight;
+    const g = c.getContext('2d'), fw = c.width / n, fh = c.height;
+    for (let i = 0; i < n; i++) {   // 흐린 가림판 (filter blur) → 그 안의 그림만 남김
+        g.save();
+        g.filter = `blur(${Math.round(fw * 0.025)}px)`;
+        g.fillStyle = '#fff';
+        shapePath(g, SHAPES[shape], i * fw, fw, fh);
+        g.fill();
+        g.restore();
+    }
+    g.globalCompositeOperation = 'source-in';
+    g.drawImage(img, 0, 0);
+    c.naturalWidth = c.width;
+    c.naturalHeight = c.height;
+    shapeSheets.set(key, c);
+    return c;
+}
+
 /** 시트를 미리 불러 둠 (첫 재생에 그림이 늦게 뜨지 않게) */
 export function preloadVfxSheets() {
     Object.keys(VFX_SHEETS).forEach(sheetImage);
+    preloadSkillArt();
+}
+
+// ---- 시트 경계 잘림 막기 (D-118, 프로젝트 규칙 2) ----
+// 빛기둥 시트는 맨 윗줄을 화면 위끝까지 늘려 기둥이 하늘에서 이어지게. 칸 변에 닿은 그림은 시트 파일 자체를 옅게 함
+// (tools/images/check_vfx_edges.py로 재고 띠 진하기 0.2 넘는 변을 soften_vfx_edges.py로 56~72px — 2026-11-09 59장)
+const BEAM_UP = new Set(['orbital_beam', 'pillar_gold', 'revive_crimson']);
+
+function travelPoint(it, u, x, y, s) {
+    const [tx, ty] = it.to;
+    return [x + (tx - x) * u, y + (ty - y) * u - (it.arc || 0) * s * 4 * u * (1 - u)];
 }
 
 const DRAW = {
+    ...EXTRA_DRAW,   // D-118 스킬 이펙트 개선 층 (skillFx2.js)
     groundField: drawGroundField,
     // 그림 프레임 재생 {sheet, size(px), anchorX?·anchorY?(프레임 안 기준점 0~1, 기본 0.5 — 바닥 기준 그림은 anchorY 0.9,
     //   입에서 뿜는 그림은 anchorX 0.03), angle?, flipX?, squash?, blend?('lighter' 기본 | 'normal'), alpha?, glow?(뒤에 퍼지는 빛 배수)}
     sprite(ctx, x, y, it, u, s) {
-        const img = it.softEdges && !it.dispersion ? softSheet(it.sheet, it.hue, it.softEdges) :
+        const edge = it.softEdges || null;
+        const img = it.mask ? shapeSheet(it.sheet, it.hue, it.mask) : edge && !it.dispersion ? softSheet(it.sheet, it.hue, edge) :
             it.hue ? hueSheet(it.sheet, it.hue) : sheetImage(it.sheet);   // hue: 색 돌리기 (도)
         if (!img) return;
         const n = VFX_SHEETS[it.sheet].frames, fw = img.naturalWidth / n, fh = img.naturalHeight;
@@ -1131,8 +1186,16 @@ const DRAW = {
         const hi = Math.max(lo, Math.min(n - 1, it.frameRange?.[1] ?? n - 1));
         let progress = it.loopSec ? ((it.t + (it.phase || 0)) / it.loopSec) % 1 : u;
         if (it.loopSec && it.pingPong) progress = 1 - Math.abs(2 * progress - 1);
-        const f = Math.min(hi, lo + Math.floor(progress * (hi - lo + 1)));
-        const w = (it.width ?? it.size ?? 160) * s, h = (it.height ?? it.size ?? 160) * s;
+        if (it.reverse) progress = 1 - progress;   // 거꾸로 재생 (모이는 충전, D-118)
+        const f = Math.min(hi, lo + Math.floor(Math.min(0.999, progress) * (hi - lo + 1)));
+        if (it.travel && it.to) {   // 날아가는 그림 (수정 창 등, D-118): x,y → to, arc만큼 솟고 진행 방향으로 돌림
+            const p = travelPoint(it, u, x, y, s), q = travelPoint(it, Math.max(0, u - 0.03), x, y, s);
+            x = p[0]; y = p[1];
+            const dir = u > 0.03 ? Math.atan2(p[1] - q[1], p[0] - q[0]) : Math.atan2(it.to[1] - y, it.to[0] - x);
+            it.angle = dir + (it.angleOffset || 0);
+        }
+        const w = (it.width ?? it.size ?? 160) * s;
+        const h = (it.height ?? it.size ?? 160) * s * (it.growIn ? Math.min(1, Math.max(0.02, it.t / it.growIn)) : 1);   // growIn: 길이가 기준점에서 뻗어 나감 (레이저, D-118)
         ctx.save();
         ctx.globalCompositeOperation = it.blend === 'normal' ? 'source-over' : 'lighter';
         const remaining = it.remaining ? it.remaining() : it.dur - it.t;
@@ -1141,19 +1204,46 @@ const DRAW = {
         const alpha = (it.alpha ?? 1) * fade * (it.fadeIn ? Math.min(1, it.t / it.fadeIn) : 1);
         ctx.globalAlpha = alpha;
         ctx.translate(x, y);
-        ctx.rotate(it.angle || 0);
-        ctx.scale(it.flipX ? -1 : 1, it.squash ?? 1);
+        if (it.spin) {   // 눕힌 원판 회전 (소용돌이, D-118): 눌러 놓고 그 안에서 돌림
+            ctx.scale(it.flipX ? -1 : 1, it.squash ?? 1);
+            ctx.rotate((it.angle || 0) + it.t * it.spin);
+        } else {
+            ctx.rotate(it.angle || 0);
+            ctx.scale(it.flipX ? -1 : 1, it.squash ?? 1);
+        }
         const ax = it.anchorX ?? 0.5, ay = it.anchorY ?? 0.5;
         const core = it.dispersion ? dispersedSheet(img, n, it.dispersion) : img;
+        // crop [x0, y0, x1, y1] (칸 안 비율): 칸의 일부만 늘려 그림 — 궤도 광선의 곧은 기둥만 떼어 눕힌 레이저포 (D-118)
+        const cr = it.crop, sx = f * fw + (cr ? cr[0] * fw : 0), sy = cr ? cr[1] * fh : 0;
+        const sw = cr ? (cr[2] - cr[0]) * fw : fw, sh = cr ? (cr[3] - cr[1]) * fh : fh;
+        // 빛기둥: 그림 윗변 위로 맨 윗줄을 화면 위끝까지 늘려 그림 (기둥이 공중에서 잘려 보이지 않게)
+        const up = BEAM_UP.has(it.sheet) && !it.angle && !it.travel && !it.spin ? y / Math.abs(it.squash ?? 1) + 12 : 0;
+        const beamUp = (gw, gh) => {
+            const ext = up - gh * ay;
+            if (ext > 1) ctx.drawImage(core, f * fw, 0, fw, 2, -gw * ax, -gh * ay - ext, gw, ext + 1);
+        };
         if (it.glow) {                                   // 뒤로 번지는 빛: 같은 프레임을 크게·옅게 한 번 더
             ctx.globalAlpha = alpha * 0.35;
             const gw = w * it.glow, gh = h * it.glow;
-            ctx.drawImage(core, f * fw, 0, fw, fh, -gw * ax, -gh * ay, gw, gh);
+            ctx.drawImage(core, sx, sy, sw, sh, -gw * ax, -gh * ay, gw, gh);
+            if (up) beamUp(gw, gh);
             ctx.globalAlpha = alpha;
         }
+        if (up) beamUp(w, h);
         // 시트 경계 밖에서도 실제 그림 조각이 이동하며 흩어지도록 그린다.
         if (it.dispersion) drawDispersion(ctx, img, n, f, it, w, h, ax, ay, alpha, u);
-        ctx.drawImage(core, f * fw, 0, fw, fh, -w * ax, -h * ay, w, h);
+        ctx.drawImage(core, sx, sy, sw, sh, -w * ax, -h * ay, w, h);
+        if (it.mask && it.rim) {   // 돔 윤곽 빛 테두리: 잘린 끝 대신 매끈한 막 가장자리
+            const pulse = 0.75 + 0.25 * Math.sin(it.t * 5);
+            ctx.globalCompositeOperation = 'lighter';
+            ctx.shadowColor = `rgba(${it.rim}, ${0.9 * alpha})`;
+            ctx.shadowBlur = 12 * s;
+            ctx.strokeStyle = `rgba(${it.rim}, ${0.55 * alpha * pulse})`;
+            ctx.lineWidth = 2.5 * s;
+            ctx.translate(0, -h * ay);
+            shapePath(ctx, SHAPES[it.mask], -w * ax, w, h);
+            ctx.stroke();
+        }
         ctx.restore();
     },
     starburst(ctx, x, y, it, u, s) {
@@ -1659,6 +1749,29 @@ const DRAW = {
             }
         }
         ellipseGlow(ctx, x, y, len * 0.7, len * 0.2, `rgba(${it.color}, ${0.5 * fade})`);
+    }
+};
+
+/** 등 가시 갑각 (D-118): play opts.path()의 등선을 따라 그림 시트를 바깥쪽(왼쪽 위)으로 비스듬히 n개 세움 */
+DRAW.spineSprites = function (ctx, x, y, it, u, s, time) {
+    const pts = it.path ? it.path() : null;
+    if (!pts || pts.length < 2) return;
+    const grow = Math.min(1, u * it.dur / 0.25), fade = it.dur * (1 - u) < 0.35 ? it.dur * (1 - u) / 0.35 : 1;
+    const n = it.count || 3;
+    const segs = [];
+    let total = 0;
+    for (let i = 1; i < pts.length; i++) { const L = Math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1]); segs.push(L); total += L; }
+    for (let k = 0; k < n; k++) {
+        let d = total * (k + 0.5) / n, i = 0;
+        while (i < segs.length - 1 && d > segs[i]) { d -= segs[i]; i++; }
+        const f = segs[i] ? d / segs[i] : 0;
+        const [ax, ay] = pts[i], [bx, by] = pts[i + 1];
+        let nx = by - ay, ny = -(bx - ax);
+        if (nx + ny > 0) { nx = -nx; ny = -ny; }   // 바깥(왼쪽 위)
+        const ang = Math.atan2(ny, nx) + Math.PI / 2;   // 그림 위쪽(-y)이 바깥을 향하게
+        const size = (it.size || 70) * (0.85 + 0.3 * ((k * 37) % 5) / 4) * (0.3 + 0.7 * grow);
+        DRAW.sprite(ctx, ax + (bx - ax) * f, ay + (by - ay) * f, { ...it, size, angle: ang, anchorY: 0.85, alpha: fade, phase: k * 0.37,
+            t: it.t, dur: it.dur, fadeOut: null, softEdges: null, dispersion: null, travel: false }, u, s);
     }
 };
 
