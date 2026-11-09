@@ -8,6 +8,7 @@
 
 import { DIVER_FACTION, SAINT_FACTION, FROST_FACTION, DOLL_FACTION, ARCHITECT_FACTION, BROADCASTER_FACTION } from '../partsExtra_v2.js';
 import { spr, fxOf } from '../skillKit_v2.js';
+import { imageShockwave } from '../vfx/imageEffects.js';
 
 export { spr, fxOf };
 
@@ -151,6 +152,7 @@ export const V = {
     revive: (hue = 0, size = 200, extra = {}) => fxOf(spr('revive_crimson', size, { anchorY: 0.9, hue, ...extra })),
     /** 이름 있는 시트 그대로 (세트 대표 시트) */
     sheet: (sheet, size = 200, extra = {}) => fxOf(spr(sheet, size, extra)),
+    shock: (hue = 0, width = 360, sec = 0.65) => imageShockwave(width, hue, sec),
     ring: (color, r = 120, extra = {}) => fxOf({ type: 'shockwave', at: 0, dur: 0.45, r, width: 12, ground: true, color, ...extra }),
     beam: (color, w = 26) => fxOf({ type: 'beam', at: 0, dur: 0.35, w, color }, { type: 'flash', at: 0, dur: 0.12, r: 40, color }),
     chainBolt: color => fxOf({ type: 'bolt', at: 0, dur: 0.25, count: 1, jag: 14, branches: 1, width: 3, flicker: 0.05, color }),

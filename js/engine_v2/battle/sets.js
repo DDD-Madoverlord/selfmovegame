@@ -10,6 +10,7 @@
    ========================================================================== */
 
 import { monsterControllerV2 } from '../monster_v2.js';
+import { playImageField } from '../vfx/imageEffects.js';
 import { sound } from '../audio/sound_v2.js';
 import { SET_VFX } from '../vfx/setVfx.js';
 import { aimAt as aimOf } from '../bases_v2.js';
@@ -55,7 +56,7 @@ export const SetMethods = {
 
     // ---- 버프 (오버드라이브·아드레날린·가시 갑옷·어둠의 서약·총동원령·강화 주사) ----
     addBuff(key, sec) {
-        this.buffs[key] = { t: sec };
+        this.buffs[key] = { t: sec, duration: sec };
         if (key === 'overdrive') monsterControllerV2.setAnimBoost(SET.overdrive.atk);   // 공격 동작이 빨라짐 = 공격 속도
     },
 
@@ -187,7 +188,7 @@ export const SetMethods = {
             this.fx.play(SET_VFX.spitSplash, aim.x, FOOT_B);
             if (this.enemies.includes(target)) this.dealDamageToEnemy(target, dmg, isCrit, { knock: 0.5 });
             const w = SET.spit.puddleW;
-            this.addZone({ x: aim.x - w / 2, w, sec: SET.spit.puddleSec, dps: this.playerDps * SET.spit.puddleDps, puff: SET_VFX.toxicPuff, every: 0.7, scale: 0.6,
+            this.addZone({ x: aim.x - w / 2, w, sec: SET.spit.puddleSec, dps: this.playerDps * SET.spit.puddleDps, field: 'acid',
                 baseMul: this.setOn('kaiju_b') ? SET.setBonus.toxicBaseMul : 1 });   // 독안개 4부위: 거점 2배
         }, 'kaiju_spore');
     },
@@ -225,7 +226,10 @@ export const SetMethods = {
     // ---- 지속 피해 구역 (독안개 숨결·화염 방사·산성 웅덩이) ----
     /** o: { x, w, sec, dps, slow?, puff(이펙트), every(퍼프 간격), scale?, baseMul?(거점 배율) } — x~x+w 안 적에게 초당 dps */
     addZone(o) {
-        this.zones.push({ puffT: 0, ...o, t: o.sec });
+        const z = { puffT: 0, ...o, t: o.sec };
+        this.zones.push(z);
+        if (o.field) playImageField(this.fx, o.field, z.w, z.sec, () => [z.x + z.w / 2, FOOT_B],
+            () => z.t > 0 && this.zones.includes(z), () => z.t);
     },
 
     tickZones(dt) {

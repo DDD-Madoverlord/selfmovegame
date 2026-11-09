@@ -194,7 +194,8 @@ export const BROADCASTER_SETS2 = packOf('broadcaster', [
         skills: {
             bcSubBomb: { name: '초저음 폭격', slot: 'head', ult: true, cd: 0, icon: 'speaker', color: '#ff50aa', target: 'enemy', range: 600, clip: 'blast', p: { count: 4, gap: 2 },
                 desc: '2초마다 초저음 충격파 4번 — 화면 적 피해 + 0.5초 기절',
-                steps: [{ at: 0.36, do: 'screen', dmg: 0.8, status: { stun: 0.5 }, vfx: V.sheet('subwoofer_blast', 220, { anchorY: 0.9, dur: 0.5 }), maxFx: 5, repeat: '$count', repeatGap: '$gap' },
+                steps: [{ at: 0.36, do: 'screen', dmg: 0.8, status: { stun: 0.5 }, ground: true, field: 'sonic', fieldSec: 0.65,
+                        maxFx: 0, repeat: '$count', repeatGap: '$gap' },
                     { at: 0.36, do: 'shake', power: 6, ms: 200, repeat: '$count', repeatGap: '$gap' }] },
             bcSoundWall: { name: '음파 방벽', slot: 'body', cd: 14, icon: 'shield', color: '#ff50aa', target: 'self', clip: 'cast', p: { sec: 6 },
                 desc: '6초 투사체 막음 + 받는 피해 -30% — 끝날 때 둘레 음파',

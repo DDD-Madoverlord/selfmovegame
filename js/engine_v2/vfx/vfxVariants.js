@@ -1,6 +1,7 @@
 /* VFX 비교안: A 원본을 보관하고 같은 정의 객체에 덮어 써 게임·테스트의 참조를 유지한다. */
 import { SET_VFX, MECH_VFX, HERO_VFX, KAIJU_VFX, FROST_VFX, BATTLE_VFX, CHIMERA_VFX, DIVER_VFX, SAINT_VFX, DOLL_VFX, ZONE_VFX,
     BOSS_VFX, ELITE_VFX } from './vfxDefs.js';
+import { imageShockwave, breathImage } from './imageEffects.js';
 
 const clone = value => JSON.parse(JSON.stringify(value));
 const INK = '25, 22, 35';
@@ -132,13 +133,13 @@ addD(SET_VFX, 'SET_VFX', 'orbitalHit', '궤도 폭격', { character: 'mech', par
     def(spr('orbital_beam', 260, { anchorY: 0.9, dur: 0.6, glow: 1.3 }),
         { type: 'dust', at: 0.15, count: 5, speed: 120, size: 18, life: 1.0, color: '70, 80, 95' }));
 addD(KAIJU_VFX, 'KAIJU_VFX', 'roarBurst', '대지 포효', { character: 'kaiju', kind: 'beam', clip: 'attack' },
-    def(spr('roar_green', 280, { anchorX: 0.04, dur: 0.55, glow: 1.2 }),
+    def(...imageShockwave(480, 135).layers, spr('acid_burst', 230, { anchorY: 0.8, dur: 0.55, softEdges: 0.12, glow: 0 }),
         { type: 'motes', at: 0.1, count: 8, spread: 60, rise: [30, 70], life: [0.6, 1.0], size: 2, color: '150, 255, 90' }));
 addD(SET_VFX, 'SET_VFX', 'judgmentHit', '심판의 일격', { character: 'hero', part: 'head_hero_a', kind: 'charge' },
     def(spr('judgment_violet', 260, { anchorY: 0.9, dur: 0.6, glow: 1.3 }),
         { type: 'shards', at: 0.2, count: 6, speed: 200, size: 7, spin: 6, life: [0.6, 1.0], shape: 'ice', color: '200, 140, 255' }));
 addD(SET_VFX, 'SET_VFX', 'flame', '용의 숨결', null,
-    def(spr('breath_fire', 230, { anchorX: 0.03, dur: 0.5, alpha: 0.85, glow: 0 }), embers('255, 190, 80', { count: 2, cone: 0.5 })));
+    def(...breathImage('breath_fire', 380, 0.6).layers, embers('255, 190, 80', { count: 2, cone: 0.5 })));
 
 // 3단계: 새 캐릭터 4종 대표 스킬
 addD(DIVER_VFX, 'DIVER_VFX', 'hands', '심연의 손 (길잡이)', { character: 'diver', kind: 'charge' },
@@ -177,7 +178,8 @@ addD(BATTLE_VFX, 'BATTLE_VFX', 'enemyDefeat', '적 처치', null,
 /** A 정의에서 같은 종류의 레이어만 복사 (예: 감속 표식 chevrons, 범위 고리 ring) */
 const keep = (d, ...types) => clone(d.layers.filter(l => types.includes(l.type)));
 const hit = (sheet, size, extra) => spr(sheet, size, { dur: 0.36, glow: 1.3, ...extra });
-const groundSpr = (sheet, size, extra) => spr(sheet, size, { anchorY: 0.85, dur: 0.55, glow: 1.2, ...extra });
+const groundSpr = (sheet, size, extra) => spr(sheet, size, { anchorY: 0.85, dur: 0.55, glow: 1.2,
+    ...(sheet === 'ground_impact' ? { dispersion: 'burst' } : {}), ...extra });
 const puff = (size, extra = {}) => [spr('defeat_puff', size, { anchorY: 0.9, dur: 0.55, blend: 'normal', glow: 0, ...extra }),
     spr('defeat_puff', size, { anchorY: 0.9, dur: 0.55, alpha: 0.35, glow: 1.2, ...extra })];
 const sc = (character, kind, extra = {}) => ({ character, kind, ...extra });
@@ -204,7 +206,7 @@ const D_MORE = [
     [SET_VFX, 'SET_VFX', 'spikeStorm', '가시 폭풍', sc('kaiju', 'selfGround', { clip: 'attack' }),
         d => def(groundSpr('ground_impact', 240), ...keep(d, 'crystals', 'debris', 'ring'))],
     [SET_VFX, 'SET_VFX', 'groundSlam', '지면 내려찍기', sc('kaiju', 'charge', { clip: 'attack' }),
-        d => def(groundSpr('ground_impact', 280), ...keep(d, 'cracks', 'shards'))],
+        d => def(groundSpr('ground_impact', 320), ...imageShockwave(440, 135).layers, ...keep(d, 'cracks', 'shards'))],
     [SET_VFX, 'SET_VFX', 'sporeBurst', '독 포자 폭발', sc('kaiju', 'charge'),
         d => def(spr('spore_burst', 200, { dy: -50, dur: 0.6 }), ...keep(d, 'ring'))],
     [SET_VFX, 'SET_VFX', 'spitSplash', '산성 침', sc('kaiju', 'charge'), d => def(spr('acid_burst', 110, { dy: -12 }))],
@@ -225,17 +227,18 @@ const D_MORE = [
     [CHIMERA_VFX, 'CHIMERA_VFX', 'summon', '졸몹 소환', sc('chimera', 'charge'),
         d => def(spr('summon_portal', 150, { anchorY: 0.76, dur: 0.7, glow: 1.15 }))],
     [CHIMERA_VFX, 'CHIMERA_VFX', 'slam', '파괴 광란', sc('chimera', 'charge', { clip: 'attack' }),
-        d => def(groundSpr('ground_impact', 320), ...keep(d, 'cracks', 'shards', 'embers'))],
+        d => def(groundSpr('ground_impact', 380), ...imageShockwave(520, 50).layers, ...keep(d, 'cracks', 'shards', 'embers'))],
     [CHIMERA_VFX, 'CHIMERA_VFX', 'phase2Burst', '2페이즈 변신', sc('chimera', 'selfGround'),
         d => def(...keep(d, 'glow', 'ring').filter(l => !l.at), groundSpr('ground_impact', 300, { at: 0.58 }),
+            ...imageShockwave(500, 50).layers.map(l => ({ ...l, at: 0.58 })),
             spr('power_aura', 260, { at: 0.5, anchorY: 0.92, dur: 0.8, glow: 1.15 }), ...keep(d, 'cracks', 'debris'))],
     [SET_VFX, 'SET_VFX', 'maulHit', '광견 돌진 적중', sc('chimera', 'melee', { clip: 'attack' }),
         d => def(spr('claw_fire', 140), ...keep(d, 'debris'))],
     [SET_VFX, 'SET_VFX', 'adrenaline', '아드레날린', sc('chimera', 'selfGround'),
         d => def(spr('power_aura', 230, { anchorY: 0.92, dur: 0.8, glow: 1.15 }), ...keep(d, 'motes'))],
     [SET_VFX, 'SET_VFX', 'earthSmash', '대지 강타', sc('chimera', 'charge', { clip: 'attack' }),
-        d => def(groundSpr('ground_impact', 340), ...keep(d, 'cracks', 'shards'))],
-    [SET_VFX, 'SET_VFX', 'stomp', '짓밟기', sc('chimera', 'selfGround'), d => def(groundSpr('ground_impact', 140, { dur: 0.4 }))],
+        d => def(groundSpr('ground_impact', 380), ...imageShockwave(540, 50).layers, ...keep(d, 'cracks', 'shards'))],
+    [SET_VFX, 'SET_VFX', 'stomp', '짓밟기', sc('chimera', 'selfGround'), d => def(...imageShockwave(180, 50, 0.4).layers)],
     [SET_VFX, 'SET_VFX', 'mobilize', '총동원령', sc('chimera', 'selfGround'),
         d => def(spr('summon_portal', 280, { anchorY: 0.76, dur: 0.8, glow: 1.15 }), ...keep(d, 'glow'))],
     // 새 캐릭터 4종

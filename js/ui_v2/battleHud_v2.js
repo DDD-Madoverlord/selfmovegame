@@ -21,6 +21,7 @@ import { SUPPORT, supportUnitOf } from '../engine_v2/support_v2.js';
 import { rosterOf } from '../engine_v2/roster_v2.js';
 import { supportPortrait } from './supportUi_v2.js';
 import { progress } from '../engine_v2/progress_v2.js';
+import { BuffMarks } from './buffMarks_v2.js';
 
 const FACTION_COLOR = { mech: '#3ee6ff', kaiju: '#a0ff32', hero: '#c86eff', chimera: '#ff9628', diver: '#3fe0c8', saint: '#ff4d6d', frost: '#7fd4ff', doll: '#5ae6f0', architect: '#ff9a2e', broadcaster: '#ff50aa' };
 // 진행도 표시: 스테이지 거리와 요새·최종 기지 위치 (stages_v2.js)
@@ -42,6 +43,8 @@ export class BattleHud {
     // ------------------------------------------------------------------
     setup(equipped) {
         this.screen = $('screen-battle-v2');
+        this.buffMarks?.destroy();
+        this.buffMarks = new BuffMarks(this.b, monsterControllerV2.domMonster);
         this.el = {
             unit: document.querySelector('#battle-hud-v2 .v2-unit'),
             portrait: $('hud-portrait-v2'),
@@ -97,6 +100,8 @@ export class BattleHud {
     }
 
     teardown() {
+        this.buffMarks?.destroy();
+        this.buffMarks = null;
         this.setSupportDetails(false);
         this.supportBox?.remove();
         this.supportBox = null;
@@ -198,6 +203,7 @@ export class BattleHud {
     // ------------------------------------------------------------------
     update() {
         const b = this.b;
+        this.buffMarks?.update();
         this.updateSupport();
         this.set('speedVal', gameTime.speed, () => this.renderSpeed());
         // 체력 / 실드

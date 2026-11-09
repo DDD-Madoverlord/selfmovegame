@@ -13,8 +13,9 @@
 
 import { MECH_VFX, KAIJU_VFX, CHIMERA_VFX, DIVER_VFX, SAINT_VFX, FROST_VFX, DOLL_VFX } from '../engine_v2/vfx/vfxDefs.js';
 import { SET_VFX } from '../engine_v2/vfx/setVfx.js';
-import { LEG, SET, FOOT_B } from '../engine_v2/battle/tuning.js';
+import { LEG, SET, SAINT, FOOT_B } from '../engine_v2/battle/tuning.js';
 import { SKILLS } from '../engine_v2/skills_v2.js';
+import { imageField, breathImage } from '../engine_v2/vfx/imageEffects.js';
 
 // 전투에 별도 이펙트가 없는 수치 패시브: 발밑에 작은 팩션 색 고리와 빛가루만.
 const passiveMark = color => ({ layers: [
@@ -90,6 +91,12 @@ export function kitPreview(key, slot) {
         const far = api.dummies[api.dummies.length - 1].x;
         const aura = passiveMark(rgbOf(sk.color));   // 이펙트가 없는 단계(버프·실드·회복…)는 스킬 색 고리
         const play = (def, x, y, o = {}) => { if (def) api.vfx.play(def, x, y, { scale: api.VFX_SCALE * (o.scale || 1), ...(o.to ? { to: o.to } : {}) }); };
+        const field = (s, origin = front) => {
+            const sec = valOf(sk, s.sec, 5), w = s.w || 170;
+            play(imageField(s.field, w * 0.56, sec), origin + ((s.x || 0) + w / 2) * k, api.GROUND_Y);
+            if (s.puff) repeat(api, Math.ceil(sec / (s.puffEvery || 0.35)), s.puffEvery || 0.35, () =>
+                play(s.puff, origin + ((s.x || 0) + Math.random() * w) * k, yOf(FOOT_B + (s.puffB ?? 8)), s));
+        };
         const run = s => {
             const v = s.vfx;
             switch (s.do) {
@@ -99,9 +106,13 @@ export function kitPreview(key, slot) {
                         play(v, d.x, s.ground ? api.GROUND_Y : chestY); api.hit(i);
                     }));
                     break;
-                case 'screen': api.dummies.forEach((d, i) => { play(v, d.x, s.ground ? api.GROUND_Y : chestY); api.hit(i); }); break;
+                case 'screen':
+                    if (s.field) play(imageField(s.field, (far - api.dummies[0].x) / api.VFX_SCALE + 112, s.fieldSec || 0.65),
+                        (far + api.dummies[0].x) / 2, api.GROUND_Y);
+                    api.dummies.forEach((d, i) => { play(v, d.x, s.ground ? api.GROUND_Y : chestY); api.hit(i); });
+                    break;
                 case 'line': {
-                    const m = api.muzzle();
+                    const m = s.from === 'mouth' ? api.socket('mouth', 'head') : api.muzzle();
                     play(v, m[0], m[1], { to: [far + 60, chestY] });
                     api.dummies.forEach((d, i) => api.later(i * 0.05, () => api.hit(i)));
                     break;
@@ -112,6 +123,7 @@ export function kitPreview(key, slot) {
                         const d = api.dummies[i % api.dummies.length];
                         play(v, d.x + (Math.random() - 0.5) * 60, s.vfxB != null ? yOf(s.vfxB) : api.GROUND_Y, s);
                         api.later(s.delay ?? 0, () => api.hit(i % api.dummies.length));
+                        if (s.zone?.field) api.later(s.delay ?? 0, () => field(s.zone, d.x - (s.zone.w || 80) * k / 2));
                     });
                     break;
                 }
@@ -129,6 +141,14 @@ export function kitPreview(key, slot) {
                     break;
                 }
                 case 'zone':
+                    if (s.field) { field(s); api.dummies.forEach((_, i) => api.hit(i, 0.4)); break; }
+                    if (s.art?.sheet) {
+                        const x = front + ((s.x || 0) + (s.w || 0) / 2) * k, sec = valOf(sk, s.sec, 5);
+                        play({ layers: [{ type: 'sprite', sheet: s.art.sheet, width: s.art.w * 0.56, height: s.art.h * 0.56,
+                            anchorY: 1, blend: 'normal', dur: sec, fadeIn: 0.2, fadeOut: 0.15 }] }, x, api.GROUND_Y);
+                        if (s.end?.vfx) api.later(sec, () => play(s.end.vfx, x, api.GROUND_Y));
+                        break;
+                    }
                     for (let t = 0; t < 4; t++) api.later(t * 0.45, () => {
                         play(v || s.tickVfx, api.dummies[1].x, api.GROUND_Y - 10 * k, s);
                         api.dummies.forEach((_, i) => api.hit(i, 0.4));
@@ -137,6 +157,7 @@ export function kitPreview(key, slot) {
                 case 'pull': case 'push': api.dummies.forEach((d, i) => { play(v, d.x, chestY); api.hit(i); }); break;
                 case 'dash': case 'blink':
                     for (let i = 0; i < 6; i++) api.later(i * 0.05, () => play(v || s.trail, api.CHAR_X + i * (far - api.CHAR_X) / 5, api.GROUND_Y - 40 * k));
+                    if (s.leave?.field) field(s.leave, api.CHAR_X + 20 * k);
                     break;
                 case 'summon': for (let i = 0; i < Math.min(3, Math.round(valOf(sk, s.n, 1))); i++) play(v || aura, api.CHAR_X + (70 + i * 24) * k, api.GROUND_Y); break;
                 case 'shake': api.shake(Math.min(10, s.power ?? 6), (s.ms ?? 250) / 1000); break;
@@ -145,7 +166,8 @@ export function kitPreview(key, slot) {
             }
         };
         const start = () => sk.steps.forEach(s => {
-            for (let r = 0; r < Math.min(4, s.repeat || 1); r++) api.later((s.at || 0) + r * (s.repeatGap || 1), () => run(s));
+            for (let r = 0; r < Math.min(4, valOf(sk, s.repeat, 1)); r++)
+                api.later((s.at || 0) + r * valOf(sk, s.repeatGap, 1), () => run(s));
         });
         api.playClip(sk.clip || (slot === 'head' ? 'ult' : 'attack'), start);   // 동작이 없으면 바로 (previewApi.playClip)
     };
@@ -181,7 +203,11 @@ export const SKILL_PREVIEWS = {
     abyssHands: api => { api.atSelf(DIVER_VFX.abyssCall); api.atEach(DIVER_VFX.hands); },
     // ---- 봉합 성녀 ----
     needleTriple: api => api.playClip('triple', () => api.previews.needles(3)),
-    lifeSeal: api => api.previews.toggleSeal(),
+    lifeSeal: api => {
+        api.previews.toggleSeal();
+        api.vfx.play(imageField('seal', SAINT.sealZone[1] - SAINT.sealZone[0], SAINT.sealSec),
+            api.CHAR_X + 150 * api.VFX_SCALE, api.GROUND_Y, { scale: api.VFX_SCALE });
+    },
     forcedRevive: api => { api.atSelf(SAINT_VFX.reviveCall); api.at(api.seq(SAINT_VFX.corpseStitch, SAINT_VFX.corpseRise, 0.9), 1, true); },
     // ---- 서리의 무희 ----
     crescentSlash: api => api.playClip('crescent', () => api.previews.frostWave(130, 520, 9)),
@@ -284,7 +310,7 @@ export const SKILL_PREVIEWS = {
             onArrive: () => {
                 api.at(SET_VFX.spitSplash, i, true);
                 api.hit(i);
-                zone(api, SET_VFX.toxicPuff, SET.spit.puddleSec, 0.7, 0, 0.6, [d]);
+                api.vfx.play(imageField('acid', SET.spit.puddleW, SET.spit.puddleSec), d.x, api.GROUND_Y, { scale: api.VFX_SCALE });
             } });
     })),
     // 가시 갑옷: 몸의 가시 발동 뒤 공격자를 찌르는 반사 스파크.
@@ -312,7 +338,7 @@ export const SKILL_PREVIEWS = {
     // 독안개 숨결: 포효 뒤 앞쪽 독 구름, 6초간 0.18초 간격 퍼프와 감속.
     toxicBreath: api => playAt(api, 'victory', 0.35, () => {
         api.at(SET_VFX.toxicBreath, 1, true);
-        zone(api, SET_VFX.toxicPuff, 6, 0.18, 0.5);
+        api.vfx.play(imageField('poison', 300, 6), api.dummies[1].x, api.GROUND_Y, { scale: api.VFX_SCALE });
     }),
     // 독성 점액: 전방 적 발밑에 0.75초 간격 포자 구름과 감속.
     leg_mutant: api => repeat(api, 4, 0.75, () => {
@@ -398,11 +424,9 @@ export const SKILL_PREVIEWS = {
     }),
     // 화염 방사: 공격 동작 뒤 3초간 0.12초 간격 총구 불길과 0.14초 간격 불바닥.
     flamethrower: api => playAt(api, 'attack_punch', 0, () => {
-        repeat(api, 25, 0.12, () => {
-            const m = api.muzzle();
-            api.vfx.play(SET_VFX.flame, m[0], m[1], { scale: api.VFX_SCALE });
-        });
-        zone(api, SET_VFX.flameTick, 3, 0.14);
+        const m = api.muzzle();
+        api.vfx.play(breathImage('breath_fire', 380, 3), m[0], m[1], { scale: api.VFX_SCALE, follow: () => api.muzzle() });
+        api.vfx.play(imageField('fire', 330, 3), api.dummies[1].x, api.GROUND_Y, { scale: api.VFX_SCALE });
     }),
     // 아드레날린 주입: 몸 둘레 주황 고리·증기·빛가루로 공격력 강화.
     adrenaline: api => api.atSelf(SET_VFX.adrenaline),
@@ -419,14 +443,14 @@ export const SKILL_PREVIEWS = {
     },
     // 용의 숨결: 포효 중 입에서 1.6초 불길, 첫 타격 후 4초 불바다.
     dragonBreath: api => playAt(api, 'victory', 0.4, () => {
-        repeat(api, Math.round(SET.dragonBreath.breathSec / 0.1), 0.1, () => {
-            const m = api.socket('mouth', 'head');
-            api.vfx.play(SET_VFX.flame, m[0], m[1], { scale: api.VFX_SCALE });
-        });
+        const m = api.socket('mouth', 'head');
+        api.vfx.play(breathImage('breath_fire', SET.dragonBreath.width + 100, SET.dragonBreath.breathSec),
+            m[0], m[1], { scale: api.VFX_SCALE, follow: () => api.socket('mouth', 'head') });
         api.later(0.1, () => {
             api.shake(5, 0.22);
             api.dummies.forEach((d, i) => api.hit(i));
-            zone(api, SET_VFX.flameTick, SET.dragonBreath.zoneSec, 0.12);
+            api.vfx.play(imageField('fire', SET.dragonBreath.width, SET.dragonBreath.zoneSec),
+                api.dummies[1].x, api.GROUND_Y, { scale: api.VFX_SCALE });
         });
     }),
     // 짓밟기: 걷기 클립의 두 착지 시각에 발밑 주황 충격파와 앞쪽 피해.

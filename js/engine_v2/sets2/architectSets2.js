@@ -262,7 +262,7 @@ export const ARCHITECT_SETS2 = packOf('architect', [
         arm: { name: '거대 굴착 드릴', look: '몸만 한 굴착 드릴', skill: 'arSinkhole', desc: '기본 공격 굴착 드릴 (4연타) · 지반 붕괴: 앞 바닥이 꺼짐 — 범위 피해 + 2초 속박',
             kitAttack: { kind: 'melee', n: 4, gap: 0.07, vfx: V.blast(10, 80, { dur: 0.25 }), splash: 50, splashMul: 0.3 } },
         leg: { name: '거신 궤도', look: '거대한 무한궤도 다리', desc: '짓밟는 궤도: 걸음마다 앞쪽 작은 충격파',
-            passive: { name: '짓밟는 궤도', desc: '걸음마다 앞쪽 작은 충격파', step: { do: 'hit', pick: 'all', range: 120, dmg: 0.4, knock: 0.3, vfx: V.impact(0, 90) } } },
+            passive: { name: '짓밟는 궤도', desc: '걸음마다 앞쪽 작은 충격파', step: { do: 'hit', pick: 'all', range: 120, dmg: 0.4, knock: 0.3, ground: true, vfx: V.shock(50, 150, 0.4) } } },
         skills: {
             arFinalDemolition: { name: '최종 철거', slot: 'head', ult: true, cd: 0, icon: 'drill', color: '#ff503c', target: 'enemy', range: 480, clip: 'slam', p: { count: 3 },
                 desc: '거대 굴착기가 앞쪽을 세 번 내리찍음 — 큰 피해, 거점 3배',

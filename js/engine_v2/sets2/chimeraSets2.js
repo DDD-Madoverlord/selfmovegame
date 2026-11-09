@@ -114,7 +114,7 @@ export const CHIMERA_SETS2 = packOf('chimera', [
         skills: {
             cmWebTrap: { name: '거미줄 덫', slot: 'head', ult: true, cd: 0, icon: 'net', color: '#be5aff', target: 'enemy', range: 420, clip: 'summon',
                 desc: '앞쪽 전체에 거미줄 6초 — 걸린 적은 느려지고 받는 피해 +20%',
-                steps: [{ at: 0.3, do: 'zone', tag: 'web', x: 10, w: 430, sec: 6, slow: true, vuln: 0.2, dps: 0.1, puff: V.sheet('web_purple', 130, { anchorY: 0.85, dur: 0.8 }), puffEvery: 0.3 }] },
+                steps: [{ at: 0.3, do: 'zone', tag: 'web', field: 'web', x: 10, w: 430, sec: 6, slow: true, vuln: 0.2, dps: 0.1 }] },
             cmSpiderlings: { name: '새끼 거미 떼', slot: 'body', cd: 14, icon: 'minions', color: '#be5aff', target: 'self', clip: 'flex', cast: true,
                 desc: '새끼 거미 4기 (8초) — 적에 달라붙어 독',
                 steps: [{ do: 'summon', n: 4, art: 'slime', scale: 0.45, filter: 'hue-rotate(200deg) brightness(0.55) saturate(1.4)', hp: 0.05, dps: 0.12, speed: 0.9, life: 8, hit: { poison: [3, 0.1] }, color: '#be5aff', label: '새끼 거미!' }] },
