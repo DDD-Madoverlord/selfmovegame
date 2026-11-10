@@ -40,13 +40,16 @@ def run(ctx):
               '드랍: 같거나 낮은 등급 → DM·파츠 조각 환급', str(st))
     ctx.check(abs(st['hp1'] - round(st['hp0'] * st['mul'])) <= 1, f"등급 능력치: 유니크 ×{st['mul']}", str(st))
 
-    st = g.js("""progress.shards = 100;
+    st = g.js("""progress.shards = 100; progress.stones = 50; gameState.darkMatter = 500000;
         const cost = progress.shardUpgradeCost('arm_mech_laser');
+        progress.levels['arm_mech_laser'] = cost.needLevel;   // 등급 올리기 전에 지금 등급 한도까지 강화 (D-124)
+        const dm0 = gameState.darkMatter;
         const r = progress.upgradeGradeWithShards('arm_mech_laser');
-        return { cost, r, grade: progress.gradeOf('arm_mech_laser'), shards: progress.shards, max: progress.shardUpgradeCost('arm_mech_laser'),
-            none: progress.shardUpgradeCost('arm_mech_missile') };""")
+        return { cost, r, grade: progress.gradeOf('arm_mech_laser'), shards: progress.shards, stones: progress.stones, dm: dm0 - gameState.darkMatter,
+            max: progress.shardUpgradeCost('arm_mech_laser'), none: progress.shardUpgradeCost('arm_mech_missile') };""")
     ctx.check(st['cost']['grade'] == 'legendary' and st['r']['success'] and st['grade'] == 'legendary' and st['shards'] == 100 - st['cost']['shards']
-              and st['max'] is None and st['none'] is None, '파츠 조각: 유니크 → 레전더리 (조각 차감), 최고 등급·안 가진 파츠는 불가', str(st))
+              and st['stones'] == 50 - st['cost']['stones'] and st['dm'] == st['cost']['dm'] and st['max'] is None and st['none'] is None,
+              '등급 올리기: 유니크 → 레전더리 (조각·DM·승급석 차감, D-124), 최고 등급·안 가진 파츠는 불가', str(st))
 
     st = g.js(IMPORTS + """
         const parts = gameState.getEquippedObjects();
@@ -135,7 +138,7 @@ def run(ctx):
     fresh_battle(g)
     base = g.js("""const e = b.spawnMinion('guard', { x: b.monsterX + 500, elite: true }); e.affixes = []; e.shield = 0;
         const h0 = e.hp; b.dealDamageToEnemy(e, 100, false); return h0 - e.hp;""")
-    g.js("b.gear = { eliteDmg: 0.15, shieldDmg: 0.6, reflectCut: 0.6, healBlock: 3, ccCut: 0.3 };")
+    g.js("b.gear = { eliteDmg: 0.15, shieldDmg: 0.6, reflectCut: 0.6, healBlock: 3, ccCut: 0.3 }; b.roleTaken = 1; b.sigChar = null;")   # 근거리 받는 피해·고유 특성(D-121)은 빼고 옵션만 봄
     st = g.js(IMPORTS + """
         const e = b.spawnMinion('guard', { x: b.monsterX + 500, elite: true }); e.affixes = []; e.shield = 0;
         const h0 = e.hp; b.dealDamageToEnemy(e, 100, false); const elite = h0 - e.hp;
@@ -340,7 +343,7 @@ def run(ctx):
             res[id] = id === 'icefloor' ? b.gearMoveMul() : id === 'overload' ? b.skillCooldown('arm', b.skills.arm) / cd0
                 : b.gearDamageMul({ isBuilding: true });
         }
-        b.mutator = { id: 'bloodmoon', ...G.MUTATORS.bloodmoon };
+        b.mutator = { id: 'bloodmoon', ...G.MUTATORS.bloodmoon }; b.roleTaken = 1; b.sigChar = null;   // 변이 피해만 봄 (D-121 역할·고유 특성 제외)
         const e = b.spawnMinion('guard', { x: b.monsterX + 40, elite: false }); const p0 = b.playerHp;
         b.dealDamageToEnemy(e, 1e6, false); const blast = p0 - b.playerHp;
         return { res, blast: blast / b.maxPlayerHp, hud: document.getElementById('hud-stage-v2').textContent, mut: b.stage.mutator };""")

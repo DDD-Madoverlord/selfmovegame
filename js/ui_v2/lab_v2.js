@@ -653,16 +653,20 @@ export class LabController {
         const gBtn = $('btn-grade-v2');
         if (gBtn) {
             gBtn.querySelector('span').textContent = craft ? '만들기' : '등급 ▲';
-            gBtn.disabled = craft ? craft.shards > progress.shards : !gc || gc.shards > progress.shards;
+            // 등급 올리기 (D-124): 지금 등급 한도까지 강화 + 조각 + DM + 승급석
+            const lvOk = !gc || progress.levelOf(part.id) >= gc.needLevel;
+            const poor = gc ? { sh: gc.shards > progress.shards, dm: gc.dm > gameState.darkMatter, st: gc.stones > (progress.stones || 0) } : {};
+            gBtn.disabled = craft ? craft.shards > progress.shards : !gc || !lvOk || poor.sh || poor.dm || poor.st;
             // 필요 / 보유 조각 (11-05 피드백 10번 — 휴대폰은 보유 줄이 숨어 있어 단추에 같이), 모자라면 빨강
             const need = craft ? craft.shards : owned0 && gc ? gc.shards : null;
             $('lab-grade-cost-v2').innerHTML = !valid ? '' : need != null
-                ? `${icon('shard', 12)}<b class="${need > progress.shards ? 'is-poor' : ''}">${need}</b><i>/${progress.shards}</i>` : !owned0 ? '구매 후' : 'MAX';
+                ? `${icon('shard', 12)}<b class="${(craft ? need > progress.shards : poor.sh) ? 'is-poor' : ''}">${need}</b><i>/${progress.shards}</i>`
+                    + (gc && !craft ? ` <b class="${poor.st ? 'is-poor' : ''}">◆${gc.stones}</b><i>/${progress.stones || 0}</i>` : '') : !owned0 ? '구매 후' : 'MAX';
             gBtn.title = craft ? `파츠 조각 ${craft.shards}개로 만들기 — ${gradeOf(craft.grade).name} (보유 ${progress.shards})`
-                : gc ? `파츠 조각 ${gc.shards}개로 ${gradeOf(gc.grade).name} (보유 ${progress.shards})` : '';
+                : gc ? `${gradeOf(gc.grade).name}로: Lv${gc.needLevel} 강화 뒤 · 조각 ${gc.shards} · DM ${gc.dm.toLocaleString()} · 승급석 ${gc.stones} (보유 조각 ${progress.shards} · 승급석 ${progress.stones || 0})${lvOk ? '' : ' — 먼저 강화'}` : '';
         }
-        // 강화 한도는 열린 난이도에 따라 Lv5 → 7 → 9 → 10 (D-063)
-        const max = progress.maxLevel();
+        // 강화 한도: 등급 한도(커먼 5 · 레어 7 · 유니크 9 · 레전더리 14, D-124)와 열린 난이도 한도(Lv5 → 7 → 9 → 10, D-063) 중 작은 쪽
+        const max = valid ? progress.partMaxLevel(part.id) : progress.maxLevel();
         $('lab-upg-pips-v2').innerHTML = valid ? Array.from({ length: max }, (_, i) => `<i class="${i < lv ? 'is-on' : ''}"></i>`).join('') : '';
         const cost = valid ? progress.upgradeCost(part.id) : null;
         const owned = valid && progress.isOwned(part.id);

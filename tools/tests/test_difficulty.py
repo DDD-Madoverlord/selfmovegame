@@ -55,7 +55,7 @@ def run(ctx):
     g.js(clear_all('normal') + f" {menu}.renderStages();")
     st = g.js(f"""{menu}.selectDifficulty('hard');
         const {{ isUnlocked }} = await import('/js/engine_v2/stages_v2.js');
-        progress.levels['arm_red_robot'] = 5;
+        progress.levels['arm_red_robot'] = 5; progress.grades['arm_red_robot'] = 'rare';   // 커먼은 등급 한도 Lv5 (D-124) — 레어로 열린 난이도 한도를 봄
         return {{ diff: progress.difficulty, max: progress.maxLevel(), cur: {menu}.currentStage().id,
                  u12: isUnlocked('1-2', progress), n12: progress.stage('1-2', 'normal').cleared,
                  hell: document.querySelector('#menu-diffs-v2 [data-diff="hell"]').classList.contains('is-locked'),

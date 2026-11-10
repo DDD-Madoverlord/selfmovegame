@@ -22,7 +22,7 @@ import { emptyPets } from './pets_v2.js';
 import {
     GRADES, gradeOf, gradeIndex, OPTIONS, OPTION_CAPS, DROP, AFFINITY, SKILL_LEVEL, CORES,
     MODULES, MODULE_SLOTS, MODULE_MAX_LEVEL, MODULE_LEVEL_COST, DISPATCH, CHARACTER_ZONE, LEGACY_CHARACTER_STARS, RESEARCH, pickWeighted,
-    SKINS, SKIN_STARS, skinById, skinCharacterOf
+    SKINS, SKIN_STARS, skinById, skinCharacterOf, PROMO
 } from './growth_v2.js';
 
 const partById = id => SLOTS.map(s => (PARTS_DB[s] || []).find(p => p.id === id)).find(Boolean) || null;
@@ -124,17 +124,24 @@ export const GrowthMethods = {
         gameState.notify();
         return { ...base, type: 'refund', options: this.optionsOf(id), dm: r.dm, shards };
     },
-    /** 조각으로 등급 한 칸 올리기 비용 (가진 파츠만, 레전더리면 null) */
+    /** 등급 한 칸 올리기 비용 (가진 파츠만, 레전더리면 null) — 조각 + DM + 승급석, 지금 등급 한도까지 강화해야 (D-124) */
     shardUpgradeCost(id) {
         if (!this.owned.has(id) || id === 'none') return null;
         const next = GRADES[gradeIndex(this.gradeOf(id)) + 1];
-        return next ? { grade: next.id, shards: DROP.shardCost[next.id] } : null;
+        if (!next) return null;
+        const p = PROMO[next.id];
+        return { grade: next.id, shards: p.shards, dm: p.dm, stones: p.stones, needLevel: this.partMaxLevel(id) };
     },
     upgradeGradeWithShards(id) {
         const c = this.shardUpgradeCost(id);
         if (!c) return { success: false, reason: '더 올릴 수 없는 파츠입니다' };
+        if (this.levelOf(id) < c.needLevel) return { success: false, reason: `먼저 Lv${c.needLevel}까지 강화하세요 (지금 등급의 한도)` };
         if (this.shards < c.shards) return { success: false, reason: '파츠 조각이 부족합니다' };
+        if (gameState.darkMatter < c.dm) return { success: false, reason: '다크 매터(DM)가 부족합니다' };
+        if ((this.stones || 0) < c.stones) return { success: false, reason: '승급석이 부족합니다 — 작전 지원 › 스페셜 › 보스 러시에서 얻어요' };
         this.shards -= c.shards;
+        gameState.darkMatter -= c.dm;
+        this.stones -= c.stones;
         this.grades[id] = c.grade;
         this.fillOptions(id, gradeOf(c.grade).options);
         gameState.notify();

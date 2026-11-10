@@ -8,12 +8,21 @@
 
 // ---- 2-1 파츠 등급 ----
 // upCost: 강화(Lv) 비용 배율 — 높은 등급일수록 단계마다 더 비쌈 (2026-11-03 Trello '등급별 강화 비용 차등', 임시 값 Q-018)
+// maxLevel: 그 등급의 강화 한도 (D-124 파츠 성장 안 C, Q-041 임시) — 계정 한도(열린 난이도 + 숨김 그룹, progress.maxLevel)와 작은 쪽
 export const GRADES = [
-    { id: 'common', name: '커먼', color: '170, 176, 190', mul: 1.0, options: 0, upCost: 1.0 },
-    { id: 'rare', name: '레어', color: '80, 160, 255', mul: 1.1, options: 1, upCost: 1.3 },
-    { id: 'unique', name: '유니크', color: '186, 104, 255', mul: 1.2, options: 2, upCost: 1.7 },
-    { id: 'legendary', name: '레전더리', color: '255, 150, 40', mul: 1.35, options: 2, upCost: 2.2 }
+    { id: 'common', name: '커먼', color: '170, 176, 190', mul: 1.0, options: 0, upCost: 1.0, maxLevel: 5 },
+    { id: 'rare', name: '레어', color: '80, 160, 255', mul: 1.1, options: 1, upCost: 1.3, maxLevel: 7 },
+    { id: 'unique', name: '유니크', color: '186, 104, 255', mul: 1.2, options: 2, upCost: 1.7, maxLevel: 9 },
+    { id: 'legendary', name: '레전더리', color: '255, 150, 40', mul: 1.35, options: 2, upCost: 2.2, maxLevel: 14 }
 ];
+// 강화비 곡선 (D-124): 기준값 × 0.6 × 레벨^UP_EXP × 등급 배율 — 예전 레벨^1 (DM이 남아돌아 성장 속도를 조각만 정하던 것, tools/tests/growth_model.py)
+export const UP_EXP = 1.6;
+// 등급 올리기 (D-124): 지금 등급의 강화 한도까지 키운 뒤 조각 + DM + 승급석(스페셜맵 보스 러시) — 예전엔 조각만 (DROP.shardCost)
+export const PROMO = {
+    rare: { shards: 15, dm: 20000, stones: 6 },
+    unique: { shards: 35, dm: 80000, stones: 20 },
+    legendary: { shards: 80, dm: 200000, stones: 40 }
+};
 export const gradeOf = id => GRADES.find(g => g.id === id) || GRADES[0];
 /** 등급 단계 열기 (2026-11-03 Trello '파츠 잠금 해제 방식'): 그 캐릭터의 from 등급 파츠를 need개 가져야 그 등급 파츠를 DM으로 사거나 조각으로 만들 수 있음.
  *  드랍으로 받는 파츠·이미 가진 파츠는 막지 않음. 개수 = 캐릭터별, 무료 기본 파츠 포함 (임시 규칙 Q-018) */
@@ -48,8 +57,7 @@ export const DROP = {
     },
     // 같거나 높은 등급을 이미 가졌을 때: DM 환급 + 파츠 조각
     refund: { common: { dm: 150, shards: 1 }, rare: { dm: 400, shards: 3 }, unique: { dm: 800, shards: 6 }, legendary: { dm: 1500, shards: 12 } },
-    // 조각으로 등급 한 칸 올리기 (천장) — 그 등급으로 올리는 비용
-    shardCost: { rare: 15, unique: 35, legendary: 80 },
+    // (등급 올리기 비용은 위 PROMO로 옮김 — D-124. 예전 shardCost: 레어 15 · 유니크 35 · 레전더리 80, 조각만)
     // 드랍 묶음 가중 (Q-008 · 새캐릭터 기획안 3장): 어느 묶음에서 뽑을지 → 그 안에서 같은 확률. 그 캐릭터에 없는 묶음은 빼고 다시 나눔
     //   base = 기본·강화, rare = 레어 세트 ①~④, unique = 유니크 세트 ①~③, legendary = 레전더리 세트 ①·② (sets_v2.js, D-071)
     poolWeights: {

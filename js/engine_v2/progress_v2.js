@@ -28,7 +28,7 @@ import { PetMethods } from './progressPets_v2.js';
 import { OfflineMethods, emptyOffline } from './offlineReward_v2.js';
 import { TutorialMethods, emptyTutorial } from './tutorial_v2.js';
 import { track } from './analytics_v2.js';
-import { gradeOf, TIER_UNLOCK } from './growth_v2.js';
+import { gradeOf, TIER_UNLOCK, UP_EXP } from './growth_v2.js';
 import { isDropOnly, dropGroupOf } from './sets_v2.js';
 import { allStagesUnlocked, isUnlockedNormally, GROUP_FIRST } from './stages_v2.js';
 import { revealAllTemp } from './contentSchedule_v2.js';
@@ -364,15 +364,20 @@ class Progress {
         return SLOTS.some(slot => { const c = this.upgradeCost(gameState.equippedParts[slot]); return c != null && c <= gameState.darkMatter; });
     }
 
-    /** 다음 레벨 강화 비용 (최대면 null) */
+    /** 이 파츠의 강화 한도: 계정 한도(열린 난이도 + 숨김 그룹)와 등급 한도 중 작은 쪽 (D-124) */
+    partMaxLevel(id) {
+        return Math.min(this.maxLevel(), gradeOf(this.gradeOf(id)).maxLevel);
+    }
+
+    /** 다음 레벨 강화 비용 (한도면 null) */
     upgradeCost(id) {
         const lv = this.levelOf(id);
-        if (lv >= this.maxLevel() || id === 'none') return null;
+        if (lv >= this.partMaxLevel(id) || id === 'none') return null;
         const p = partOf(slotOf(id), id);
         // 강화 기준값 = 가격 (가격 없는 유니크 세트는 1200 — 레어 세트 부위 값보다 조금 위, 레전더리 세트는 1600)
         const base = Math.max(p ? p.cost || ({ unique: 1200, legendary: 1600 }[dropGroupOf(p)] || 0) : 0, 200);
         const grade = gradeOf(this.gradeOf(id)).upCost;   // 등급 배율 (growth_v2.js GRADES upCost, 11-03)
-        return Math.round((base * 0.6 * lv * grade) / 10) * 10;
+        return Math.round((base * 0.6 * Math.pow(lv, UP_EXP) * grade) / 10) * 10;   // 레벨^1.6 (D-124)
     }
 
     upgrade(id) {
