@@ -489,7 +489,8 @@ export class RigAvatar {
 
     /** 바람 세기 (Q6): 걷는 중이면 걷기 배율 쪽으로, 멈추면 0으로 천천히 */
     _tickWind(dt) {
-        const target = this.mode === 'walk' ? ((this.walkScale ?? 1) - 1) / (WIND.fullAt - 1) : 0;
+        // 느린 걸음은 반대로 조금만 (원거리 이동 ×0.5로 걷기 배율이 0.6까지 내려가 망토가 앞으로 크게 날리던 것 — D-121)
+        const target = this.mode === 'walk' ? Math.max(WIND.minK, ((this.walkScale ?? 1) - 1) / (WIND.fullAt - 1)) : 0;
         this.windK = (this.windK || 0) + (target - (this.windK || 0)) * Math.min(1, dt * WIND.ease);
     }
 
@@ -688,7 +689,8 @@ export class RigAvatar {
     _loop(now) {
         if (!this.running) return;
         // 히트스톱/일시정지 0, 배속 적용 × 이 캐릭터만의 동작 속도(감속 0.55, 기절 0)
-        const walk = this.mode === 'walk' ? this.walkScale ?? 1 : 1;   // 걷기 동작은 실제 진격 속도에 맞춤 (Q2)
+        // 걷기 동작은 실제 진격 속도에 맞춤 (Q2) — 걸으며 쓰는 스킬 동작(onceClip)은 제 빠르기 (속도 ×0.5/×2(D-121)로 스킬 동작이 늘어지거나 빨라지지 않게)
+        const walk = this.mode === 'walk' && !this.onceClip ? this.walkScale ?? 1 : 1;
         const raw = Math.max(0, Math.min(0.1, (now - this.last) / 1000));   // 음수 막기 (Android WebView 첫 프레임)
         const real = raw * gameTime.scale(now);   // 히트스톱·일시정지만 (반응 동작용)
         const dt = real * (this.timeScale ?? 1) * walk * (this.mode === 'attack' ? this.supportAttackSpeed ?? 1 : 1);

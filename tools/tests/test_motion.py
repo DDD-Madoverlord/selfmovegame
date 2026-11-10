@@ -37,9 +37,10 @@ def run(ctx):
         g.wait(400)
         speeds[name] = g.js("""return { k: b.groundK, speed: b.playerSpeed, walk: m.rigBattle.walkScale, mode: m.rigBattle.mode,
             bg: document.getElementById('bg-ground-v2').getAnimations().map(a => a.playbackRate), ground: b.groundSpeed() };""")
-    f, k = speeds['frost'], speeds['kaiju']
-    ctx.check(k['k'] < f['k'] and all(abs(r - k['k']) < 0.02 for r in k['bg']) and k['mode'] == 'walk' and k['walk'] < f['walk'],
-              f"Q2 걸음 맞추기: 느린 거대괴수(속도 {k['speed']})는 배경 ×{k['k']:.2f}·걷기 ×{k['walk']:.2f}, 무희(속도 {f['speed']})는 ×{f['k']:.2f}", str(speeds))
+    # 원거리/근거리(D-121)로 무희(원거리 ×0.5)가 느리고 거대괴수(근거리 ×2)가 빨라짐 → 속도로 느린 쪽을 고름
+    k, f = sorted([speeds['frost'], speeds['kaiju']], key=lambda s: s['speed'])
+    ctx.check(k['speed'] < f['speed'] and k['k'] < f['k'] and all(abs(r - k['k']) < 0.02 for r in k['bg']) and k['mode'] == 'walk' and k['walk'] < f['walk'],
+              f"Q2 걸음 맞추기: 느린 쪽(속도 {k['speed']})은 배경 ×{k['k']:.2f}·걷기 ×{k['walk']:.2f}, 빠른 쪽(속도 {f['speed']})은 ×{f['k']:.2f}", str(speeds))
     ctx.check(abs(k['ground'] - 1280 / 3 * k['k']) < 0.5, 'Q2 바닥에 놓인 것(장판·잔해·시체)도 같은 빠르기로 흐름', str(k))
 
     # ---- Q3: 걸으며 스킬 — 다리는 걷기 동작, 끝나면 그 걸음 시점에서 걷기로 ----
@@ -104,8 +105,8 @@ def run(ctx):
               and st['w'] == st['fw'] * 2 * st['frames'] and st['h'] == st['fh'] * 2,
               f"Q5 적 그림: WebP·2배 픽셀(경비병 {st['w']}×{st['h']})·걷기 16장·공격 14장", str(st))
 
-    # ---- Q6: 멈추면 앞으로 쏠림, 빨리 걸을수록 망토·머리카락이 뒤로 (빠른 그림자 마도사 히어로 — 속도 170) ----
-    g.battle(('head_hero_b', 'body_hero_b', 'arm_hero_b', 'leg_hero_b'), wait_ms=1500)
+    # ---- Q6: 멈추면 앞으로 쏠림, 빨리 걸을수록 망토·머리카락이 뒤로 (빠른 타락 기사 히어로 — 대검 근거리 ×2, D-121) ----
+    g.battle(('head_hero_a', 'body_hero_a', 'arm_hero_a', 'leg_hero_a'), wait_ms=1500)
     clear(g)
     g.wait(1200)
     st = g.js("""const r = m.rigBattle; const wind = r.windK; r.setMode('attack');""" + WAIT.format(ms=90) + """
