@@ -7,6 +7,7 @@
    ========================================================================== */
 
 import { VERSION, BUILD } from '../version_v2.js';
+import { liveTune } from './liveTune_v2.js';
 
 function readStored(key, fallback) {
     try { return JSON.parse(localStorage.getItem(key)) ?? fallback; } catch (e) { return fallback; }
@@ -93,6 +94,7 @@ export function track(name, params = {}) {
         installId: session.installId,
         platform: window.madOverlordApp ? 'app' : 'web',
         version: VERSION, build: BUILD,
+        ...(liveTune.isModified() ? { tuned: 1 } : {}),   // 밸런스 조절 값으로 한 판 (시험용, D-127 — 통계에서 거르기)
         firstOpenAt: session.firstOpenAt,
         daysSinceFirst: Math.max(0, Math.floor((ts - session.firstOpenAt) / 86400000))
     };

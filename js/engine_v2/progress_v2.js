@@ -33,6 +33,7 @@ import { isDropOnly, dropGroupOf } from './sets_v2.js';
 import { allStagesUnlocked, isUnlockedNormally, GROUP_FIRST } from './stages_v2.js';
 import { revealAllTemp } from './contentSchedule_v2.js';
 import { roleOfArm, roleMods, armorOf } from './role_v2.js';
+import { liveTune } from './liveTune_v2.js';
 import * as saveStore from './saveStore_v2.js';
 import { settings } from './settings_v2.js';
 import { SupportProgressMethods } from './support_v2.js';
@@ -413,6 +414,7 @@ class Progress {
         }
         // 원거리·근거리 (D-119): 팔 공격 종류로 공격력·진격 속도 배율, 방어력(%) = 받는 피해 감소율 — 전투(battle_v2.js)와 연구소 표시가 같은 값
         const role = roleOfArm(partsObj.arm), mod = roleMods(role);
+        dps *= liveTune.attackMul(characterOfPart(partsObj.body) || this.character);   // 밸런스 조절 (시험용, D-127) — 기본값이면 ×1
         return { hp, dps: Math.round(dps * mod.dps), range: Math.max(80, range), speed: Math.max(30, Math.round(speed * mod.move)), role, armor: armorOf(role) };
     }
 

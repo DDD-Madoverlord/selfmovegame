@@ -45,6 +45,7 @@ import { KitMethods } from './battle/kit.js';
 import { TraitMethods } from './battle/traits.js';
 import { SpecialBattleMethods } from './battle/special.js';
 import { roleMods } from './role_v2.js';
+import { liveTune } from './liveTune_v2.js';
 import { DiverMethods } from './battle/diver.js';
 import { SaintMethods } from './battle/saint.js';
 import { FrostMethods } from './battle/frost.js';
@@ -172,6 +173,7 @@ export class BattleEngine {
             this.assist = progress.assist(sid, this.difficulty);   // 연패 보정: 못 깬 판에서 진 만큼 적·거점 약하게 (difficulty_v2.js ASSIST)
             this.stage = this.growthStage(assistStage(stageFor(stageById(sid), this.difficulty), this.assist));   // + 계정 연구 DM (growth.js)
         }
+        this.stage = this.tunedStage(this.stage, true);   // 밸런스 조절 (시험용, D-127): 적 체력·공격력 배율 — 기본값이면 그대로
         predecodeStageArt(this.stage);   // 이 스테이지 적 그림을 미리 풂 (enemies_v2.js — 처음 나올 때 멈칫하지 않게)
         // 구역 배경 (ui_v2.css .v2-zone-1 ~ 4 · 6), 보스전은 경보 조명·불길 판 (.v2-stage-boss)
         // .v2-boss-rage(구역 4 보스 2페이즈)·.v2-crimson(구역 3 악마기사 소환 점멸)은 전투 중에 붙음
@@ -264,6 +266,7 @@ export class BattleEngine {
         this.playerHp = stats.hp;
         this.healTaken = 0;       // 이번 전투에서 회복한 양 (player.js healPlayer — 구역 6 보스 '생명의 저울')
         this.playerDps = stats.dps;
+        this.statDps = stats.dps;   // 밸런스 조절로 전투 중 다시 계산할 때 기준 (applyLiveTune — 합성괴인 2페이즈 같은 배율은 비율로 유지)
         this.playerRange = stats.range;
         this.playerSpeed = stats.speed;
         this.attackType = equippedObjs.arm ? (equippedObjs.arm.attackType || 'melee') : 'melee';
@@ -451,6 +454,27 @@ export class BattleEngine {
         this.director.playerDown().then(() => {
             if (this.runId === run && this.isActive) this.finishBattle(false);
         });
+    }
+
+    /** 밸런스 조절 (시험용, D-127): 적 체력(거점 포함)·공격력 배율을 곱한 스테이지 복사본. first = 출격 때(기준값 저장) */
+    tunedStage(stage, first = false) {
+        if (first) this.tuneBase = { hp: stage.enemy.hp, dps: stage.enemy.dps, mid: stage.base.mid, final: stage.base.final };
+        const t = liveTune.get(), base = this.tuneBase;
+        if (!base || (t.enemyHp === 1 && t.enemyDps === 1 && first)) return stage;
+        return { ...stage, enemy: { ...stage.enemy, hp: base.hp * t.enemyHp, dps: base.dps * t.enemyDps },
+            base: { ...stage.base, mid: Math.round(base.mid * t.enemyHp), final: Math.round(base.final * t.enemyHp) } };
+    }
+
+    /** 밸런스 조절 값이 바뀌면 (전투 중): 주인공 공격력·이동·받는 피해 다시 계산, 적은 새로 나오는 적·다음 공격부터 */
+    applyLiveTune() {
+        if (!this.isActive || !this.stage) return;
+        const stats = progress.statsFor(gameState.getEquippedObjects());
+        const ratio = this.statDps ? this.playerDps / this.statDps : 1;
+        this.playerDps = stats.dps * ratio;
+        this.statDps = stats.dps;
+        if (this.playerSpeed > 0) this.playerSpeed = stats.speed;
+        this.roleTaken = roleMods(stats.role).taken;
+        this.stage = this.tunedStage(this.stage);
     }
 
     /** 스페셜맵 끝 (D-123): 보스 러시 = 단계 기록·승급석, 파괴 작전 = 점수·등급 → 결과 화면 (보통 판 기록·별·드랍 없음) */
@@ -713,3 +737,4 @@ attachMethods(BattleEngine.prototype, {
 });
 
 export const battleEngineV2 = new BattleEngine();
+liveTune.subscribe(() => battleEngineV2.applyLiveTune());   // 밸런스 조절 패널에서 값을 바꾸면 바로 (D-127)

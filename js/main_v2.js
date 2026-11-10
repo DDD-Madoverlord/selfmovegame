@@ -16,6 +16,7 @@ import { registerAllSets2 } from './engine_v2/sets2/index.js';
 import { runLoading } from './ui_v2/loading_v2.js';
 import { showTitle, skipTitle } from './ui_v2/title_v2.js';
 import { maybePromptAccount } from './ui_v2/account_v2.js';
+import { mountTuneTab } from './ui_v2/tunePanel_v2.js';
 import { isApp, checkForUpdate } from './ui_v2/appUpdate_v2.js';
 import { applyVfxChoices, readVfxChoices, readVfxStyle } from './engine_v2/vfx/vfxVariants.js';
 import { preloadVfxSheets } from './engine_v2/vfx/vfxPlayer.js';
@@ -241,4 +242,5 @@ export function initGameRouterV2() {
     // 캐릭터·사운드 미리 받기 (메인 화면은 뒤에서 바로 준비) → 시작 화면(D-119 1번, 자동 검사는 ?skipTitle=1로 건너뜀) → 앱이면 새 버전 확인 (D-074)
     runLoading().then(() => (skipTitle() ? null : showTitle())).then(() => { if (isApp()) checkForUpdate({ silent: true }); });
     window.madOverlordGameV2 = new GameRouterV2();
+    mountTuneTab();   // 밸런스 조절 탭 (시험용, D-127 — 시험 모드·?tune=1·값이 바뀌어 있을 때만 보임)
 }
