@@ -100,6 +100,20 @@ export const HERO_CLIPS = {
         ]
     },
 
+    // 조준 사격 (연발 석궁 기본 공격, D-119): 0~0.18 석궁을 앞으로 겨눔 → 0.32 쏨(반동) → 다시 겨눔 반복
+    attack_shoot: {
+        duration: 0.8,
+        loop: true,
+        tracks: {
+            armF: { rot: [[0, 0], [0.18, -24, 'out'], [0.3, -24], [0.34, -17, 'out'], [0.5, -24], [0.8, 0]] },
+            sword: { rot: [[0, 0], [0.18, -6, 'out'], [0.3, -6], [0.34, -1, 'out'], [0.5, -6], [0.8, 0]] },
+            torso: { x: [[0, 0], [0.18, 4, 'out'], [0.3, 4], [0.34, -5, 'out'], [0.5, 2], [0.8, 0]], rot: [[0, 0], [0.34, -1.5], [0.8, 0]] },
+            head: { rot: [[0, 0], [0.18, 2], [0.8, 0]] },
+            cape1: { rot: [[0, 0], [0.34, 5, 'out'], [0.8, 0]] }
+        },
+        events: [[0.32, 'shoot', { hit: 1 }]]
+    },
+
     // 내려베기: 0~0.28 칼을 머리 위로 → 0.28~0.4 앞발을 내딛으며 내려침(타격) → 복귀
     // 팔 한 장을 100° 넘게 돌리면 건틀릿이 뒤집혀 얼굴을 덮으므로, 팔은 100°까지만 올리고 나머지는 손목(칼)으로
     attack_slash: {
@@ -230,7 +244,9 @@ export const HERO = {
     arms: null,
     attack: 'attack_slash',
     hitSocket: ['tip', 'sword'],
-    sockets: { hand: [660, 666] },       // 칼 쥔 주먹 (스킬 시전 에너지/세뇌 구체 발사 위치)
+    // tip_c: 연발 석궁(세트 c) 앞 활대 가운데 = 볼트가 나가는 곳 (D-119)
+    sockets: { hand: [660, 666], tip_c: [948, 772] },       // hand: 칼 쥔 주먹 (스킬 시전 에너지/세뇌 구체 발사 위치)
+    variantSockets: { sword: ['tip'] },   // 무기 세트 그림을 끼우면 tip → tip_<글자> (있을 때만)
     autoGround: [['footF', 'shinF'], ['footB', 'shinB']],   // 다리가 몸통에 매달려 있어 발로 접지
     skillClips: [['시전', 'cast'], ['검 치켜들기', 'raise'], ['찌르기', 'thrust'], ['크게 휩쓸기', 'sweep']],   // rig_test.html 동작 버튼 (뒤 셋은 2차 세트, D-071)
     wind: [{ bone: 'cape1', rot: 4 }, { bone: 'cape2', rot: 7 }],   // 빨리 걸을수록 망토가 뒤로 (Q-008 Q6, reactions.js WIND)

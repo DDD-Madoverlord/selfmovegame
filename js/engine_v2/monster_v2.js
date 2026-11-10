@@ -197,7 +197,8 @@ export class MonsterController {
                 this.rigMenu.setVariants(config.variants);
                 this.rigMenu.setUpgrades(config.upgrades);
             }
-            this.rigBattle.quietFire = !!config.quietFire;   // 팔 shotFx가 총구 연출을 그림 (D-118)
+            this.rigBattle.quietFire = !!config.quietFire;
+            this.rigBattle.attackOverride = config.attackClip || null;   // 팔 파츠 공격 동작 (D-119)   // 팔 shotFx가 총구 연출을 그림 (D-118)
             if (config.arm) {
                 this.rigBattle.setArm(config.arm);
                 if (this.rigMenu) this.rigMenu.setArm(config.arm);

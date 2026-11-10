@@ -180,6 +180,240 @@ export const EXTRA_DRAW = {
         ctx.restore();
     },
 
+    // 저주의 사슬 (D-119): 적 발밑 양옆 땅에서 쇠사슬이 솟아 몸통을 엇갈려 감음 — 사슬 고리는 넓은 고리·옆모습 고리를 번갈아
+    // (잠수부 앵커 사슬 drawChain과 같은 고리 그림), 쇠 빛 + 보라 저주 빛, 끝날 때 끊어지며 흩어짐
+    chains(ctx, x, y, it, u, s, time) {
+        const life = it.remaining ? it.remaining() : it.dur - it.t;
+        const grow = smooth(it.t / 0.22), fade = smooth(life / 0.3);
+        if (fade <= 0) return;
+        const color = it.color || '190, 110, 255';
+        const H = (it.h || 80) * s, W = (it.w || 46) * s;
+        // [시작(땅) x, 끝 x, 끝 높이 비율]: 왼쪽 땅 → 오른쪽 어깨, 오른쪽 땅 → 왼쪽 가슴, 가운데 → 허리
+        const list = it.list || [[-1, 0.7, 0.85], [1, -0.75, 0.62], [-0.55, 0.9, 0.35]];
+        ctx.save();
+        for (const [k, [sx, ex, eh]] of list.entries()) {
+            const ax = x + sx * W, ay = y + 2 * s;
+            const bx = x + ex * W * 0.6, by = y - H * eh;
+            const g = grow * Math.min(1, Math.max(0, (it.t - k * 0.06) / 0.2));
+            if (g <= 0) continue;
+            const tx = ax + (bx - ax) * g, ty = ay + (by - ay) * g;
+            const sag = Math.sin(time * 6 + k) * 2 * s;   // 팽팽하게 떨림
+            const len = Math.hypot(tx - ax, ty - ay), ang = Math.atan2(ty - ay, tx - ax);
+            const step = 7.5 * s, n = Math.max(1, Math.floor(len / step));
+            ctx.globalCompositeOperation = 'lighter';   // 저주 빛 (사슬 뒤 번짐)
+            ctx.strokeStyle = `rgba(${color}, ${0.35 * fade})`;
+            ctx.lineWidth = 9 * s;
+            ctx.lineCap = 'round';
+            ctx.beginPath();
+            ctx.moveTo(ax, ay);
+            ctx.lineTo(tx, ty + sag);
+            ctx.stroke();
+            ctx.globalCompositeOperation = 'source-over';
+            for (let i = 0; i < n; i++) {
+                const f = (i + 0.5) / n;
+                const px = ax + (tx - ax) * f, py = ay + (ty - ay) * f + sag * Math.sin(f * Math.PI);
+                const wide = i % 2 === 0;
+                ctx.save();
+                ctx.translate(px, py);
+                ctx.rotate(ang);
+                ctx.globalAlpha = fade;
+                ctx.lineWidth = 3.4 * s;
+                ctx.strokeStyle = '#1a1424';                      // 고리 외곽선
+                ctx.beginPath();
+                ctx.ellipse(0, 0, 5 * s, (wide ? 3.4 : 1.2) * s, 0, 0, TAU);
+                ctx.stroke();
+                ctx.lineWidth = 1.8 * s;
+                ctx.strokeStyle = wide ? '#b8b0cc' : '#7e7594';    // 쇠 빛 (넓은 고리 밝게)
+                ctx.beginPath();
+                ctx.ellipse(0, 0, 5 * s, (wide ? 3.4 : 1.2) * s, 0, 0, TAU);
+                ctx.stroke();
+                if (wide) {                                        // 위쪽 반짝임
+                    ctx.strokeStyle = `rgba(${color}, 0.9)`;
+                    ctx.lineWidth = 1 * s;
+                    ctx.beginPath();
+                    ctx.ellipse(0, 0, 5 * s, 3.4 * s, 0, Math.PI * 1.1, Math.PI * 1.6);
+                    ctx.stroke();
+                }
+                ctx.restore();
+            }
+            // 땅에 박힌 고정쇠
+            ctx.globalAlpha = fade;
+            ctx.fillStyle = '#2a2236';
+            ctx.beginPath();
+            ctx.ellipse(ax, ay, 6 * s, 3 * s, 0, 0, TAU);
+            ctx.fill();
+            ctx.globalCompositeOperation = 'lighter';
+            glow(ctx, ax, ay, 12 * s, `rgba(${color}, ${0.5 * fade})`);
+            ctx.globalAlpha = 1;
+        }
+        ctx.restore();
+    },
+
+    // 바닥 갈라짐 (지면 내려찍기, D-119 보완): 옆에서 본 땅 — 내려찍은 자리 땅 윗면이 쩍 벌어져(V자 틈) 앞면 바위로 금이 타고 내려가고,
+    //   틈 가장자리 바닥 판이 비스듬히 들림. 땅 윗면을 따라 들쭉날쭉한 갈라짐이 좌우로 이어짐. 틈은 0.15초에 벌어지고 끝에서 옅어짐 (바닥 층)
+    //   (처음 넣은 위에서 내려다본 금은 땅 띠가 얇아 가는 선처럼 보였음)
+    fissure(ctx, x, y, it, u, s, time) {
+        const life = it.remaining ? it.remaining() : it.dur - it.t;
+        const fade = smooth(life / 0.45), open = easeOut(clamp01(it.t / 0.15));
+        if (fade <= 0) return;
+        const L = (it.len || 170) * s, glowC = it.glow || '160, 255, 50';
+        if (!it.shape) {
+            const rnd = (k => () => { k = (k * 9301 + 49297) % 233280; return k / 233280; })(Math.floor(Math.random() * 233280));
+            const jagLine = (x0, y0, x1, y1, n, amp) => Array.from({ length: n + 1 }, (_, i) => {
+                const f = i / n, j = i === 0 || i === n ? 0 : (rnd() - 0.5) * amp;
+                return [x0 + (x1 - x0) * f + j * 0.4, y0 + (y1 - y0) * f + j];
+            });
+            // 틈: [가운데 x 비율, 윗폭, 깊이] — 가운데가 가장 크게
+            const splits = [[0, 26, 62], [-0.42, 15, 40], [0.45, 17, 44], [-0.82, 8, 24], [0.85, 9, 26]].map(([fx, w, d]) => {
+                const cx = fx * L + (rnd() - 0.5) * 10, n = 5, left = [], right = [];
+                let ox = 0;
+                for (let i = 0; i <= n; i++) {
+                    const f = i / n, hw = w * Math.pow(1 - f, 1.1) / 2;
+                    ox += i ? (rnd() - 0.5) * w * 0.5 : 0;
+                    left.push([cx + ox - hw - rnd() * 2, f * d]); right.push([cx + ox + hw + rnd() * 2, f * d]);
+                }
+                const branches = [0, 1].map(k => {   // 앞면 바위로 비스듬히 내려가는 금
+                    const sgn = k ? 1 : -1, a = sgn * (0.5 + rnd() * 0.6), len = d * (0.7 + rnd() * 0.6);
+                    const sy = d * (0.25 + rnd() * 0.3);
+                    return { pts: jagLine(cx + sgn * w * 0.2, sy, cx + sgn * w * 0.2 + Math.sin(a) * len, sy + Math.cos(Math.abs(a)) * len * 0.8, 4, 6), w: Math.max(2, w * 0.22) };
+                });
+                return { cx, w, d, left, right, branches };
+            });
+            const surface = jagLine(-L * 1.05, 0, L * 1.05, 0, 22, 3);   // 땅 윗면을 따라가는 갈라짐
+            const slabs = [[-0.12, -1], [0.1, 1], [-0.5, -1], [0.55, 1]].map(([fx, side]) => ({ fx, side, w: 30 + rnd() * 14, tilt: side * (0.22 + rnd() * 0.18) }));
+            it.shape = { splits, surface, slabs };
+        }
+        const { splits, surface, slabs } = it.shape;
+        const S = (px, py) => [x + px * s, y + py * s];   // 모양은 s=1 기준 px → 화면
+        const path = pts => { ctx.beginPath(); pts.forEach((p, i) => { const q = S(...p); i ? ctx.lineTo(q[0], q[1]) : ctx.moveTo(q[0], q[1]); }); };
+        ctx.save();
+        ctx.globalAlpha = fade;
+        ctx.lineJoin = 'round'; ctx.lineCap = 'round';
+        // 땅 윗면 갈라짐 (좌우로 이어짐): 어두운 띠 + 밝은 윗입술
+        const reach = open * L / s;
+        const surf = surface.filter(([px]) => Math.abs(px) <= reach + 1);
+        if (surf.length > 1) {
+            path(surf.map(([px, py]) => [px, py + 1.5])); ctx.lineWidth = 4.5 * s; ctx.strokeStyle = 'rgba(12, 8, 6, 0.85)'; ctx.stroke();
+            path(surf.map(([px, py]) => [px, py - 1.2])); ctx.lineWidth = 1.2 * s; ctx.strokeStyle = 'rgba(200, 180, 140, 0.4)'; ctx.stroke();
+        }
+        // 틈과 앞면 금
+        for (const sp of splits) {
+            const k = open;
+            const L2 = sp.left.map(([px, py]) => [sp.cx + (px - sp.cx) * k, py * k]), R2 = sp.right.map(([px, py]) => [sp.cx + (px - sp.cx) * k, py * k]);
+            for (const br of sp.branches) {
+                const n = Math.max(2, Math.ceil(br.pts.length * k));
+                path(br.pts.slice(0, n)); ctx.lineWidth = (br.w + 2) * s; ctx.strokeStyle = 'rgba(8, 5, 4, 0.75)'; ctx.stroke();
+                path(br.pts.slice(0, n)); ctx.lineWidth = br.w * 0.5 * s; ctx.strokeStyle = 'rgba(4, 2, 2, 0.95)'; ctx.stroke();
+            }
+            path([...L2, ...R2.slice().reverse()]); ctx.closePath();
+            ctx.fillStyle = '#0d0806'; ctx.fill();
+            ctx.lineWidth = 1.6 * s; ctx.strokeStyle = 'rgba(60, 44, 30, 0.95)'; ctx.stroke();
+            const hot = smooth(1 - it.t / 1.0);   // 틈 깊은 곳 기운 (처음에만)
+            if (hot > 0) {
+                ctx.globalCompositeOperation = 'lighter';
+                const mid = L2.map((p, i) => [(p[0] + R2[i][0]) / 2, p[1]]);
+                path(mid); ctx.lineWidth = Math.max(1.5, sp.w * 0.18 * k) * s; ctx.strokeStyle = `rgba(${glowC}, ${0.35 * hot})`; ctx.stroke();
+                ctx.globalCompositeOperation = 'source-over';
+            }
+            // 벌어진 입술 위쪽 밝은 모서리
+            path([L2[0], L2[1]]); ctx.lineWidth = 1.4 * s; ctx.strokeStyle = 'rgba(205, 185, 145, 0.6)'; ctx.stroke();
+            path([R2[0], R2[1]]); ctx.stroke();
+        }
+        // 들린 바닥 판: 틈 가장자리 판이 틈 반대쪽을 축으로 비스듬히 솟음 (윗면 흙빛 + 앞면 어두운 바위)
+        const lift = easeOut(clamp01(it.t / 0.12));
+        for (const sl of slabs) {
+            const [hx, hy] = S(sl.fx * L / s + sl.side * sl.w * 0.9, 0);   // 돌쩌귀 (틈 반대쪽 끝)
+            const w = sl.w * s, h = 9 * s;
+            ctx.save();
+            ctx.translate(hx, hy);
+            ctx.rotate(sl.tilt * lift);
+            const dir = -sl.side;   // 틈 쪽으로 뻗음
+            ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(dir * w, 0); ctx.lineTo(dir * w * 0.92, h); ctx.lineTo(dir * w * 0.1, h * 1.1); ctx.closePath();
+            ctx.fillStyle = '#2a201a'; ctx.fill();                                  // 앞면
+            ctx.lineWidth = 1.4 * s; ctx.strokeStyle = '#120c08'; ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(dir * w, 0); ctx.lineTo(dir * w * 0.96, -3 * s); ctx.lineTo(0, -3.5 * s); ctx.closePath();
+            ctx.fillStyle = '#5e4c3a'; ctx.fill();                                  // 윗면 (땅 겉)
+            ctx.beginPath(); ctx.moveTo(0, -3.5 * s); ctx.lineTo(dir * w * 0.96, -3 * s);
+            ctx.lineWidth = 1.2 * s; ctx.strokeStyle = 'rgba(215, 195, 155, 0.7)'; ctx.stroke();
+            ctx.restore();
+        }
+        ctx.restore();
+    },
+
+    // 곰덫 (덫 설치, D-119): 바닥에 펼친 톱니 턱 두 개 + 가운데 발판. bite()가 물고 난 시간을 주면 턱이 탁 닫혔다 다시 벌어짐
+    //   턱 = 반원, 발판 축(좌우)을 돌쩌귀로 눕힘(0)→세움(1). 앞 턱은 보는 쪽, 뒤 턱은 안쪽 — 위에서 살짝 내려다본 모습
+    beartrap(ctx, x, y, it, u, s, time) {
+        const life = it.life ? it.life() : it.remaining ? it.remaining() : it.dur - it.t;   // life: 장판 남은 시간 (물고 나서 일찍 사라질 때 같이 옅어짐)
+        const vis = Math.min(smooth(it.t / 0.25), smooth(life / 0.35));
+        if (vis <= 0) return;
+        const age = it.bite ? it.bite() : null;
+        const c = age == null ? 0 : age < 0.07 ? age / 0.07 : age < 1 ? 1 : Math.max(0, 1 - (age - 1) / 0.3);
+        const R = (it.r || 19) * s, PERSP = 0.34, phi = c * Math.PI / 2 * 0.8;   // 다 닫혀도 두 턱이 살짝 벌어져 톱니가 맞물린 게 보이게
+        const drop = (1 - smooth(it.t / 0.25)) * 26 * s;   // 위에서 툭 떨어져 놓임
+        const P = (px, py, pz) => [x + px, y - drop - py + pz * PERSP];
+        const jaw = side => {   // side 1 = 앞, -1 = 뒤
+            const pts = [], teeth = [];
+            for (let i = 0; i <= 16; i++) {
+                const th = Math.PI * i / 16, r = R * Math.sin(th);
+                pts.push(P(R * Math.cos(th), r * Math.sin(phi), side * r * Math.cos(phi)));
+                if (i % 2 === 1 && i < 16) {   // 톱니: 턱 면의 법선 쪽 (누우면 위, 서면 맞은 턱 쪽)
+                    const tl = 6.5 * s, b0 = R * Math.sin(th);
+                    const base = [R * Math.cos(th), b0 * Math.sin(phi), side * b0 * Math.cos(phi)];
+                    const n = [0, Math.cos(phi), -side * Math.sin(phi)];
+                    const w = 3 * s * Math.sign(Math.cos(th) || 1);
+                    teeth.push([P(base[0] - 3 * s, base[1], base[2]), P(base[0] + n[0] * tl, base[1] + n[1] * tl, base[2] + n[2] * tl), P(base[0] + 3 * s, base[1], base[2])]);
+                }
+            }
+            const path = () => { ctx.beginPath(); pts.forEach((p, i) => (i ? ctx.lineTo(p[0], p[1]) : ctx.moveTo(p[0], p[1]))); };
+            ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+            teeth.forEach(t => {
+                ctx.beginPath(); ctx.moveTo(...t[0]); ctx.lineTo(...t[1]); ctx.lineTo(...t[2]); ctx.closePath();
+                ctx.fillStyle = side > 0 ? '#c9c3d4' : '#8d879b'; ctx.fill();
+                ctx.lineWidth = 1.6 * s; ctx.strokeStyle = '#1a1424'; ctx.stroke();
+            });
+            path(); ctx.lineWidth = 6.5 * s; ctx.strokeStyle = '#1a1424'; ctx.stroke();
+            path(); ctx.lineWidth = 3.6 * s; ctx.strokeStyle = side > 0 ? '#a7a1b5' : '#6f6980'; ctx.stroke();
+            if (side > 0) { path(); ctx.lineWidth = 1.2 * s; ctx.strokeStyle = 'rgba(255, 255, 255, 0.55)'; ctx.stroke(); }
+        };
+        ctx.save();
+        ctx.globalAlpha = vis;
+        const color = it.color || '150, 220, 120';
+        ctx.globalCompositeOperation = 'lighter';   // 바닥에 옅은 사냥꾼 빛 (어두운 바닥에서도 보이게)
+        ctx.fillStyle = `rgba(${color}, ${0.22 + 0.08 * Math.sin(time * 4)})`;
+        ctx.beginPath(); ctx.ellipse(x, y + 2 * s, R * 1.7, R * 0.55, 0, 0, TAU); ctx.fill();
+        ctx.globalCompositeOperation = 'source-over';
+        jaw(-1);
+        // 용수철 팔 + 가운데 발판
+        const [l0, l1] = [P(-R * 1.55, 0, 0), P(R * 1.55, 0, 0)];
+        ctx.lineCap = 'round';
+        ctx.lineWidth = 5 * s; ctx.strokeStyle = '#1a1424';
+        ctx.beginPath(); ctx.moveTo(...l0); ctx.lineTo(...l1); ctx.stroke();
+        ctx.lineWidth = 2.6 * s; ctx.strokeStyle = '#5d566e';
+        ctx.beginPath(); ctx.moveTo(...l0); ctx.lineTo(...l1); ctx.stroke();
+        const [px, py] = P(0, 0, 0);
+        ctx.fillStyle = '#4a4458'; ctx.strokeStyle = '#1a1424'; ctx.lineWidth = 1.8 * s;
+        ctx.beginPath(); ctx.ellipse(px, py, R * 0.45, R * 0.45 * PERSP * 1.6, 0, 0, TAU); ctx.fill(); ctx.stroke();
+        jaw(1);
+        if (c > 0.5) {   // 닫힌 턱: 맞물린 톱니가 반원 둘레를 따라 지그재그로 보이게 (옆에서 본 닫힌 곰덫)
+            const ph = phi, k = smooth((c - 0.5) / 0.5), pts = [];
+            for (let i = 0; i <= 18; i++) {
+                const th = Math.PI * (0.06 + 0.88 * i / 18), r = R * (1 + (i % 2 ? 0.2 : -0.12) * k);
+                pts.push(P(r * Math.cos(th), r * Math.sin(th) * Math.sin(ph), 0));
+            }
+            ctx.globalAlpha = vis * k;
+            ctx.lineJoin = 'miter';
+            ctx.beginPath(); pts.forEach((p, i) => (i ? ctx.lineTo(p[0], p[1]) : ctx.moveTo(p[0], p[1])));
+            ctx.lineWidth = 4 * s; ctx.strokeStyle = '#1a1424'; ctx.stroke();
+            ctx.lineWidth = 2 * s; ctx.strokeStyle = '#d6d0e0'; ctx.stroke();
+            ctx.globalAlpha = vis;
+        }
+        if (c > 0.6 && age < 0.25) {   // 무는 순간 번쩍
+            ctx.globalCompositeOperation = 'lighter';
+            glow(ctx, x, y - drop - R * 0.9, R * 1.6, `rgba(255, 250, 220, ${0.7 * (1 - age / 0.25)})`);
+        }
+        ctx.restore();
+    },
+
     drone(ctx, x, y, it, u, s, time) {
         const img = artImage('repair_drone');
         const life = it.remaining ? it.remaining() : it.dur - it.t;

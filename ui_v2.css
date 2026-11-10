@@ -3099,3 +3099,25 @@ body.v2-mobile .v2-story__title-text { zoom: 1.2; }
     clip-path: polygon(10px 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%, 0 10px); transition: filter 0.15s ease; }
 .v2-storybtn:hover { filter: brightness(1.25); }
 .v2-storybtn[hidden] { display: none; }
+
+/* ---- 사냥 개시 표식 (D-119): 이름표(top -20px) 위에 뜨는 초록 조준경 — 돌며 깜빡이고 아래로 가리키는 화살 ---- */
+#screen-battle-v2 .v2-hunt-mark {
+    position: absolute; left: 50%; top: -72px; width: 44px; height: 50px; margin-left: -22px;
+    pointer-events: none; z-index: 30; animation: v2-hunt-in .3s ease-out;
+    filter: drop-shadow(0 0 2px #0a1a06) drop-shadow(0 0 5px #b4ff6e) drop-shadow(0 0 12px #96dc78cc);
+}
+#screen-battle-v2 .v2-hunt-mark svg { width: 44px; height: 44px; overflow: visible; }
+#screen-battle-v2 .v2-hunt-mark__ring { fill: none; stroke: #eaffb0; stroke-width: 3.6; stroke-linecap: round;
+    transform-origin: 20px 20px; animation: v2-hunt-spin 2.4s linear infinite; }
+#screen-battle-v2 .v2-hunt-mark__dot { fill: #ff4a3a; stroke: #fff; stroke-width: 1; animation: v2-hunt-pulse .7s ease-in-out infinite alternate; }
+#screen-battle-v2 .v2-hunt-mark__arrow {
+    position: absolute; left: 50%; bottom: -1px; margin-left: -6px; width: 0; height: 0;
+    border-left: 6px solid transparent; border-right: 6px solid transparent; border-top: 8px solid #eaffb0;
+    animation: v2-hunt-bob .7s ease-in-out infinite alternate;
+}
+#screen-battle-v2 .v2-hunt-mark.is-gone { animation: v2-hunt-out .3s ease-in forwards; }
+@keyframes v2-hunt-in { from { opacity: 0; transform: translateY(-10px) scale(1.6); } to { opacity: 1; transform: none; } }
+@keyframes v2-hunt-out { to { opacity: 0; transform: scale(.5); } }
+@keyframes v2-hunt-spin { to { transform: rotate(360deg); } }
+@keyframes v2-hunt-pulse { from { opacity: .55; } to { opacity: 1; } }
+@keyframes v2-hunt-bob { from { transform: translateY(0); } to { transform: translateY(3px); } }

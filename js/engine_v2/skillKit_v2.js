@@ -126,8 +126,11 @@ const STEP = {
                 if (!b.isActive) return;
                 const t = targets[i] && live(b, targets[i]) ? aimAt(targets[i]).x : b.frontX() + a + Math.random() * (z - a);
                 const x = t + (Math.random() - 0.5) * (s.jitter ?? 20);
-                if (s.vfx) b.fx.play(s.vfx, x, s.vfxB ?? FOOT_B, { scale: s.scale || 1 });
+                // fall: 화면 위 밖에서 떨어지는 그림 (창의 비·혜성, D-119) — delay 동안 날아와 꽂힌 뒤 vfx(터짐)
+                if (s.fall) b.fx.play(s.fall, x + (s.fallDx ?? 0), (b.fx.H || 600) + 60, { scale: s.scale || 1, to: [x, (s.vfxB ?? FOOT_B) + (s.fallTo ?? 0)] });
+                else if (s.vfx) b.fx.play(s.vfx, x, s.vfxB ?? FOOT_B, { scale: s.scale || 1 });
                 b.schedule(s.delay ?? 0, () => {
+                    if (s.fall && s.vfx && b.isActive) b.fx.play(s.vfx, x, s.vfxB ?? FOOT_B, { scale: s.scale || 1 });
                     enemiesNear(b, x, s.radius ?? 60).forEach(e => kitHit(b, e, s.dmg, s));
                     if (s.zone) b.kitZone({ ...s.zone, x: x - (s.zone.w || 80) / 2 - b.frontX() });
                 });

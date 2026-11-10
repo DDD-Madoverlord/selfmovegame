@@ -17,6 +17,9 @@ const CYAN = '120, 240, 255', AMBER = '255, 180, 70', PLASMA = '215, 235, 255', 
 // ---- D-118 스킬 이펙트 개선 (MD/스킬_이펙트_변경사항_공유.md 2차) — 기존 손그림 시트를 색 돌려 씀 ----
 const muzzleAt = b => monster.getMuzzlePoint() || { x: b.monsterX + 90, bottom: 125 };
 /** 기본 공격 발사 (장거리 저격포·플라즈마 방사 팔 공용, attacks.js fireShotFx): 총구 섬광 + 빛줄기 탄, 맞는 판정은 예전 근접과 같음 */
+// 철거 철구: 줄무늬 쇠공이 불꽃 꼬리를 달고 굴러감 (wrecking_ball 2·3칸 반복) → 다 굴러간 자리에서 부서지며 먼지 (4~7칸)
+const WRECK_RIDE = fxOf(spr('wrecking_ball', 260, { anchorY: 0.85, dur: 30, frameRange: [2, 3], loopSec: 0.24, fadeIn: 0.08 }));
+const WRECK_END = fxOf(spr('wrecking_ball', 260, { anchorY: 0.85, dur: 0.6, frameRange: [4, 7] }));
 const SNIPER_SHOT = { hue: 35, speed: 1900, size: 120, flash: 82, hitVfx: V.blast(20, 90, { dur: 0.32 }) };
 /** 관통 저격 충전: 둘레 빛이 총구로 모임 — 저음 폭발(bass_drop) 고리를 거꾸로 틀어 줄어들게 + 모이는 빛줄기 */
 function snipeCharge(b, ctx, s) {
@@ -165,7 +168,8 @@ export const MECH_SETS2 = packOf('mech', [
         skills: {
             mcWreckingBall: { name: '철거 철구', slot: 'head', ult: true, cd: 0, icon: 'hammer', color: '#ffd23c', target: 'enemy', range: 600, clip: 'call',
                 desc: '거대 철구가 앞쪽을 쓸고 지나감 — 모든 적 피해 + 크게 밀침 (거점 2배)',
-                steps: [{ at: 0.4, do: 'wave', from: -60, speed: 560, dist: 760, w: 75, dmg: 3, baseMul: 2, push: 90, knock: 1.4, vfx: V.sheet('wrecking_ball', 260, { anchorY: 0.85, dur: 0.4 }), vfxEvery: 0.12, b: FOOT_B + 5, hitVfx: V.impact(30, 120) },
+                // D-119 보완: 0.12초마다 0.4초짜리 철구를 찍어 3~4개가 겹쳐 보였음 → 판정과 같이 굴러가는 철구 한 개 + 끝에서 부서지는 먼지 (기사단 돌격과 같은 ride)
+                steps: [{ at: 0.4, do: 'wave', from: -60, speed: 560, dist: 760, w: 75, dmg: 3, baseMul: 2, push: 90, knock: 1.4, ride: WRECK_RIDE, rideEnd: WRECK_END, b: FOOT_B + 5, hitVfx: V.impact(30, 120) },
                     { at: 0.4, do: 'shake', power: 7, ms: 900 }] },
             mcSteelWall: { name: '강철 방벽', slot: 'body', cd: 14, icon: 'fort', color: '#ffd23c', target: 'self', clip: 'guard', p: { atk: 0 },
                 desc: '앞에 강철 벽 5초 — 적이 넘어오지 못하고 투사체를 막음, 끝날 때 무너지며 앞쪽 피해',

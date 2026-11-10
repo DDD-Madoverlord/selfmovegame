@@ -121,13 +121,24 @@ export function kitPreview(key, slot) {
                     const n = Math.max(1, Math.min(12, Math.round(valOf(sk, s.count, 6))));
                     for (let i = 0; i < n; i++) api.later(i * (s.every ?? 0.15), () => {
                         const d = api.dummies[i % api.dummies.length];
-                        play(v, d.x + (Math.random() - 0.5) * 60, s.vfxB != null ? yOf(s.vfxB) : api.GROUND_Y, s);
+                        const x = d.x + (Math.random() - 0.5) * 60, y = s.vfxB != null ? yOf(s.vfxB) : api.GROUND_Y;
+                        if (s.fall) {   // 하늘에서 떨어진 뒤 터짐 (게임 rain과 같게, D-119)
+                            play(s.fall, x + (s.fallDx ?? 0) * k, -40, { ...s, to: [x, y - (s.fallTo ?? 0) * k] });
+                            api.later(s.delay ?? 0, () => play(v, x, y, s));
+                        } else play(v, x, y, s);
                         api.later(s.delay ?? 0, () => api.hit(i % api.dummies.length));
                         if (s.zone?.field) api.later(s.delay ?? 0, () => field(s.zone, d.x - (s.zone.w || 80) * k / 2));
                     });
                     break;
                 }
                 case 'wave':
+                    if (s.ride) {   // 판정과 같이 달리는 그림 하나 (철구·기사, D-119) — 앞에서 끝까지 날아가 끝 그림
+                        const fly = Math.min(1.4, (far + 60 - front) / ((s.speed || 420) * k));
+                        play({ layers: s.ride.layers.map(l => ({ ...l, dur: fly, travel: true, angleOffset: 0, fadeOut: null })) }, front, api.GROUND_Y, { to: [far + 60, api.GROUND_Y] });
+                        if (s.rideEnd) api.later(fly, () => play(s.rideEnd, far + 60, api.GROUND_Y));
+                        api.dummies.forEach((d, i) => api.later(fly * (d.x - front) / (far + 60 - front), () => api.hit(i)));
+                        break;
+                    }
                     for (let i = 0; i < 5; i++) api.later(i * 0.12, () => play(v || s.trail, front + i * (far - front) / 4, api.GROUND_Y - 30 * k, s));
                     api.dummies.forEach((d, i) => api.later(0.2 + i * 0.12, () => api.hit(i)));
                     break;
@@ -309,7 +320,7 @@ export const SKILL_PREVIEWS = {
     acidSpit3: api => playAt(api, 'attack_bite', 0.15, () => repeat(api, 3, 0.18, i => {
         const d = api.dummies[i];
         api.vfx.launchOrb({ from: api.muzzle(), to: () => [d.x, api.enemyChestY()],
-            color: '160, 255, 50', dur: 0.45, scale: api.VFX_SCALE,
+            color: '160, 255, 50', dur: 0.45, scale: api.VFX_SCALE, core: true,
             onArrive: () => {
                 api.at(SET_VFX.spitSplash, i, true);
                 api.hit(i);
@@ -339,18 +350,19 @@ export const SKILL_PREVIEWS = {
         api.playClip('brace');
         const p = api.socket('backTop', 'body');
         let released = false;
-        api.vfx.play(KAIJU_THORN_FX.charge, p[0], p[1], { scale: api.VFX_SCALE, alive: () => !released });
+        // 게임 가시 폭풍에는 충전·착탄 그림이 따로 없음 (skills_v2.js KAIJU_THORN_FX: shot·poison·back) — 있으면 틀고 없으면 건너뜀 (D-119 연구소 오류 고침)
+        if (KAIJU_THORN_FX.charge) api.vfx.play(KAIJU_THORN_FX.charge, p[0], p[1], { scale: api.VFX_SCALE, alive: () => !released });
         api.later(0.65, () => {
             released = true;
             api.playClip('roar');
             api.atSelf(SET_VFX.spikeStorm);
             const from = api.socket('backTop', 'body');   // 등에서 가시가 날아가 발밑에 가시독 (D-118)
             api.dummies.forEach((d, i) => {
-                const fly = KAIJU_THORN_FX.flight((d.x - from[0]) / api.VFX_SCALE, i);
+                const fly = 0.16 + Math.min(0.2, Math.abs(d.x - from[0]) / api.VFX_SCALE / 2200) + (i % 4) * 0.03;   // 게임과 같은 비행 시간
                 api.vfx.play(KAIJU_THORN_FX.shot(fly, i), from[0], from[1], { scale: api.VFX_SCALE, to: [d.x, api.enemyChestY()] });
                 api.later(fly, () => {
                     api.hit(i);
-                    api.vfx.play(KAIJU_THORN_FX.hit, d.x, api.enemyChestY(), { scale: api.VFX_SCALE });
+                    if (KAIJU_THORN_FX.hit) api.vfx.play(KAIJU_THORN_FX.hit, d.x, api.enemyChestY(), { scale: api.VFX_SCALE });
                     api.vfx.play(KAIJU_THORN_FX.poison(4), d.x, api.GROUND_Y, { scale: api.VFX_SCALE });
                 });
             });
@@ -424,7 +436,7 @@ export const SKILL_PREVIEWS = {
             repeat(api, 6, 0.9, () => {
                 const m = api.muzzle();
                 api.vfx.launchOrb({ from: [m[0] - SET.clones.gap * i * api.VFX_SCALE, m[1]],
-                    to: () => [api.dummies[0].x, api.enemyChestY()], color: '200, 110, 255', dur: 0.4, scale: api.VFX_SCALE,
+                    to: () => [api.dummies[0].x, api.enemyChestY()], color: '200, 110, 255', dur: 0.4, scale: api.VFX_SCALE, core: true,
                     onArrive: () => { api.at(SET_VFX.orbBlast, 0); api.hit(0); } });
             }, 0.06 * i);
             api.later(SET.clones.sec, () => api.vfx.play(SET_VFX.clonePoof, x, api.GROUND_Y, { scale: api.VFX_SCALE }));

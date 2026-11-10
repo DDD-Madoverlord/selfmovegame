@@ -100,12 +100,12 @@ export class BattleFx {
         this.vfx.launchWave({ ...o, y: this.H - o.b, onMove: o.onPass });
     }
 
-    /** from {x, bottom}, to() → {x, b}, onArrive(), sfx: 발사음 이름 (null이면 없음) */
-    launchOrb(from, to, color, dur, onArrive, sfx = 'hero_orb') {
+    /** from {x, bottom}, to() → {x, b}, onArrive(), sfx: 발사음 이름 (null이면 없음), o.core: 기운 구체 그림 (내 기본 공격 구체, D-119) */
+    launchOrb(from, to, color, dur, onArrive, sfx = 'hero_orb', o = {}) {
         if (sfx) sound.play(sfx, { x: this.panX(from.x) });
         this.vfx.launchOrb({
             from: [from.x, this.H - from.bottom], to: () => { const t = to(); return [t.x, this.H - t.b]; },
-            color, dur, onArrive
+            color, dur, onArrive, core: !!o.core
         });
     }
 

@@ -5,21 +5,54 @@
    세뇌 아군은 allies.js(convertEnemy · mindOrb). 스킬은 부품 단계(skillKit_v2.js), 동작은 rig/heroRig.js (raise·thrust·sweep은 2차에서 더함)
    ========================================================================== */
 
-import { packOf, V, fxOf } from './common.js';
-import { kitHit, pickTargets, enemiesNear } from '../skillKit_v2.js';
+import { packOf, V, fxOf, spr } from './common.js';
+import { kitHit, pickTargets, enemiesNear, runKitStep } from '../skillKit_v2.js';
 import { aimAt } from '../bases_v2.js';
 import { FOOT_B } from '../battle/tuning.js';
+import { monsterControllerV2 as monster } from '../monster_v2.js';
 
 const VIOLET = '170, 90, 255', HUNT = '150, 220, 120', KNIGHT = '255, 230, 170', VOID = '150, 130, 255', SOUL = '190, 110, 255', DEMON = '255, 60, 80', STAR = '200, 160, 255';
 const SHADOW = 'brightness(0.18) saturate(0) drop-shadow(0 0 6px rgba(170, 80, 255, 0.95))';
 const isUnit = e => !e.isBuilding && !e.isBarricade;
+
+// ---- D-119 이펙트 (2026-11-10 피드백) ----
+// 날개 방패: 검은 깃털이 맴도는 보라 돔 (방주 방벽 돔 시트를 보라로 · 돔 윤곽 가림 — 전기 같던 dark_burst 대신)
+const WING_DOME = sec => fxOf(
+    spr('dome_gold', 250, { anchorY: 0.88, dur: sec, frameRange: [1, 6], loopSec: 1.6, pingPong: true, hue: -150, glow: 0,
+        fadeIn: 0.2, fadeOut: 0.35, mask: 'dome', rim: '200, 140, 255' }),
+    spr('feather_black', 230, { dur: sec, frameRange: [1, 3], loopSec: 0.9, pingPong: true, alpha: 0.75, glow: 0, dy: -70, fadeIn: 0.25, fadeOut: 0.35 }));
+const WING_WRAP = fxOf(spr('feather_black', 240, { dur: 0.6, frameRange: [0, 2], reverse: true, glow: 0.8, dy: -70 }));   // 깃털이 모여 감쌈
+const WING_OPEN = fxOf(spr('feather_black', 320, { dur: 0.7, frameRange: [4, 7], glow: 1, dy: -70 }));                     // 깃털이 터지며 펼침
+// 창의 비: 보라 창이 하늘에서 비스듬히 내리꽂힘 → 꽂힌 자리 터짐 (수정 창 투척과 같은 시트·방향 맞춤)
+const SPEAR_DIR = 1.94;   // judgment_violet 1칸 그림 속 창끝 방향 (라디안, 아래 왼쪽)
+const SPEAR_FALL = fly => fxOf(spr('judgment_violet', 210, { dur: fly, frameRange: [1, 1], travel: true, angleOffset: -SPEAR_DIR, anchorX: 0.36, anchorY: 0.8, glow: 1.2 }));
+// 혜성: 하늘 왼쪽 위에서 대각선으로 떨어짐 → 땅에서 버섯 폭발 (예전 290px → 20% 크게)
+const METEOR_DIR = 0.83;  // meteor_cyan 1·2칸 꼬리 → 머리 방향 (아래 오른쪽)
+const COMET_FALL = fly => fxOf(spr('meteor_cyan', 250, { dur: fly, frameRange: [1, 2], loopSec: 0.16, travel: true, angleOffset: -METEOR_DIR,
+    anchorX: 0.68, anchorY: 0.7, hue: 60, glow: 1.4 }));
+// 어둠의 군주 4세트: 일식 때 떠 있던 검은 해가 땅으로 떨어져 터짐
+const SUN_FALL = fly => fxOf(spr('eclipse_sun', 280, { dur: fly, frameRange: [1, 4], loopSec: 0.5, travel: true, angleOffset: -Math.PI / 2, glow: 1.5 }),
+    { type: 'embers', at: 0, count: 26, speed: 120, angle: -Math.PI / 2, cone: 0.8, size: 2.6, life: [0.3, 0.6], drag: 1, color: '190, 110, 255' });
+const SUN_BLAST = fxOf(spr('eclipse_sun', 460, { dur: 1, frameRange: [4, 8], glow: 1.4, dy: -90 }),
+    spr('mutation_burst', 520, { dur: 0.9, frameRange: [2, 6], anchorY: 0.85, hue: 0, glow: 0.8 }),
+    { type: 'shockwave', at: 0, dur: 0.6, r: 420, width: 18, ground: true, color: '190, 110, 255' });
+// 유령 기사: 판정과 같이 달리는 기사 한 기 (예전엔 0.1초마다 0.35초짜리를 찍어 3~4기씩 겹쳐 보였음)
+const KNIGHT_RIDE = fxOf(spr('ghost_cavalry', 210, { anchorY: 0.88, dur: 30, frameRange: [1, 4], loopSec: 0.4, fadeIn: 0.1, fadeOut: 0.2 }));
+const KNIGHT_PREVIEW = fxOf(spr('ghost_cavalry', 210, { anchorY: 0.88, dur: 1.1, frameRange: [1, 4], loopSec: 0.4, travel: true, fadeIn: 0.1, fadeOut: 0.2 }));   // 실험실: 같은 기사가 앞으로 달림
+const KNIGHT_GONE = fxOf(spr('ghost_cavalry', 210, { anchorY: 0.88, dur: 0.45, frameRange: [5, 8] }));
+// 곰덫: 바닥에 놓인 톱니 덫 (skillFx2 beartrap) · 물 때 흙먼지
+const TRAP_BITE = fxOf(spr('ground_impact', 90, { anchorY: 0.85, dur: 0.35, hue: 40, glow: 0, alpha: 0.8 }));
+// 연발 석궁 기본 공격 / 연사 볼트: 은녹색 볼트가 날아가 꽂힘 (총구 섬광 + 탄 — fireShotFx)
+const BOLT_HIT = V.needle(120, 70, { dur: 0.22, frameRange: [2, 4] });
+const BOLT_SHOT = { hue: 120, speed: 1700, size: 100, flash: 56, hitVfx: BOLT_HIT };
+const BOLT_FLY = fly => fxOf(spr('needle_crimson', 110, { dur: fly, frameRange: [1, 1], hue: 120, travel: true, anchorX: 0.6, glow: 1.3 }));
 
 // 날개 방패가 끝날 때: 날개를 펼쳐 둘레 적을 밀치고 막은 피해의 store만큼 돌려줌
 function wingBurst(b) {
     const dmg = b.kitStored || 0;
     b.kitStored = 0;
     if (!b.isActive) return;
-    b.fx.play(V.slash(-40, 220), b.monsterX + 60, FOOT_B + 70);
+    b.fx.play(WING_OPEN, b.monsterX + 50, FOOT_B);
     b.fx.play(V.ring(VIOLET, 200), b.monsterX + 60, FOOT_B);
     b.enemiesInRange(220).forEach(e => {
         b.dealDamageToEnemy(e, b.unit() * 0.8 + dmg, false, { knock: 1.4 });
@@ -35,29 +68,97 @@ function huntMark(b, ctx, s) {
     b.kitStatus(t, { vuln: [s.sec, s.vuln] });
     t.kitRefund = s.refund;
     b.createDamagePopup(aimAt(t).x - 20, aimAt(t).b + 70, '사냥감!', false);
-    for (let i = 0; i < s.sec; i++) {
-        b.schedule(i, () => { if (b.enemies.includes(t)) b.fx.play(V.xcut(-60, 90, { dur: 0.6 }), aimAt(t).x, aimAt(t).b, { follow: () => [aimAt(t).x, aimAt(t).b] }); });
+    b.fx.play(V.xcut(-60, 110, { dur: 0.6 }), aimAt(t).x, aimAt(t).b, { follow: () => [aimAt(t).x, aimAt(t).b] });
+    // 표식: 이름표 위에 뜨는 조준경 (D-119 — 몸 위 x자는 이름표에 가려 잘 안 보였음). 적 칸(e.dom)에 붙어 같이 움직임
+    if (t.dom) {
+        t.dom.querySelector('.v2-hunt-mark')?.remove();
+        const mark = document.createElement('div');
+        mark.className = 'v2-hunt-mark';
+        mark.innerHTML = HUNT_MARK_SVG;
+        t.dom.appendChild(mark);
+        t.huntMarkEl = mark;
     }
-    b.schedule(s.sec, () => { if (t) t.kitRefund = 0; });
+    b.schedule(s.sec, () => {
+        if (!t) return;
+        t.kitRefund = 0;
+        if (t.huntMarkEl) { t.huntMarkEl.classList.add('is-gone'); const el = t.huntMarkEl; t.huntMarkEl = null; setTimeout(() => el.remove(), 300); }
+    });
 }
+const HUNT_MARK_SVG = '<svg viewBox="0 0 40 40" aria-hidden="true"><g class="v2-hunt-mark__ring">' +
+    '<circle cx="20" cy="20" r="13" /><path d="M20 2v9M20 29v9M2 20h9M29 20h9" /></g>' +
+    '<circle class="v2-hunt-mark__dot" cx="20" cy="20" r="3" /></svg><i class="v2-hunt-mark__arrow"></i>';
 
-// 덫 설치: 앞에 덫 n개 (밟으면 속박 + 피해)
+// 덫 설치: 앞에 곰덫 n개 (밟으면 속박 + 피해). D-119: 예전엔 0.6초마다 퍼지는 고리만 보여 덫인지 몰랐고 고리가 겹쳐 개수가 많아 보였음
+//   → 덫마다 톱니 곰덫 그림 하나 (물면 탁 닫힘). 사냥꾼 결사 4부위면 5개 (세트 효과)
 function traps(b, ctx, s) {
-    for (let i = 0; i < Math.round(s.n); i++) {
-        b.kitZone({ tag: 'trap', x: 30 + i * 62, w: 34, sec: 10, status: { root: 2 }, every: 2.5, dps: 0.25,
-            puff: fxOf({ type: 'ring', at: 0, dur: 0.6, r: 16, color: '210, 210, 190', width: 3, ground: true }), puffEvery: 0.6, puffB: 4 });
+    const n = Math.round(s.n), gap = 62;
+    for (let i = 0; i < n; i++) {
+        // tickT 0.3: 덫이 땅에 놓인 뒤 물기 시작 (놓이자마자 물면 덫 모양이 안 보였음)
+        // once: 한 번 물면 물린 적의 속박(2초)이 풀릴 때 덫도 사라짐 (2026-11-10 저녁 피드백 — 예전엔 10초 동안 2.5초마다 다시 물었음)
+        const z = b.kitZone({ tag: 'trap', x: 30 + i * gap, w: 34, sec: 10, status: { root: 2 }, every: 0.1, tickT: 0.3, once: true, dps: 0.25, hitFx: TRAP_BITE });
+        b.fx.play(fxOf({ type: 'beartrap', at: 0, dur: 10, r: 20, bite: () => z.biteAge, life: () => z.t }),
+            z.x + z.w / 2, FOOT_B, { follow: () => [z.x + z.w / 2, FOOT_B], alive: () => z.t > 0 && b.kitZones.includes(z) });
     }
 }
+traps.preview = (api, scale) => {   // 실험실: 덫 n개가 놓였다가 앞 덫이 물기
+    const k = scale * 0.56, x0 = api.CHAR_X + 130 * k;
+    let bitten = null;
+    for (let i = 0; i < 3; i++) {
+        api.vfx.play(fxOf({ type: 'beartrap', at: 0, dur: 3.5, r: 20, bite: () => (i === 0 && bitten != null ? api.vfx.time - bitten : null) }),
+            x0 + i * 62 * k, api.GROUND_Y, { scale: k });
+    }
+    api.later(1.2, () => { bitten = api.vfx.time; api.hit(0); });
+};
 
-// 기사단 돌격: 유령 기사 n기가 차례로 화면을 가로지름
+// 기사단 돌격: 유령 기사 n기가 차례로 화면을 가로지름 (기사단장 4부위면 8기 — 세트 효과)
 function cavalry(b, ctx, s) {
     for (let i = 0; i < Math.round(s.n); i++) {
         b.schedule(i * 0.28, () => {
             if (!b.isActive) return;
-            b.kitWave({ x: b.frontX() - 70, speed: 640, dist: 760, w: 55, dmg: 1.2, push: 45, knock: 0.8,
-                vfx: V.sheet('ghost_cavalry', 210, { anchorY: 0.88, dur: 0.35 }), vfxEvery: 0.1, b: FOOT_B + 4 });
+            b.kitWave({ x: b.frontX() - 70, speed: 640, dist: 760, w: 55, dmg: 1.2, push: 45, knock: 0.8, ride: KNIGHT_RIDE, rideEnd: KNIGHT_GONE, b: FOOT_B + 4 });
         });
     }
+}
+
+// 연사 볼트: 총구에서 볼트를 차례로 쏨 — 날아가 꽂힐 때 피해 (D-119: 예전엔 탄 없이 맞은 자리 섬광만)
+function bolts(b, ctx, s) {
+    const targets = pickTargets(b, 'nearest', s.n, ctx.range);
+    if (!targets.length) return;
+    for (let i = 0; i < s.n * s.times; i++) {
+        const t = targets[i % targets.length];
+        b.schedule(Math.floor(i / targets.length) * s.every + (i % targets.length) * 0.05, () => {
+            if (!b.isActive || !b.enemies.includes(t)) return;
+            const m = monster.getMuzzlePoint() || { x: b.monsterX + 90, bottom: 125 };
+            const aim = aimAt(t), fly = Math.max(0.06, Math.min(0.22, Math.hypot(aim.x - m.x, aim.b - m.bottom) / 1700));
+            b.fx.play(fxOf(spr('needle_crimson', 50, { dur: 0.12, frameRange: [2, 3], hue: 120, glow: 1.2 })), m.x, m.bottom);
+            b.fx.play(BOLT_FLY(fly), m.x, m.bottom, { to: [aim.x, aim.b] });
+            b.schedule(fly, () => {
+                if (!b.isActive || !b.enemies.includes(t)) return;
+                b.fx.play(BOLT_HIT, aimAt(t).x, aimAt(t).b);
+                kitHit(b, t, s.dmg, s);
+            });
+        });
+    }
+}
+bolts.preview = (api, scale) => {
+    for (let i = 0; i < 6; i++) api.later(i * 0.08, () => {
+        const m = api.muzzle(), d = api.dummies[i % 3], to = [d.x, api.enemyChestY()];
+        api.vfx.play(BOLT_FLY(0.16), m[0], m[1], { scale, to });
+        api.later(0.16, () => { api.vfx.play(BOLT_HIT, to[0], to[1], { scale }); api.hit(i % 3); });
+    });
+};
+
+// 어둠의 군주 4세트: 일식 자리(앞 280px·높이 300)에 떠 있던 검은 해가 땅으로 떨어져 터짐 → 화면 큰 피해
+function blackSunFall(b, ctx, s) {
+    const x = b.frontX() + 280, fly = 0.75;
+    b.fx.play(SUN_FALL(fly), x, 300, { to: [x, FOOT_B + 60] });
+    b.director.shake(3, 700);
+    b.schedule(fly, () => {
+        if (!b.isActive) return;
+        b.fx.play(SUN_BLAST, x, FOOT_B);
+        b.director.shake(12, 600);
+        runKitStep(b, { do: 'screen', dmg: s.dmg, baseMul: s.baseMul, vfx: V.dark(0, 150, { dur: 0.45 }), maxFx: 8 });
+    });
 }
 
 // 시간 정지: sec초 화면 모든 적 멈춤 (보스 2초), 끝날 때 멈춘 동안 받은 피해의 echo만큼 한 번 더
@@ -122,7 +223,7 @@ export const HERO_SETS2 = packOf('hero', [
     {
         letter: 'u', tier: 'unique', no: 1, name: '어둠의 군주', style: 'balance', tint: 'brightness(0.75) saturate(1.6) hue-rotate(15deg)',
         bonus: { 2: '어둠 창에 맞은 적 15% 확률로 세뇌', 4: '일식이 끝날 때 검은 해가 떨어져 화면 큰 피해' },
-        kit: { 2: { flags: ['spearMind'] }, 4: { on: [{ when: 'ult', delay: 8, label: '검은 해 낙하!', step: { do: 'screen', dmg: 4, baseMul: 1.5, vfx: V.dark(0, 200), maxFx: 8 } }] } },
+        kit: { 2: { flags: ['spearMind'] }, 4: { on: [{ when: 'ult', delay: 8, label: '검은 해 낙하!', step: { do: 'custom', fn: blackSunFall, dmg: 4, baseMul: 1.5 } }] } },
         head: { name: '부서진 왕관', look: '금이 간 검은 왕관, 보라 불꽃', skill: 'hrEclipse', desc: '필살기 일식: 8초간 검은 해 — 모든 적 주는 피해 -40%·느려짐, 내 기본 공격이 화면 끝까지 닿는 어둠 파동', stats: { hp: 700, dps: 130, range: 40, speed: 15 } },
         body: { name: '검은 날개 갑주', look: '등에 큰 검은 날개 한 쌍', skill: 'hrWingShield', desc: '날개 방패: 3초간 모든 피해를 막음 → 펼치며 둘레 적 밀쳐냄 + 막은 피해의 50% 돌려줌', stats: { hp: 1500, dps: 130, range: 0, speed: 15 } },
         arm: { name: '군주의 어둠 창', look: '검보라 긴 창', skill: 'hrSpearRain', desc: '기본 공격 어둠 창 던지기 (관통, 짧은 경직) · 창의 비: 넓은 자리에 창 5자루 — 피해 + 1.5초 속박', stats: { hp: 450, dps: 480, range: 300, speed: 10 },
@@ -138,22 +239,26 @@ export const HERO_SETS2 = packOf('hero', [
                     { at: 0.4, do: 'transform', sec: 8, attack: { kind: 'pierce', n: 8, decay: 0.9, extra: 700, vfx: V.beam('150, 70, 255', 22), hitVfx: V.dark(0, 70, { dur: 0.3 }) } }] },
             hrWingShield: { name: '날개 방패', slot: 'body', cd: 15, icon: 'shield', color: '#aa5aff', target: 'self', clip: 'cast',
                 desc: '날개로 감싸 3초간 모든 피해를 막음 → 펼치며 둘레 적 밀쳐냄 + 막은 피해의 50% 돌려줌',
-                steps: [{ do: 'buff', key: 'wingShield', sec: 3, mods: { flags: ['invuln'], store: 0.5, onEnd: { do: 'custom', fn: wingBurst } }, vfx: V.dark(-30, 210, { dur: 0.8 }) },
-                    { at: 0.8, do: 'fx', on: 'self', x: 25, follow: true, vfx: V.dark(-30, 180, { dur: 0.8 }), repeat: 3, repeatGap: 0.75 }] },
+                // D-119: 전기처럼 보이던 dark_burst 반복 → 깃털이 모여 감싸고(0.6초) 보라 깃털 돔 3초 → 끝날 때 깃털이 터지며 펼침(wingBurst)
+                steps: [{ do: 'buff', key: 'wingShield', sec: 3, mods: { flags: ['invuln'], store: 0.5, onEnd: { do: 'custom', fn: wingBurst } }, vfx: WING_WRAP },
+                    { at: 0.1, do: 'fx', on: 'self', x: 15, follow: true, vfx: WING_DOME(2.9) }] },
             hrSpearRain: { name: '창의 비', slot: 'arm', cd: 9, icon: 'spikes', color: '#aa5aff', target: 'enemy', range: 380, clip: 'cast',
                 desc: '앞쪽 넓은 자리에 어둠 창 5자루 — 피해 + 1.5초 속박',
-                steps: [{ at: 0.3, do: 'rain', count: 5, every: 0.12, radius: 60, dmg: 1.4, status: { root: 1.5 }, vfx: V.judgment(0, 200, { dur: 0.5 }), delay: 0.15, shake: 2 }] }
+                // D-119: 제자리에 뜨던 그림 → 창이 하늘에서 비스듬히 내리꽂힌 뒤(0.32초) 꽂힌 자리 터짐 (판정도 꽂힐 때)
+                steps: [{ at: 0.3, do: 'rain', count: 5, every: 0.12, radius: 60, dmg: 1.4, status: { root: 1.5 }, fall: SPEAR_FALL(0.32), fallDx: 230, fallTo: 6, delay: 0.32,
+                    vfx: V.judgment(0, 200, { dur: 0.5, frameRange: [3, 8] }), shake: 2 }] }
         }
     },
 
     // ---- 레어 ③ 사냥꾼 결사 (사거리) ----
     {
         letter: 'c', tier: 'rare', no: 3, name: '사냥꾼 결사', style: 'range', tint: 'hue-rotate(60deg) saturate(0.7) brightness(0.9)',
-        bonus: { 4: '덫 3 → 5개' },
+        bonus: { 4: '덫 3 → 5개' },   // 4부위 화면에 덫 5개는 이 세트 효과 (2026-11-10 확인)
         kit: { 4: { patch: { hrTraps: { n: 2 } } } },
         head: { name: '사냥꾼 두건', look: '짙은 녹색 두건과 은빛 가면', skill: 'hrHuntMark', desc: '필살기 사냥 개시: 가장 강한 적에 표식 10초 — 받는 피해 +60%, 쓰러지면 필살기 게이지 50%' },
-        body: { name: '덫 사냥복', look: '덫·볼트가 매달린 짙은 녹색 사냥복', skill: 'hrTraps', desc: '덫 설치: 앞에 덫 3개 — 밟은 적 2초 속박 + 피해' },
-        arm: { name: '연발 석궁', look: '은빛 연발 석궁', skill: 'hrBolts', desc: '연사 볼트: 볼트 6발을 가까운 적들에게 나눠 쏨' },
+        body: { name: '덫 사냥복', look: '덫·볼트가 매달린 짙은 녹색 사냥복', skill: 'hrTraps', desc: '덫 설치: 앞에 곰덫 3개 (4부위 세트 5개) — 밟은 적 2초 속박 + 피해' },
+        // D-119: 석궁인데 칼처럼 베던 기본 공격 → 석궁을 들어 쏘는 동작(attack_shoot) + 볼트가 날아가 꽂힘
+        arm: { name: '연발 석궁', look: '은빛 연발 석궁', skill: 'hrBolts', desc: '기본 공격 석궁 볼트 · 연사 볼트: 볼트 6발을 가까운 적들에게 나눠 쏨', rigAttack: 'attack_shoot', shotFx: BOLT_SHOT },
         leg: { name: '사냥 장화', look: '가죽 사냥 장화', desc: '추적자: 감속·속박된 적에게 피해 +20%',
             passive: { name: '추적자', desc: '감속·속박된 적에게 주는 피해 +20%', target: [{ when: 'status', status: ['slow', 'root'], dmg: 0.2 }] } },
         skills: {
@@ -161,11 +266,11 @@ export const HERO_SETS2 = packOf('hero', [
                 desc: '가장 강한 적에 표식 10초 — 받는 피해 +60%, 쓰러지면 필살기 게이지 50% 돌려받음',
                 steps: [{ at: 0.3, do: 'custom', fn: huntMark, sec: 10, vuln: 0.6, refund: 0.5 }] },
             hrTraps: { name: '덫 설치', slot: 'body', cd: 13, icon: 'net', color: '#96dc78', target: 'self', clip: 'cast', p: { n: 3 },
-                desc: '앞에 덫 3개 (10초) — 밟은 적 2초 속박 + 피해',
-                steps: [{ at: 0.3, do: 'custom', fn: traps, n: '$n' }] },
+                desc: '앞에 곰덫 3개 (10초, 사냥꾼 결사 4부위면 5개) — 밟은 적 2초 속박 + 피해',
+                steps: [{ at: 0.3, do: 'custom', fn: traps, n: '$n', preview: traps.preview }] },
             hrBolts: { name: '연사 볼트', slot: 'arm', cd: 8, icon: 'rail', color: '#96dc78', target: 'enemy', range: 260, clip: 'thrust',
                 desc: '볼트 6발을 가까운 적 셋에게 나눠 쏨',
-                steps: [{ at: 0.2, do: 'hit', pick: 'nearest', n: 3, times: 2, every: 0.15, dmg: 0.9, vfx: V.needle(120, 90) }] }
+                steps: [{ at: 0.2, do: 'custom', fn: bolts, n: 3, times: 2, every: 0.15, dmg: 0.9, preview: bolts.preview }] }
         }
     },
 
@@ -174,15 +279,16 @@ export const HERO_SETS2 = packOf('hero', [
         letter: 'd', tier: 'rare', no: 4, name: '몰락한 기사단장', style: 'tank', tint: 'sepia(0.7) saturate(1.3) brightness(1.15)',
         bonus: { 4: '기사단 돌격 5 → 8기' },
         kit: { 4: { patch: { hrCavalry: { n: 3 } } } },
-        head: { name: '기사단장 투구', look: '녹슨 금빛 투구와 흰 깃', skill: 'hrCavalry', desc: '필살기 기사단 돌격: 유령 기사 5기가 화면을 가로지름 — 피해 + 밀침' },
+        head: { name: '기사단장 투구', look: '녹슨 금빛 투구와 흰 깃', skill: 'hrCavalry', desc: '필살기 기사단 돌격: 유령 기사 5기 (4부위 세트 8기)가 화면을 가로지름 — 피해 + 밀침' },
         body: { name: '기사단 판금', look: '녹슨 금빛 판금과 흰 망토', skill: 'hrPhalanx', desc: '방패 진형: 6초간 나·아군 받는 피해 -40%' },
         arm: { name: '기사단장 장검', look: '곧고 긴 기사 장검', skill: 'hrLunge', desc: '찌르기 돌파: 짧게 돌진하며 찌르기 — 관통 + 1초 기절' },
         leg: { name: '강철 박차 장화', look: '박차 달린 강철 장화', desc: '돌격 자세: 걷는 동안 받는 피해 -15%, 멈춘 뒤 첫 공격 2배',
             passive: { name: '돌격 자세', desc: '걷는 동안 받는 피해 -15%, 멈춘 뒤 첫 기본 공격 2배', self: [{ when: 'walking', mods: { def: 0.15 } }], firstHit: 2 } },
         skills: {
             hrCavalry: { name: '기사단 돌격', slot: 'head', ult: true, cd: 0, icon: 'horn', color: '#ffe6aa', target: 'enemy', range: 600, clip: 'raise', p: { n: 5 },
-                desc: '유령 기사 5기가 차례로 화면을 가로지름 — 피해 + 밀침',
-                steps: [{ at: 0.4, do: 'custom', fn: cavalry, n: '$n' }, { at: 0.4, do: 'shake', power: 4, ms: 1400 }] },
+                desc: '유령 기사 5기가 차례로 화면을 가로지름 (몰락한 기사단장 4부위면 8기) — 피해 + 밀침',
+                steps: [{ at: 0.4, do: 'custom', fn: cavalry, n: '$n', preview: (api, scale) => [0, 1, 2, 3, 4].forEach(i => api.later(i * 0.28, () =>
+                    api.vfx.play(KNIGHT_PREVIEW, api.CHAR_X, api.GROUND_Y, { scale: scale * 0.56, to: [api.CHAR_X + 700 * scale * 0.56, api.GROUND_Y] }))) }, { at: 0.4, do: 'shake', power: 4, ms: 1400 }] },
             hrPhalanx: { name: '방패 진형', slot: 'body', cd: 14, icon: 'shield', color: '#ffe6aa', target: 'self', clip: 'cast',
                 desc: '6초간 나·아군 받는 피해 -40%',
                 steps: [{ do: 'buff', key: 'phalanx', sec: 6, mods: { def: 0.4, allyDef: 0.4 }, vfx: V.gold(0, 190) },
@@ -213,7 +319,9 @@ export const HERO_SETS2 = packOf('hero', [
                 steps: [{ do: 'buff', key: 'foresight', sec: 5, mods: { guard: 3, counter: { do: 'hit', pick: 'nearest', range: 400, dmg: 1.2, vfx: V.dark(0, 90) } }, vfx: V.motes(VOID, 12) }] },
             hrComet: { name: '혜성 소환', slot: 'arm', cd: 9, icon: 'rocket', color: '#9682ff', target: 'enemy', range: 380, clip: 'cast',
                 desc: '혜성이 떨어짐 — 큰 범위 피해 + 2초 불타는 자리',
-                steps: [{ at: 0.35, do: 'rain', count: 1, radius: 120, dmg: 3, delay: 0.35, shake: 5, vfx: V.sheet('meteor_cyan', 290, { anchorY: 0.85, dur: 0.7, hue: 60 }),
+                // D-119: 제자리에 뜨던 운석 → 하늘 왼쪽 위에서 떨어져(0.5초) 땅에서 터짐, 그림 20% 크게 (290 → 350)
+                steps: [{ at: 0.35, do: 'rain', count: 1, radius: 120, dmg: 3, delay: 0.5, shake: 5, fall: COMET_FALL(0.5), fallDx: -380, fallTo: 10,
+                    vfx: V.sheet('meteor_cyan', 350, { anchorY: 0.85, dur: 0.75, hue: 60, frameRange: [3, 8] }),
                     zone: { w: 160, sec: 2, status: { burn: [2, 0.3] }, every: 0.5, dps: 0.3, puff: V.blast(250, 60, { dur: 0.4 }), puffEvery: 0.2 } }] }
         }
     },

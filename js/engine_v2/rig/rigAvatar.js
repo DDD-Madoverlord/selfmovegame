@@ -199,7 +199,8 @@ export function rigConfigFor(partsObj, fallback = null) {
         const part = partsObj && partsObj[slot];
         if (part && part.rigUpgrade && characterOfPart(part) === character) upgrades[slot] = true;
     }
-    if (character !== 'mech') return { character, filters, variants, upgrades };
+    const attackClip = partsObj?.arm?.rigAttack || null;   // 팔 파츠 공격 동작 (연발 석궁 attack_shoot, D-119)
+    if (character !== 'mech') return { character, filters, variants, upgrades, attackClip };
     // quietFire: 팔이 자기 발사 연출(shotFx)을 그리면 리그의 총구 충전 점·섬광은 끔 (D-118)
     return { character, arm: mechArmOf(partsObj.arm), filters, variants, upgrades, quietFire: !!partsObj?.arm?.shotFx };
 }
@@ -285,11 +286,12 @@ const EMPTY_SLOT = 'grayscale(1) brightness(0.45) opacity(0.55)';
  * (게임 RigAvatar와 rig_test.html 공용) 그 부위의 세트 그림이 rig.json에 있으면 그림을 바꾸고, 없으면 세트 색
  */
 /** 세트 그림 <부위>_<글자>에 맞춘 소켓 <소켓>_<글자>가 있으면 그것으로 (긴 포신의 총구 끝 — 이펙트가 포신 가운데서 나가지 않게, D-118) */
-export function variantSocketsFor(skeleton, alias) {
+export function variantSocketsFor(skeleton, alias, character = null) {
     const vs = {}, sk = skeleton.layout.sockets || {};
     for (const [key, set] of Object.entries(alias || {})) {
         const suffix = set.slice(key.length), tag = `_${key.split('_').pop()}`;   // armR_cannon → muzzle_cannon 만
-        for (const name of Object.keys(sk)) if (name.endsWith(tag) && sk[name + suffix]) vs[name] = name + suffix;
+        const own = character?.variantSockets?.[key] || [];   // 이름이 부위와 다른 소켓 (히어로 sword → tip, D-119)
+        for (const name of Object.keys(sk)) if ((name.endsWith(tag) || own.includes(name)) && sk[name + suffix]) vs[name] = name + suffix;
     }
     return vs;
 }
@@ -433,6 +435,8 @@ export class RigAvatar {
     }
 
     _clip(mode) {
+        // attackOverride: 팔 파츠가 정한 공격 동작 (연발 석궁 = 조준 사격, D-119 — rigConfigFor attackClip)
+        if (mode === 'attack' && this.attackOverride && this.character?.clips?.[this.attackOverride]) return this.attackOverride;
         return mode === 'attack' ? attackClipOf(this.character, this.arm) : mode;
     }
 
@@ -597,7 +601,7 @@ export class RigAvatar {
     _applyVariants() {
         const { alias, tint } = variantAlias(this.character.id, this.layout, this.variants);
         this.skeleton.partAlias = alias;
-        this.skeleton.variantSockets = variantSocketsFor(this.skeleton, alias);
+        this.skeleton.variantSockets = variantSocketsFor(this.skeleton, alias, this.character);
         this.variantTint = tint;
         this._mergeFilters();
     }

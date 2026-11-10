@@ -131,7 +131,7 @@ export const V2_PARTS = {
             cost: 750,
             stats: { hp: 600, dps: 110, range: 40, speed: 15 },
             look: '연기처럼 흩어지는 그림자 왕관',
-            skillDesc: '필살기 그림자 분신: 6초간 분신 2명이 함께 공격 (기본 공격을 같이 쏨)'
+            skillDesc: '필살기 그림자 분신: 6초간 분신 2명이 함께 공격 (기본 공격을 같이 쏨) — 4부위 세트면 3명'
         },
         {
             id: 'head_chimera_a',

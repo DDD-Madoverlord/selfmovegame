@@ -229,7 +229,10 @@ const D_MORE = [
     [SET_VFX, 'SET_VFX', 'spikeStorm', '가시 폭풍', sc('kaiju', 'selfGround', { clip: 'attack' }),
         d => def(groundSpr('ground_impact', 240), ...keep(d, 'crystals', 'debris', 'ring'))],
     [SET_VFX, 'SET_VFX', 'groundSlam', '지면 내려찍기', sc('kaiju', 'charge', { clip: 'attack' }),
-        d => def(groundSpr('ground_impact', 320), ...imageShockwave(440, 135).layers, ...keep(d, 'cracks', 'shards'))],
+        // D-119: 선으로 그린 균열(cracks) 대신 바닥이 실제로 갈라짐 — 땅 윗면이 V자로 벌어져 앞면 바위로 금이 내려가고 바닥 판이 들림 (skillFx2 fissure, 바닥 층) → 1.6초 뒤 옅어짐
+        //   (처음 넣은 바위 무더기 ground_rubble은 "바위가 깨지는 것 같다"는 피드백으로 뺌)
+        d => def({ type: 'fissure', at: 0, dur: 1.8, len: 170, glow: '160, 255, 50', layer: 'ground' },
+            groundSpr('ground_impact', 300), ...imageShockwave(440, 135).layers, ...keep(d, 'shards'))],
     [SET_VFX, 'SET_VFX', 'sporeBurst', '독 포자 폭발', sc('kaiju', 'charge'),
         d => def(spr('spore_burst', 200, { dy: -50, dur: 0.6 }), ...keep(d, 'ring'))],
     [SET_VFX, 'SET_VFX', 'spitSplash', '산성 침', sc('kaiju', 'charge'), d => def(spr('acid_burst', 110, { dy: -12 }))],

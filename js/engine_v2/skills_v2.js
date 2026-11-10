@@ -596,7 +596,7 @@ Object.assign(SKILLS, {
     // ===== 타락 히어로 B 「그림자 마도사」 =====
     shadowClones: {
         name: '그림자 분신', slot: 'head', ult: true, icon: 'clone', color: '#c86eff', target: 'self',
-        desc: '6초간 분신 2명이 함께 공격 (기본 공격을 같이 쏨)',
+        desc: '6초간 분신 2명이 함께 공격 (기본 공격을 같이 쏨) — 그림자 마도사 4부위면 3명',
         use(b) {
             monster.playCast(() => b.startClones(SET.clones.sec));
         }
@@ -609,6 +609,9 @@ Object.assign(SKILLS, {
             monster.playCast(() => targets.forEach((e, i) => b.schedule(i * 0.1, () => {
                 if (!b.enemies.includes(e)) return;
                 b.fx.play(SET_VFX.chainBind, aim(e).x, FOOT_B);
+                // D-119: 땅에서 쇠사슬이 솟아 몸을 엇갈려 감고 속박 4초 동안 붙어 있음 (vfx/skillFx2.js chains)
+                b.fx.play({ layers: [{ type: 'chains', at: 0, dur: 4, h: 86, w: 44, color: '190, 110, 255' }] }, aim(e).x, FOOT_B,
+                    { follow: () => [aim(e).x, FOOT_B], alive: () => b.enemies.includes(e) && e.rootT > 0 });
                 b.rootEnemy(e, 4);
                 b.applyBleed(e, 4, b.playerDps * 0.3, 'curse');
                 b.dealDamageToEnemy(e, b.unit() * 0.8, false, { knock: 0 });
