@@ -14,6 +14,8 @@ import { coach } from './ui_v2/coach_v2.js';
 import { registerV2Parts } from './engine_v2/partsExtra_v2.js';
 import { registerAllSets2 } from './engine_v2/sets2/index.js';
 import { runLoading } from './ui_v2/loading_v2.js';
+import { showTitle, skipTitle } from './ui_v2/title_v2.js';
+import { maybePromptAccount } from './ui_v2/account_v2.js';
 import { isApp, checkForUpdate } from './ui_v2/appUpdate_v2.js';
 import { applyVfxChoices, readVfxChoices, readVfxStyle } from './engine_v2/vfx/vfxVariants.js';
 import { preloadVfxSheets } from './engine_v2/vfx/vfxPlayer.js';
@@ -174,6 +176,8 @@ class GameRouterV2 {
             this.menuController.updateDisplay();
             // 처음 한 번: 전투를 한 판 해 본 뒤 연구소 안내 (coach_v2.js)
             if (Object.keys(progress.stages).length) setTimeout(() => coach('menu_lab', '#btn-to-lab-v2, #btn-rail-lab-v2'), 700);
+            // 노말 1-5를 처음 깨고 돌아오면 계정 연동 안내 한 번 (D-106 · D-119 2번) — 자동 검사(?skipTitle=1)는 끔
+            if (!skipTitle()) setTimeout(() => { if (this.currentScreen === 'menu') maybePromptAccount(); }, 400);
         } else if (screenName === 'select') {
             this.selectController.render();
         } else if (screenName === 'lab') {
@@ -228,6 +232,7 @@ export function initGameRouterV2() {
     window.addEventListener('resize', fitScreens);
     TOUCH_FIRST.addEventListener?.('change', fitScreens);   // 태블릿 겸용 노트북에서 키보드를 떼고 붙일 때
     settings.subscribe(key => { if (key === 'layout') fitScreens(); });
-    runLoading().then(() => { if (isApp()) checkForUpdate({ silent: true }); });   // 캐릭터·사운드 미리 받기 (메인 화면은 뒤에서 바로 준비) → 앱이면 새 버전 확인 (D-074)
+    // 캐릭터·사운드 미리 받기 (메인 화면은 뒤에서 바로 준비) → 시작 화면(D-119 1번, 자동 검사는 ?skipTitle=1로 건너뜀) → 앱이면 새 버전 확인 (D-074)
+    runLoading().then(() => (skipTitle() ? null : showTitle())).then(() => { if (isApp()) checkForUpdate({ silent: true }); });
     window.madOverlordGameV2 = new GameRouterV2();
 }

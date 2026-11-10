@@ -3120,3 +3120,95 @@ body.v2-mobile .v2-story__title-text { zoom: 1.2; }
 #lab-compare-v2 .v2-compare__role dd { flex: 1; margin: 0; font-size: 12px; text-align: right; color: var(--v2-dim); }
 #lab-compare-v2 .v2-compare__role.is-melee dd { color: #ffb36b; }
 #lab-compare-v2 .v2-compare__role.is-ranged dd { color: #7fd4ff; }
+
+/* ==========================================================================
+   게임 시작 화면 (D-119 1번, js/ui_v2/title_v2.js) — 로딩 뒤 메인 위에 덮음
+   ========================================================================== */
+.v2-title { position: fixed; inset: 0; z-index: 9000; overflow: hidden; background: #000; cursor: pointer; user-select: none;
+    font-family: var(--v2-font); color: var(--v2-text); transition: opacity 0.35s; }
+.v2-title.is-leaving { opacity: 0; pointer-events: none; }
+.v2-title__bg { position: absolute; inset: -2%; background: center / cover no-repeat; filter: brightness(0.42) saturate(0.9); }
+.v2-title__shade { position: absolute; inset: 0; background: radial-gradient(ellipse 70% 60% at 50% 42%, transparent 0, rgba(0,0,0,0.25) 55%, rgba(0,0,0,0.85) 100%),
+    linear-gradient(180deg, rgba(0,0,0,0.5), transparent 25%, transparent 60%, rgba(0,0,0,0.85)); }
+.v2-title__logo { position: absolute; left: 0; right: 0; top: 18vh; text-align: center; line-height: 0.92; }
+.v2-title__logo .mad { display: block; font: 900 clamp(26px, 5.2vw, 72px) var(--v2-font-num); letter-spacing: 0.5em; padding-left: 0.5em; color: var(--v2-cyan);
+    text-shadow: 0 0 1.2vw rgba(62, 230, 255, 0.55); }
+.v2-title__logo .over { display: block; font: 900 clamp(48px, 10.4vw, 150px) var(--v2-font-num); letter-spacing: 0.04em;
+    background: linear-gradient(180deg, #fff2c8 0%, var(--v2-amber) 45%, #ff6a12 100%); -webkit-background-clip: text; background-clip: text; color: transparent;
+    filter: drop-shadow(0 0.35vw 0 #3a1a00) drop-shadow(0 0 1.6vw rgba(255, 122, 26, 0.55)); }
+.v2-title__logo .kr { display: block; margin-top: 1.2vh; font: 700 clamp(11px, 1.6vw, 22px) "Noto Sans KR", sans-serif; letter-spacing: 0.9em; padding-left: 0.9em; color: #e6dccb; opacity: 0.85; }
+.v2-title__tap { position: absolute; left: 0; right: 0; top: 62vh; text-align: center; font: 800 clamp(14px, 1.9vw, 26px) var(--v2-font-num); letter-spacing: 0.35em;
+    animation: v2-title-blink 1.6s ease-in-out infinite; }
+@keyframes v2-title-blink { 0%, 100% { opacity: 1; } 50% { opacity: 0.25; } }
+@media (prefers-reduced-motion: reduce) { .v2-title__tap { animation: none; } }
+.v2-title__lineup { position: absolute; left: 50%; bottom: 10vh; transform: translateX(-50%); display: flex; gap: clamp(4px, 0.9vw, 12px); }
+.v2-title__face { width: clamp(34px, 5.4vw, 72px); aspect-ratio: 1; background: #1a1f29 center / cover no-repeat; border: 2px solid rgba(255, 176, 32, 0.65);
+    clip-path: polygon(18% 0, 100% 0, 100% 82%, 82% 100%, 0 100%, 0 18%); }
+.v2-title__face.is-secret { display: grid; place-items: center; border-color: rgba(139, 149, 168, 0.7); background: #12151c; }
+.v2-title__face.is-secret::after { content: "?"; font: 900 clamp(14px, 2.4vw, 30px) var(--v2-font-num); color: #aab3c4; }
+.v2-title__acct { position: absolute; left: max(2vw, env(safe-area-inset-left, 0px)); bottom: 3vh; display: flex; align-items: center; gap: 8px;
+    font: 500 clamp(11px, 1.25vw, 16px) "Noto Sans KR", sans-serif; color: var(--v2-text); background: rgba(10, 12, 18, 0.72);
+    border: 1px solid var(--v2-edge-dim); padding: 6px 12px; cursor: pointer; }
+.v2-title__acct i { width: 9px; height: 9px; border-radius: 50%; background: var(--v2-dim); }
+.v2-title__acct.is-linked i { background: var(--v2-green); box-shadow: 0 0 6px var(--v2-green); }
+.v2-title__acct u { text-decoration: none; color: var(--v2-amber); }
+.v2-title__ver { position: absolute; right: max(2vw, env(safe-area-inset-right, 0px)); bottom: 3vh; font: 500 clamp(10px, 1.05vw, 14px) var(--v2-font-num); color: var(--v2-dim); letter-spacing: 0.1em; }
+.v2-title__icons { position: absolute; top: max(3vh, env(safe-area-inset-top, 0px)); right: max(2vw, env(safe-area-inset-right, 0px)); display: flex; gap: 8px; }
+.v2-title__icons button { width: clamp(30px, 3.2vw, 44px); aspect-ratio: 1; display: grid; place-items: center; background: rgba(10, 12, 18, 0.7);
+    border: 1px solid var(--v2-edge-dim); cursor: pointer; }
+.v2-title__icons svg { width: 55%; height: 55%; fill: none; stroke: #d8dde8; stroke-width: 2; }
+.v2-title__consent { position: absolute; inset: 0; background: rgba(3, 4, 7, 0.72); display: grid; place-items: center; cursor: default; }
+.v2-title__consent[hidden] { display: none; }   /* 위 display: grid가 hidden을 덮지 않게 */
+/* 휴대폰 가로처럼 낮은 화면: 로고를 높이 기준으로 줄여 TOUCH TO START·캐릭터 줄과 안 겹치게 */
+@media (max-height: 520px) {
+    .v2-title__logo { top: 8vh; }
+    .v2-title__logo .mad { font-size: 9vh; }
+    .v2-title__logo .over { font-size: 18vh; }
+    .v2-title__logo .kr { font-size: 3.2vh; margin-top: 0.8vh; }
+    .v2-title__tap { top: 60vh; font-size: 4.6vh; }
+    .v2-title__lineup { bottom: 14vh; }
+    .v2-title__face { width: 11vh; }
+}
+.v2-title__box { width: min(560px, 88vw); padding: 22px 24px; display: grid; gap: 12px; font-family: "Noto Sans KR", sans-serif; }
+.v2-title__box h3 { margin: 0; font-size: 20px; }
+.v2-title__box p { margin: 0; font-size: 13px; color: var(--v2-dim); line-height: 1.6; }
+.v2-title__box label { display: flex; align-items: center; gap: 8px; font-size: 14px; cursor: pointer; }
+.v2-title__box input { width: 18px; height: 18px; accent-color: var(--v2-amber); }
+.v2-title__box .v2-btn:disabled, .v2-account__panel .v2-btn:disabled { opacity: 0.4; filter: grayscale(0.6); cursor: not-allowed; }
+
+/* 계정 연동 화면 (D-119 2번, js/ui_v2/account_v2.js) */
+.v2-account { position: fixed; inset: 0; z-index: 9100; background: rgba(3, 4, 7, 0.72); display: grid; place-items: center; font-family: "Noto Sans KR", sans-serif; }
+.v2-account__panel { width: min(640px, 92vw); max-height: 92vh; overflow: auto; padding: 22px 26px; display: grid; gap: 12px; color: var(--v2-text); }
+.v2-account__panel[data-state="conflict"] { width: min(820px, 94vw); }
+.v2-account__kicker { font: 600 11px var(--v2-font-num); letter-spacing: 0.3em; color: var(--v2-amber); }
+.v2-account__panel h2 { margin: 0; font-size: 22px; font-weight: 900; }
+.v2-account__sub { margin: 0; font-size: 13px; color: var(--v2-dim); line-height: 1.6; }
+.v2-account__rec { display: flex; flex-wrap: wrap; gap: 6px 18px; padding: 10px 14px; background: rgba(0, 0, 0, 0.3); border: 1px solid rgba(255, 255, 255, 0.1); font-size: 13px; color: var(--v2-dim); }
+.v2-account__rec b { color: var(--v2-text); font: 800 14px var(--v2-font-num); margin-left: 5px; }
+.v2-account__reward { justify-self: start; font-size: 13px; font-weight: 700; color: #120b00; background: var(--v2-amber); padding: 4px 10px; }
+.v2-account__checks { display: grid; gap: 8px; }
+.v2-account__checks label { display: flex; align-items: center; gap: 8px; font-size: 14px; cursor: pointer; }
+.v2-account__checks input { width: 18px; height: 18px; accent-color: var(--v2-amber); }
+.v2-account__row { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+.v2-account__google { display: inline-flex; align-items: center; gap: 10px; background: #fff; color: #1f1f1f; font: 700 15px "Noto Sans KR", sans-serif;
+    padding: 10px 18px; border: 0; border-radius: 4px; cursor: pointer; }
+.v2-account__google:disabled { opacity: 0.4; cursor: not-allowed; }
+.v2-account__google .g { width: 22px; height: 22px; border-radius: 50%; display: grid; place-items: center; font: 700 14px Arial, sans-serif; color: #fff;
+    background: conic-gradient(#ea4335 0 25%, #fbbc05 0 50%, #34a853 0 75%, #4285f4 0); }
+.v2-account__fine { margin: 0; font-size: 12px; color: var(--v2-dim); }
+.v2-account__spin { width: 44px; height: 44px; border-radius: 50%; border: 4px solid rgba(255, 255, 255, 0.15); border-top-color: var(--v2-cyan);
+    justify-self: center; animation: v2-account-spin 0.9s linear infinite; }
+@keyframes v2-account-spin { to { transform: rotate(360deg); } }
+.v2-account__pick { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+@media (max-width: 640px) { .v2-account__pick { grid-template-columns: 1fr; } }
+.v2-account__card { display: grid; gap: 5px; padding: 12px 14px; text-align: left; border: 1px solid rgba(255, 255, 255, 0.15); background: rgba(0, 0, 0, 0.28);
+    color: var(--v2-dim); font: 13px "Noto Sans KR", sans-serif; cursor: pointer; }
+.v2-account__card strong { color: var(--v2-text); font-size: 15px; }
+.v2-account__card em { font-style: normal; color: var(--v2-text); font-family: var(--v2-font-num); font-weight: 800; }
+.v2-account__card.is-on { border-color: var(--v2-cyan); background: rgba(62, 230, 255, 0.08); box-shadow: inset 0 0 0 1px var(--v2-cyan); }
+.v2-account__warn { margin: 0; font-size: 13px; color: var(--v2-amber); }
+.v2-account__info { display: grid; grid-template-columns: auto 1fr; gap: 6px 16px; margin: 0; font-size: 14px; }
+.v2-account__info dt { color: var(--v2-dim); }
+.v2-account__info dd { margin: 0; }
+.v2-account__err { display: flex; gap: 10px; align-items: flex-start; padding: 10px 14px; border: 1px solid rgba(255, 51, 85, 0.5); background: rgba(255, 51, 85, 0.08); font-size: 13px; line-height: 1.55; }
+.v2-account__err b { color: var(--v2-red); }

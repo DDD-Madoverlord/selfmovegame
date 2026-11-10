@@ -79,7 +79,8 @@ class Game:
         self.page.on('pageerror', lambda e: self.errors.append('pageerror: ' + (e.stack or str(e))[:400]))
         self.page.on('console', self._console)
         # openGroups=1: 숨김 그룹(구역 7~10·캐릭터 4명, D-119)을 열고 검사 — 숨김 자체는 test_groups.py가 끄고 확인
-        self.page.goto(f'{base}/index.html?openGroups=1&t={time.time()}')
+        # skipTitle=1: 시작 화면·1-5 뒤 계정 안내를 건너뜀 (D-119 — 확인은 test_title.py)
+        self.page.goto(f'{base}/index.html?openGroups=1&skipTitle=1&t={time.time()}')
         if fresh:
             self.page.evaluate('() => localStorage.clear()')
             self.page.reload()
