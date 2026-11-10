@@ -42,6 +42,8 @@ import { EnemyMethods } from './battle/enemyField.js';
 import { AllyMethods } from './battle/allies.js';
 import { SetMethods } from './battle/sets.js';
 import { KitMethods } from './battle/kit.js';
+import { TraitMethods } from './battle/traits.js';
+import { roleMods } from './role_v2.js';
 import { DiverMethods } from './battle/diver.js';
 import { SaintMethods } from './battle/saint.js';
 import { FrostMethods } from './battle/frost.js';
@@ -256,6 +258,8 @@ export class BattleEngine {
         this.playerRange = stats.range;
         this.playerSpeed = stats.speed;
         this.attackType = equippedObjs.arm ? (equippedObjs.arm.attackType || 'melee') : 'melee';
+        this.roleTaken = roleMods(stats.role).taken;   // 원거리·근거리 받는 피해 배율 (D-119, sets.js incomingMul)
+        this.setupTraits(equippedObjs);                  // 캐릭터 고유 특성 (battle/traits.js)
         this.armShotFx = equippedObjs.arm?.shotFx || null;   // 총구 섬광 + 날아가는 탄 (D-118, attacks.js fireShotFx)
         this.skills = skillsForParts(equippedObjs);
         this.setupGrowth(equippedObjs);   // 옵션·스킬 레벨·전술 모듈·전장 변이 (battle/growth.js, Q-006)
@@ -661,7 +665,8 @@ attachMethods(BattleEngine.prototype, {
     'battle/doll.js': DollMethods,
     'battle/growth.js': GrowthBattleMethods,
     'battle/pets.js': PetBattleMethods,
-    'battle/support.js': SupportMethods
+    'battle/support.js': SupportMethods,
+    'battle/traits.js': TraitMethods
 });
 
 export const battleEngineV2 = new BattleEngine();

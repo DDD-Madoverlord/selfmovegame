@@ -200,6 +200,7 @@ export const EnemyMethods = {
             const gear = supportSource ? react.supportGear : this.gear;
             damage *= this.gearDamageMul(enemy, gear);    // 파츠 옵션(엘리트·보스·공성) · 철벽 변이 (growth.js)
             damage *= this.kitTargetMul(enemy);     // 2차: 취약 상태 · 패시브 조건 (battle/kit.js)
+            if (!supportSource) damage *= this.sigTargetMul(enemy);   // 캐릭터 고유 특성 (battle/traits.js, D-119)
             if (react && !react.dot) this.kitWake(enemy);   // 잠든 적은 맞으면 깸
             if (gear?.healBlock) enemy.healBlockUntil = this.stats.time + gear.healBlock;   // 치유 방해 옵션
         }
@@ -418,6 +419,7 @@ export const EnemyMethods = {
         this.onSetKill(enemy);      // 레어 세트 4부위 효과 (sets.js — 독안개 산성 옮기기)
         this.kitOnKill(enemy);      // 2차 패시브·세트 효과 (kit.js)
         const purified = this.isPurified(enemy);   // 정화된 채 쓰러지면 독 구름·폭발 없음
+        this.sigOnKill(enemy);   // 고유 특성: 성녀 봉합 회수 (battle/traits.js, D-119)
         if (enemy.stitchT > 0) this.addCorpse(enemy);   // 봉합 성녀: 봉합된 채 쓰러지면 시체 (battle/saint.js)
         gameState.addDarkMatter(killReward(this, enemy));
         if (enemy.affixes?.includes('toxic') && !purified) {

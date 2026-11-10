@@ -27,7 +27,7 @@ export const AllyMethods = {
         const baby = kind === 'baby_kaiju';
         const minion = kind === 'chimera';   // 합성괴인 졸개: 주인공 능력치 비례 (tuning.js MINION)
         const maxHp = opts.hp ?? (baby ? BABY.hp : minion ? Math.round(this.maxPlayerHp * MINION.hp) : 350);
-        const dps = opts.dps ?? (baby ? BABY.dps : minion ? this.playerDps * MINION.dps : 17.5); // 세뇌 미니언은 적 보병 데미지의 절반
+        const dps = opts.dps ?? (baby ? BABY.dps : minion ? this.playerDps * MINION.dps * this.sigAllyMul() : 17.5); // 세뇌 미니언은 적 보병 데미지의 절반
         const allyId = `ally_${Date.now()}_${Math.random()}`;
 
         const el = document.createElement('div');

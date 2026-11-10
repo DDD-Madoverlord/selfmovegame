@@ -3113,3 +3113,10 @@ body.v2-mobile .v2-story__title-text { zoom: 1.2; }
     clip-path: polygon(10px 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%, 0 10px); transition: filter 0.15s ease; }
 .v2-storybtn:hover { filter: brightness(1.25); }
 .v2-storybtn[hidden] { display: none; }
+
+/* 연구소 능력치: 원거리·근거리 유형 줄 (D-119) */
+#lab-compare-v2 .v2-compare__role { grid-column: 1 / -1; display: flex; gap: 10px; align-items: baseline; }
+#lab-compare-v2 .v2-compare__role dt { flex: none; white-space: nowrap; width: auto; }
+#lab-compare-v2 .v2-compare__role dd { flex: 1; margin: 0; font-size: 12px; text-align: right; color: var(--v2-dim); }
+#lab-compare-v2 .v2-compare__role.is-melee dd { color: #ffb36b; }
+#lab-compare-v2 .v2-compare__role.is-ranged dd { color: #7fd4ff; }

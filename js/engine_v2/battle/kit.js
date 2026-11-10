@@ -16,7 +16,7 @@ import { ENEMY_ART } from '../enemyArt_v2.js';
 import { ensureEnemyStyles } from '../enemies_v2.js';
 import { SETS } from '../sets_v2.js';
 import { KIT_PASSIVES, runKitStep, spr, fxOf } from '../skillKit_v2.js';
-import { FOOT_B, SET, SAINT, DOLL } from './tuning.js';
+import { FOOT_B, SET, SAINT, DOLL, PIERCE2 } from './tuning.js';
 import { playImageField } from '../vfx/imageEffects.js';
 
 const ART_FOOT_B = 58;
@@ -648,7 +648,7 @@ export const KitMethods = {
                 const range = this.playerRange + (def.extra || 0);
                 if (def.vfx) this.fx.play(def.vfx, muzzle.x, muzzle.bottom, { to: [this.frontX() + range, aimOf(target).b] });
                 let mul = 1;
-                this.enemiesInRange(range).slice(0, def.n || 3).forEach((e, i) => { hit(e, dmg * mul, isCrit && i === 0); mul *= def.decay ?? 0.7; });
+                this.enemiesInRange(range).slice(0, def.n || 3).forEach((e, i) => { hit(e, dmg * mul, isCrit && i === 0); mul *= (def.decay ?? 0.7) * PIERCE2.kitDecay; });   // 관통 2차 (D-119)
                 break;
             }
             case 'chain': {

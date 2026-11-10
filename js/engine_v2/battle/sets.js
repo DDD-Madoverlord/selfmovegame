@@ -80,7 +80,7 @@ export const SetMethods = {
 
     /** 주인공이 받는 피해 배율 (player.js damagePlayer) */
     incomingMul() {
-        let m = this.kitIncomingMul();   // 2차 버프·패시브·세트 (battle/kit.js)
+        let m = this.kitIncomingMul() * (this.roleTaken || 1) * this.sigIncomingMul();   // 2차 버프·패시브·세트 (battle/kit.js) · 원거리/근거리 · 고유 특성 (D-119)
         if (this.buffs.thornArmor) m *= 1 - SET.thorn.reduce;
         if (this.buffs.overdrive) m *= 1 - SET.overdrive.reduce;
         if (this.equippedLegId === 'leg_kaiju_a') m *= 1 - SET.shell.reduce;
@@ -169,7 +169,7 @@ export const SetMethods = {
         const endX = this.frontX() + this.playerRange + SET.rail.extra;
         this.fx.play(SET_VFX.railShot, muzzle.x, muzzle.bottom, { to: [endX, aim.b] });
         let mul = 1;
-        this.enemiesInRange(this.playerRange + SET.rail.extra).forEach((e, i) => {
+        this.enemiesInRange(this.playerRange + SET.rail.extra).slice(0, SET.rail.max).forEach((e, i) => {   // 최대 SET.rail.max명 (D-119)
             this.fx.play(SET_VFX.railHit, aimOf(e).x, aimOf(e).b);
             this.dealDamageToEnemy(e, dmg * mul, isCrit && i === 0, { knock: 0.4 });
             mul *= SET.rail.pierce;

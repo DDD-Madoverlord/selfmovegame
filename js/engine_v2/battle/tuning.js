@@ -16,7 +16,7 @@ export const DRONE = { dmgMul: 0.35, splash: 70 };
 // curseZone: 적 왼쪽 끝 기준 저주 범위 (몸 앞 기준 px). auraDx: 저주 장판 중심 (몸 앞 기준, 장판은 발밑~범위 끝)
 // wavePierce: 관통 파동이 두 번째 적부터 주는 피해 배율 (적을 지날 때마다 곱해짐, 밸런스 1차)
 export const HERO = { recruitChance: 0.1, curseTick: 0.65, curseZone: [-40, 180], curseDps: 22, auraDx: 65,
-    waveRange: 280, slowSec: 2.5, slowMul: 0.5, wavePierce: 0.4, waveBaseMul: 0.7 };   // waveBaseMul: 파동이 거점·바리케이드에 주는 피해 배율 · wavePierce 0.5 → 0.4 (11-03 원거리 관통 하향, Q-018)
+    waveRange: 280, slowSec: 2.5, slowMul: 0.5, wavePierce: 0.3, waveMax: 4, waveBaseMul: 0.7 };   // waveBaseMul: 파동이 거점·바리케이드에 주는 피해 배율 · wavePierce 0.5 → 0.4 (11-03, Q-018) → 0.3 + 최대 4명 (D-119 관통 2차)
 // 팩션 패시브 수치 (밸런스 1차): 괴수 머리 재생(최대 체력 비율/초), 합성괴인 다리 지진(초당 피해), 괴수 다리 포자(초당 피해)
 export const PASSIVE = { regen: 0.012, quakeDps: 30, sporeDps: 30 };
 export const HIT_REACT = { flashMs: 80, knockPx: 10, stopSec: 0.05 };
@@ -42,7 +42,7 @@ export const ACID = { dpsMul: 0.14, baseMul: 2, sec: 3 };
 //   심연의 손: 최대 handsMax명, 첫 피해·붙잡기(기절 초)·지속 피해(주인공 DPS 배율, 거점 × handsBaseMul, handsSec초)
 //   잠수화(다리 패시브): 밀려남(넉백) 감소율 push, 감속·속박 시간 감소율 slow
 export const DIVER = {
-    jetPierce: 0.45, jetKnock: 0.4,   // 0.6 → 0.45 (11-03 원거리 관통 하향, Q-018)
+    jetPierce: 0.3, jetMax: 4, jetKnock: 0.4,   // 0.6 → 0.45 (11-03, Q-018) → 0.3 + 최대 4명 (D-119 관통 2차)
     anchorDmg: 1.5, anchorStun: 1.6, pullGap: 30, pullSec: 0.35,
     surgeDmg: 1.2, surgeKnock: 7, surgeRange: 160,
     handsMax: 6, handsDmg: 1.5, handsHold: 2.5, handsSec: 4, handsDps: 0.35, handsBaseMul: 2,
@@ -75,7 +75,7 @@ export const SAINT = {
 //   빙판 걸음(다리 패시브): 얼어 있는 적에게 주는 피해 × (1 + shatter)
 export const FROST = {
     freezeAt: 4, freezeSec: 1.0, chillSec: 4,
-    fanTargets: 2, fanSecond: 0.5,
+    fanTargets: 2, fanSecond: 0.4,   // 0.5 → 0.4 (D-119 관통 2차)
     crescentDmg: 1.6, crescentChill: 2,
     blizzardSec: 4, blizzardZone: [-120, 170], blizzardDx: 20, blizzardDps: 0.45, blizzardTick: 0.6, blizzardGuard: 0.3,
     restMax: 8, restSec: 2.4, restDmg: 3, restBaseDmg: 2.5,
@@ -100,13 +100,37 @@ export const DOLL = {
 };
 // 근접 기본 공격 휩쓸기: 맞은 적 뒤 radius px 안의 적에게도 피해 × mul (거대 캐릭터가 무리를 쳐냄)
 // 근접 기본 공격 (11-03 근거리 상향, Q-018): 휩쓸기 반경 60 → 80, 둘레 피해 0.4 → 0.6, 주 대상 피해 ×1.15 (dmg)
-export const MELEE_CLEAVE = { radius: 80, mul: 0.6, dmg: 1.15 };
+// → D-119 근거리 스플래시: 반경 80 → 110, 둘레 0.6 → 0.75
+export const MELEE_CLEAVE = { radius: 110, mul: 0.75, dmg: 1.15 };
+
+// 원거리·근거리 차등 (D-119 4·13번, Q-039 임시 = 사용자 요청 값): 팔 공격 종류로 나눔 (role_v2.js roleOfArm)
+//   move = 진격 속도 배율, taken = 받는 피해 배율(방어력 = 1 − taken), dps = 공격력 배율 — progress_v2.js statsFor가 능력치에 곱함
+export const ROLE = {
+    melee: { move: 2, taken: 0.75, dps: 1.2 },
+    ranged: { move: 0.5, taken: 1.2, dps: 0.85 },
+    mid: { move: 1, taken: 1, dps: 1 }
+};
+// 관통 2차 (D-119): 2차 세트 관통 기본 공격(kit.js pierce)의 줄어드는 배율에 곱함 (예: 0.6 → 0.48)
+export const PIERCE2 = { kitDecay: 0.8 };
+// 캐릭터 고유 특성 (D-119 6번, battle/traits.js) — 파츠와 상관없이 항상
+export const SIGNATURE = {
+    mech: { meleeGuard: 0.1, anchorDmg: 0.15 },   // 주먹이면 받는 피해 −10%, 원거리 팔로 멈춰 쏘면 +15%
+    kaiju: { siege: 0.3 },                         // 거점·바리케이드 +30%
+    hero: { slowedDmg: 0.12 },                     // 감속된 적 +12%
+    chimera: { minionDmg: 0.25 },                  // 졸개 공격력 +25%
+    diver: { heldDmg: 0.15 },                      // 기절·붙잡힌 적 +15%
+    saint: { stitchHeal: 0.02 },                   // 봉합 표식 적 처치 → 내구도 2%
+    doll: { heldDmg: 0.2 },                        // 기절·붙잡힌 적 +20%
+    frost: { frozenDmg: 0.2 },                     // 얼어 있는 적 +20%
+    architect: { siege: 0.25 },                    // 거점·바리케이드 +25%
+    broadcaster: { silence: 1 }                    // 기본 공격에 맞은 보통 적 1초 침묵
+};
 
 // ---- 기존 4종 A·B 세트 (D-050 파츠 확장 1차, 효과는 battle/sets.js · 스킬은 skills_v2.js) ----
 // 피해 배율은 기본 1타(u) 기준, dps가 붙은 것은 주인공 DPS 대비 초당 피해 비율
 export const SET = {
     // 새 기본 공격: 레일건 관통(뒤로 갈수록 × pierce), 산성 침 웅덩이, 암흑 구체 폭발, 산탄(가까운 적 max명, 둘째부터 × mul)
-    rail: { pierce: 0.45, extra: 40 },   // 0.6 → 0.45 (11-03 원거리 관통 하향, Q-018)
+    rail: { pierce: 0.3, max: 4, extra: 40 },   // 0.6 → 0.45 (11-03, Q-018) → 0.3 + 최대 4명 (D-119 관통 2차)
     spit: { puddleSec: 2.5, puddleW: 70, puddleDps: 0.12 },
     orb: { splash: 70, splashMul: 0.5 },
     shotgun: { max: 4, mul: 0.55 },
@@ -137,7 +161,7 @@ export const SET = {
     commander: { perAlly: 0.05, max: 4 },          // 졸개 지휘: 졸개 하나마다 주는 피해 +5% (최대 4기)
     // 레어 세트 4부위 효과 (Q-008, sets_v2.js SETS — 센 세트는 작게, 약한 세트는 약점 메우기)
     setBonus: {
-        railCharge: 0.7,                                   // 포격 사령부: 충전 레일 사격 충전 1초 → 0.7초
+        railCharge: 0.85,                                  // 포격 사령부: 충전 레일 사격 충전 1초 → 0.7초 → 0.85초 (D-119 — 구역 1을 평균 51초에 다 깸)
         dashShock: { radius: 130, stun: 0.5, dmg: 0.6 },   // 돌격 강습대: 로켓 돌진 끝 충격파 (u × dmg, 보통 적 기절)
         thornMove: 0.3, thornReflect: 0.8,                 // 가시 갑각: 가시 갑옷 동안 진격 +30%, 되돌림 80%
         toxicBaseMul: 2, acidSpread: 120, acidSec: 3,      // 독안개: 독 구름·웅덩이 거점 2배, 산성 적이 쓰러지면 120px 안 적에게 3초
@@ -152,7 +176,7 @@ export const SET = {
 // ---- 걸음 맞추기 (Q-008 퀄리티업 Q2) ----
 // 바닥 배경·바닥에 놓인 것(구역·장판·잔해·시체)이 흐르는 빠르기와 걷기 동작 빠르기를 실제 진격 속도에 맞춤:
 //   배율 = (이동 속도 × 진격 배율) ÷ ref, 바닥은 ground 범위로, 걷기 동작은 anim 범위로 자름 (속도 ref = 예전처럼 배경 3초에 한 바퀴)
-export const WALK_SYNC = { ref: 120, ground: [0.55, 1.7], anim: [0.75, 1.45] };
+export const WALK_SYNC = { ref: 120, ground: [0.35, 3.2], anim: [0.6, 1.9] };   // D-119: 근거리 ×2 · 원거리 ×0.5 속도까지 바닥이 미끄러지지 않게 넓힘
 
 // ---- 반응 동작 (Q-008 퀄리티업 Q4, rig/reactions.js) ----
 // 주인공 움찔: 한 방 공격은 hitEvery초에 한 번까지, 계속 맞는 근접 피해는 meleeEvery초마다

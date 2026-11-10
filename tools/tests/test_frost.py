@@ -85,7 +85,7 @@ def run(ctx):
     # 빙판 걸음: 얼어 있는 적에게 피해 30% 더
     st = g.js("""const e = b.enemies[0]; e.frozenT = 2; const h0 = e.hp; b.dealDamageToEnemy(e, 100, false); const frozenDmg = h0 - e.hp;
         e.frozenT = 0; const h1 = e.hp; b.dealDamageToEnemy(e, 100, false); return { frozenDmg, normal: h1 - e.hp };""")
-    ctx.check(abs(st['frozenDmg'] - 130) < 0.5 and abs(st['normal'] - 100) < 0.5, '빙판 걸음: 얼어 있는 적에게 피해 30% 증가', str(st))
+    ctx.check(abs(st['frozenDmg'] - 156) < 0.5 and abs(st['normal'] - 100) < 0.5, '빙판 걸음 30% × 고유 특성 빙결 파쇄 20%: 얼어 있는 적에게 피해 ×1.56', str(st))
 
     # 초승달 참격: 지나간 적 모두 피해 + 냉기 2
     g.js(CLEAN + spawn('guard', 40) + spawn('raider', 150) + spawn('shield', 300))
@@ -103,8 +103,8 @@ def run(ctx):
         return { on: !!b.blizzard, taken: Math.round(taken), e: b.enemies.map(e => ({ hp: Math.round(e.hp), chill: (e.chill || 0) + (e.frozenT > 0 ? 9 : 0) })) };""")
     g.shot('frost_blizzard', '#screen-battle-v2')
     inside, outside = st['e'][:2], st['e'][2]
-    ctx.check(ok and st['on'] and st['taken'] == 70 and all(s['hp'] < h and s['chill'] >= 1 for s, h in zip(inside, hp0[:2]))
-              and outside['hp'] == round(hp0[2]), '눈보라 춤: 둘레 적 피해 + 냉기, 받는 피해 30% 감소 (먼 적은 그대로)', f'{hp0} → {st}')
+    ctx.check(ok and st['on'] and st['taken'] == 84 and all(s['hp'] < h and s['chill'] >= 1 for s, h in zip(inside, hp0[:2]))
+              and outside['hp'] == round(hp0[2]), '눈보라 춤: 둘레 적 피해 + 냉기, 받는 피해 30% 감소 (원거리 +20%와 곱해 84, 먼 적은 그대로)', f'{hp0} → {st}')
     g.wait(3000)
     ctx.check(g.js("return !b.blizzard;"), '눈보라 춤: 4초 뒤 끝남')
 

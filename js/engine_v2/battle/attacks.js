@@ -33,6 +33,7 @@ export const AttackMethods = {
         const isCrit = Math.random() < 0.2;
         const finalDmg = isCrit ? dmg * 1.5 : dmg;
         this.cloneEcho(targetEnemy, finalDmg);   // 그림자 분신이 있으면 같이 쏨
+        this.sigOnBasicHit(targetEnemy);         // 고유 특성: 방송자 잡음 침묵 (battle/traits.js, D-119)
 
         // 2차 세트 새 기본 공격 · 변신 공격 (battle/kit.js)
         if ((this.attackType === 'kit' || this.kitXform?.attack) && this.fireKitAttack(targetEnemy, finalDmg, isCrit)) return;
@@ -121,7 +122,7 @@ export const AttackMethods = {
     // 기본 공격이 거점에 안 들어갔음 (2026-10-03 발견)
     launchDarkWave(fromX, dmg, isCrit) {
         const hit = new Set();
-        let mul = 1;   // 관통할수록 약해짐
+        let mul = 1, units = 0;   // 관통할수록 약해짐 · 보통 적은 최대 HERO.waveMax명 (D-119)
         this.fx.launchWave({
             x: fromX, b: 88, range: Math.max(this.playerRange, HERO.waveRange), speed: HERO_WAVE.speed,
             h: HERO_WAVE.h, color: HERO_WAVE.color,
@@ -130,7 +131,9 @@ export const AttackMethods = {
                     const solid = e.isBuilding || e.isBarricade;
                     const cx = solid ? e.x + 12 : aimOf(e).x;
                     if (cx < x0 || cx > x1 || hit.has(e)) return;
+                    if (!solid && units >= HERO.waveMax) return;
                     hit.add(e);
+                    if (!solid) units += 1;
                     this.fx.play(HERO_VFX.waveHit, cx, 88);
                     if (!solid) this.slowEnemy(e);
                     this.dealDamageToEnemy(e, dmg * mul * (solid ? HERO.waveBaseMul : 1), isCrit, { knock: 0.6, delivery: 'ranged', area: true });
