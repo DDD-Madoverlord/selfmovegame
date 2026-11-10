@@ -10,6 +10,7 @@ import { progress } from '../engine_v2/progress_v2.js';
 import { MODULES, MODULE_MAX_LEVEL, RESEARCH, gradeOf, OPTIONS, SKINS, SKIN_STARS } from '../engine_v2/growth_v2.js';
 import { ROSTER } from '../engine_v2/roster_v2.js';
 import { isCharacterReleased } from '../engine_v2/contentSchedule_v2.js';
+import { SPECIAL, bossReward, smashLayout, bossZones } from '../engine_v2/special_v2.js';
 import { sound } from '../engine_v2/audio/sound_v2.js';
 import { icon } from './icons.js';
 import { mountDispatch, tickDispatch, unmountDispatch, dispatchAct, showReturn } from './dispatchUi_v2.js';
@@ -100,6 +101,13 @@ function act(name, d) {
     if (name === 'supportAuto') { progress.setSupportAuto(!progress.supportAuto); return render(); }
     if (name === 'buyModule') r = progress.buyModule(d.id);
     if (name === 'buySkin') r = progress.buySkin(d.id);
+    if (name === 'startSpecial') {   // 스페셜맵 입장 (D-123): 횟수 1 쓰고 전투로
+        const res = progress.startSpecial(d.mode);
+        if (!res.success) { toast(res.reason, false); return render(); }
+        closeGrowthPanel();
+        window.madOverlordGameV2.startSpecial(res.stage);
+        return;
+    }
     if (name === 'equipSkin') { progress.equipSkin(d.char, d.id || null); sound.play('ui_equip'); return render(); }
     if (name === 'equipModule') { progress.equipModule(Number(d.slot), d.id || null); sound.play('ui_tab'); return render(); }
     if (name === 'upModule') r = progress.upgradeModule(d.id);
@@ -120,8 +128,8 @@ function render(preserveScroll = true) {
     if (!panel) return;
     const scrollTop = preserveScroll ? (panel.querySelector('.v2-growth__body')?.scrollTop || 0) : 0;
     const petUnlocked = progress.stage('1-1', 'normal').cleared || progress.pets.owned.some(id => progress.canUsePet(id));
-    const tabs = [['coop', '협력 출격'], ['modules', '전술 모듈'], ['dispatch', '파견'], ['research', '계정 연구'], ['skins', '외형'], ['pets', '펫']];
-    const body = tab === 'coop' ? supportHtml() : tab === 'dispatch' ? '' : tab === 'research' ? researchHtml() : tab === 'skins' ? skinsHtml() : tab === 'pets'
+    const tabs = [['coop', '협력 출격'], ['special', '스페셜'], ['modules', '전술 모듈'], ['dispatch', '파견'], ['research', '계정 연구'], ['skins', '외형'], ['pets', '펫']];
+    const body = tab === 'coop' ? supportHtml() : tab === 'dispatch' ? '' : tab === 'research' ? researchHtml() : tab === 'skins' ? skinsHtml() : tab === 'special' ? specialHtml() : tab === 'pets'
         ? petUnlocked ? petsHtml() : '<p class="v2-growth__hint">노말 1-1을 클리어하면 펫이 열립니다.</p>' : modulesHtml();
     panel.innerHTML = `<div class="v2-growth__box v2-panel">
         <div class="v2-growth__head" data-currency>
@@ -158,6 +166,23 @@ function modulesHtml() {
     }).join('');
     return `<p class="v2-growth__hint">출격 때 끼우는 보조 스킬 (키 4·5, AUTO면 쓸 상황에 자동). 칸: 노말 1칸 → 하드를 열면 2칸. 별로 해금, DM으로 강화.</p>
         <div class="v2-modslots">${slotHtml}</div><div class="v2-modgrid">${cards}</div>`;
+}
+
+/** 스페셜맵 (D-123): 보스 러시 · 파괴 작전, 모드마다 하루 3회 (한국 시간 0시에 다시 채움) */
+function specialHtml() {
+    if (!progress.specialUnlocked()) return `<p class="v2-growth__hint">노말 ${SPECIAL.unlockStage}를 깨면 스페셜맵이 열립니다.</p>`;
+    const dots = mode => Array.from({ length: SPECIAL.daily[mode] }, (_, i) => `<i class="${i < progress.specialLeft(mode) ? 'is-on' : ''}"></i>`).join('');
+    const step = progress.nextBossStep(), rw = bossReward(step);
+    const band = step >= 30 ? '나이트메어' : step >= 20 ? '헬' : step >= 10 ? '하드' : '노말';
+    const zones = bossZones();
+    const lay = smashLayout();
+    const sb = progress.special.smashBest;
+    const card = (mode, title, lines, btn) => `<div class="v2-special__card" data-mode="${mode}"><b>${title}</b><div class="v2-pips v2-special__left" title="오늘 남은 횟수">${dots(mode)}</div>
+        ${lines.map(l => `<small>${l}</small>`).join('')}
+        <button data-act="startSpecial" data-mode="${mode}" ${progress.specialLeft(mode) > 0 ? '' : 'disabled'}>${progress.specialLeft(mode) > 0 ? btn : '오늘 횟수 끝'}</button></div>`;
+    return `<p class="v2-growth__hint">하루 3회씩(한국 시간 0시에 다시 채움). 들어가면 1회를 써요. 보스 러시의 승급석은 파츠 승급 재료가 됩니다.</p>
+        <div class="v2-special">${card('boss', '보스 러시', [`다음 <b>${step}단계</b> · ${band} · ${zones[(step - 1) % zones.length]}구역 보스`, `이기면 승급석 ${rw.stones} · 코어 ${rw.cores} · DM ${rw.dm.toLocaleString()}${rw.shards ? ` · 처음이면 조각 ${rw.shards}` : ''}`, `10단계 하드 · 20단계 헬 · 30단계 나이트메어 · 최고 ${progress.special.bossBest}단계`], `${step}단계 도전`)}
+        ${card('smash', '파괴 작전', [`이번 주: <b>${esc(lay.name)}</b> — ${SPECIAL.smash.sec}초 동안 물체를 최대한 부수기`, '3초 안에 이어 부수면 연속 보너스, 모두 부수면 남은 시간 보너스', `등급 S ${SPECIAL.smash.reward.S.shards}조각 · A ${SPECIAL.smash.reward.A.shards} · B ${SPECIAL.smash.reward.B.shards} · C ${SPECIAL.smash.reward.C.shards} · 이번 주 최고 ${(sb.week ? sb.score : 0).toLocaleString()}`], '도전')}</div>`;
 }
 
 /** 캐릭터 외형 (D-119 11번): 캐릭터마다 색 바꿔 입기 2종, 별 25개. 미리보기는 캐릭터 얼굴 그림에 같은 색 필터 */

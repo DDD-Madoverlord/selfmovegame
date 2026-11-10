@@ -31,7 +31,8 @@ export function emptyGrowth() {
     return {
         grades: {}, options: {}, shards: 0, cores: 0, skillLevels: {},
         modules: { owned: [], equipped: [], levels: {} }, research: {}, spentStars: 0, unlockedChars: [], dispatch: [], pets: emptyPets(),
-        skins: { owned: [], equipped: {} }, charStarRefund: 0
+        skins: { owned: [], equipped: {} }, charStarRefund: 0,
+        stones: 0   // 승급석 — 스페셜맵 보스 러시 보상, 5번 파츠 성장의 승급 재료 (D-123)
     };
 }
 export const GROWTH_KEYS = Object.keys(emptyGrowth());

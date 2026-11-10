@@ -401,6 +401,7 @@ export const EnemyMethods = {
     /** 적 처치: 처치 수·보상, 보스 격파 연출, 타락 히어로 머리면 확률로 세뇌 징집 */
     onEnemyKilled(enemy) {
         if (enemy.isBarricade) {   // 바리케이드: 터지며 사라짐 (처치 수·징집 없음)
+            if (enemy.smashScore) this.smashOnBreak(enemy);   // 스페셜맵 파괴 작전 물체 (battle/special.js)
             const a = aimOf(enemy);
             if (enemy.isFont) {   // 축복 성수대: 축복이 꺼짐 (금빛 물보라)
                 this.fx.play(ZONE_VFX.fontBreak, a.x, FOOT_B + 20);

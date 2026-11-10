@@ -43,6 +43,7 @@ import { AllyMethods } from './battle/allies.js';
 import { SetMethods } from './battle/sets.js';
 import { KitMethods } from './battle/kit.js';
 import { TraitMethods } from './battle/traits.js';
+import { SpecialBattleMethods } from './battle/special.js';
 import { roleMods } from './role_v2.js';
 import { DiverMethods } from './battle/diver.js';
 import { SaintMethods } from './battle/saint.js';
@@ -159,10 +160,18 @@ export class BattleEngine {
         this.isActive = true;
         this.distanceTraveled = 0;
         // 난이도(D-063): 고른 난이도의 배율을 곱한 스테이지 복사본 — 전투 코드는 b.stage만 읽음
-        this.difficulty = difficultyUnlocked(progress.difficulty, progress) ? progress.difficulty : DEFAULT_DIFFICULTY;
-        const sid = progress.selectedStage || defaultStage(progress).id;
-        this.assist = progress.assist(sid, this.difficulty);   // 연패 보정: 못 깬 판에서 진 만큼 적·거점 약하게 (difficulty_v2.js ASSIST)
-        this.stage = this.growthStage(assistStage(stageFor(stageById(sid), this.difficulty), this.assist));   // + 계정 연구 DM (growth.js)
+        const special = this.pendingSpecial;   // 스페셜맵 (D-123): 작전 지원 › 스페셜에서 고른 판 — 보통 판 기록·연패 보정과 따로
+        this.pendingSpecial = null;
+        if (special) {
+            this.difficulty = special.difficulty || DEFAULT_DIFFICULTY;
+            this.assist = 0;
+            this.stage = this.growthStage(special);
+        } else {
+            this.difficulty = difficultyUnlocked(progress.difficulty, progress) ? progress.difficulty : DEFAULT_DIFFICULTY;
+            const sid = progress.selectedStage || defaultStage(progress).id;
+            this.assist = progress.assist(sid, this.difficulty);   // 연패 보정: 못 깬 판에서 진 만큼 적·거점 약하게 (difficulty_v2.js ASSIST)
+            this.stage = this.growthStage(assistStage(stageFor(stageById(sid), this.difficulty), this.assist));   // + 계정 연구 DM (growth.js)
+        }
         predecodeStageArt(this.stage);   // 이 스테이지 적 그림을 미리 풂 (enemies_v2.js — 처음 나올 때 멈칫하지 않게)
         // 구역 배경 (ui_v2.css .v2-zone-1 ~ 4 · 6), 보스전은 경보 조명·불길 판 (.v2-stage-boss)
         // .v2-boss-rage(구역 4 보스 2페이즈)·.v2-crimson(구역 3 악마기사 소환 점멸)은 전투 중에 붙음
@@ -260,6 +269,7 @@ export class BattleEngine {
         this.attackType = equippedObjs.arm ? (equippedObjs.arm.attackType || 'melee') : 'melee';
         this.roleTaken = roleMods(stats.role).taken;   // 원거리·근거리 받는 피해 배율 (D-119, sets.js incomingMul)
         this.setupTraits(equippedObjs);                  // 캐릭터 고유 특성 (battle/traits.js)
+        this.setupSpecial();                             // 스페셜맵 파괴 작전 물체 (battle/special.js)
         this.armShotFx = equippedObjs.arm?.shotFx || null;   // 총구 섬광 + 날아가는 탄 (D-118, attacks.js fireShotFx)
         this.skills = skillsForParts(equippedObjs);
         this.setupGrowth(equippedObjs);   // 옵션·스킬 레벨·전술 모듈·전장 변이 (battle/growth.js, Q-006)
@@ -275,7 +285,7 @@ export class BattleEngine {
         // 몬스터 비주얼 렌더링 및 위치 리셋
         monsterControllerV2.renderVisuals(equippedObjs);
         track('stage_start', { stageId: this.stage.id, zone: this.stage.zone, difficulty: this.difficulty, character: monsterControllerV2.getCharacterId() });
-        progress.tutorialBattleStart(this.stage.id, this.difficulty);
+        if (!this.stage.special) progress.tutorialBattleStart(this.stage.id, this.difficulty);   // 스페셜맵 판 번호는 튜토리얼 기록에 넣지 않음 (저장 검사가 거절)
         if (this.autoSkills) progress.tutorialDone('combat');
         monsterControllerV2.updateHpBar(this.playerHp, this.maxPlayerHp);
         monsterControllerV2.setMonsterPosition(this.monsterX);
@@ -420,6 +430,7 @@ export class BattleEngine {
             this.director.alarm('TIME 30', '제한 시간 30초 — 최종 기지를 서둘러 부숴라', 2);
         }
         if (left > 0 || this.timeUp) return false;
+        if (this.stage.special === 'smash') { this.endSmash(false); return true; }   // 파괴 작전: 시간 끝 = 점수로 끝 (진 판 없음)
         this.timeUp = true;
         this.cinematic = true;
         this.clearSupport();
@@ -442,8 +453,36 @@ export class BattleEngine {
         });
     }
 
+    /** 스페셜맵 끝 (D-123): 보스 러시 = 단계 기록·승급석, 파괴 작전 = 점수·등급 → 결과 화면 (보통 판 기록·별·드랍 없음) */
+    finishSpecial(victory) {
+        const sp = this.stage;
+        const mode = sp.special;
+        const special = mode === 'boss' ? { mode, ...progress.finishSpecialBoss(sp.specialStep, victory) }
+            : { mode, ...progress.finishSpecialSmash(this.smashScore || 0), broken: this.smashBroken || 0 };
+        special.left = progress.specialLeft(mode);
+        const win = mode === 'smash' ? true : victory;
+        const result = {
+            victory: win, stage: sp, special, loot: null, difficulty: difficultyOf(this.difficulty), unlocked: null,
+            starFlags: [false, false, false], bestStars: [false, false, false], prevStars: [false, false, false], newStars: 0, bonus: 0, pets: [], chars: [],
+            next: null, timeUp: !win && this.timeUp, livesOut: !win && this.livesOut, assist: 0, nextAssist: 0, bossPhase: !win && !!this.bossPhase, bossKill: win && mode === 'boss',
+            overloads: this.stats.overloads || 0, distance: Math.min(this.maxDistance, this.distanceTraveled), kills: this.stats.kills, time: this.stats.time,
+            dm: Math.max(0, gameState.darkMatter - this.stats.startDm), report: null
+        };
+        this.stopBattle();
+        setTimeout(() => { if (!this.isActive) sound.playBgm('menu', 2.5); }, 1200);
+        this.director.showResult(result, act => {
+            if (act === 'retry') {   // 같은 모드 한 번 더 (횟수가 남았으면)
+                const r = progress.startSpecial(mode);
+                if (r.success) { this.pendingSpecial = r.stage; if (this.onNavigate) this.onNavigate('battle'); return; }
+                act = 'menu';
+            }
+            if (this.onNavigate) this.onNavigate(act);
+        });
+    }
+
     // 전투 종료 → 결과 화면 (승리: 최종 기지 파괴 연출 뒤 / 패배: 시간 초과·목숨 소진 연출 뒤)
     finishBattle(victory) {
+        if (this.stage.special) return this.finishSpecial(victory);   // 스페셜맵: 보통 판 기록·드랍 없이 (D-123)
         // 세 번째 별: 목표 시간(stage.starTime) 안에 클리어 (D-029)
         if (victory && this.stats.time <= this.stage.starTime) this.starFlags[2] = true;
         const diff = this.difficulty;
@@ -530,6 +569,7 @@ export class BattleEngine {
 
         // 시간·상태
         this.stats.time += dt;
+        if (this.smashQueue) this.tickSmash();   // 파괴 작전 물체 (battle/special.js)
         if (this.checkTimeLimit()) {
             this.loopId = requestAnimationFrame((t) => this.loop(t));
             return;
@@ -666,7 +706,8 @@ attachMethods(BattleEngine.prototype, {
     'battle/growth.js': GrowthBattleMethods,
     'battle/pets.js': PetBattleMethods,
     'battle/support.js': SupportMethods,
-    'battle/traits.js': TraitMethods
+    'battle/traits.js': TraitMethods,
+    'battle/special.js': SpecialBattleMethods
 });
 
 export const battleEngineV2 = new BattleEngine();

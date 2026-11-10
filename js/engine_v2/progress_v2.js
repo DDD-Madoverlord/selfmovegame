@@ -36,6 +36,7 @@ import { roleOfArm, roleMods, armorOf } from './role_v2.js';
 import * as saveStore from './saveStore_v2.js';
 import { settings } from './settings_v2.js';
 import { SupportProgressMethods } from './support_v2.js';
+import { SpecialMethods, emptySpecial } from './progressSpecial_v2.js';
 
 const KEY = 'mo_v2_save';
 export const MAX_LEVEL = 5;           // 노말 강화 한도 — 높은 난이도를 열면 올라감 (progress.maxLevel(), D-063)
@@ -66,6 +67,7 @@ class Progress {
         this.supportRandom = false;
         this.supportHelpSeen = false;
         Object.assign(this, emptyGrowth());   // 파츠 등급·조각·코어·스킬 레벨·모듈·연구·별 사용·파견 (저장)
+        this.special = emptySpecial();        // 스페셜맵 하루 횟수·기록 (progressSpecial_v2.js, D-123)
         this.commerce = emptyCommerce();
         this.offline = emptyOffline();
         this.tutorial = emptyTutorial();
@@ -111,6 +113,7 @@ class Progress {
         this.loadCommerce(data);
         this.loadPets(data);
         this.loadOffline(data);   // 펫 지급 등의 즉시 저장보다 먼저, 원래 savedAt으로 정산
+        this.loadSpecial(data);
         SLOTS.forEach(slot => this.owned.add(gameState.equippedParts[slot]));   // 장착 중인 파츠는 보유
         // 고른 캐릭터: 저장에 있으면 그것, v1 저장이면 몸통 캐릭터
         const saved = data && rosterOf(data.character) ? data.character : null;
@@ -165,6 +168,7 @@ class Progress {
             commerce: this.commerce,
             offline: this.offline,
             tutorial: this.tutorial,
+            special: this.specialData(),
             supportCharacter: this.supportCharacter,
             supportAuto: this.supportAuto,
             supportRandom: this.supportRandom,
@@ -481,6 +485,7 @@ Object.assign(Progress.prototype, PetMethods);
 Object.assign(Progress.prototype, OfflineMethods);
 Object.assign(Progress.prototype, TutorialMethods);
 Object.assign(Progress.prototype, SupportProgressMethods);
+Object.assign(Progress.prototype, SpecialMethods);
 
 export const progress = new Progress();
 
