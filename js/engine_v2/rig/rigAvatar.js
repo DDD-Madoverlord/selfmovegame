@@ -188,10 +188,18 @@ export function applyRigEvent(name, data, env) {
  * 거대로봇은 원거리 팔(laser/missile)이면 캐논, 그 외는 주먹.
  * @returns {{character: string, arm?: 'cannon'|'fist'} | null}  null이면 기존 페이퍼돌
  */
+/** 캐릭터 외형 색 필터를 알려 줄 함수 (progress가 등록 — main_v2.js · 엔진은 progress를 모름). 없으면 기본 외형 */
+let skinResolver = () => null;
+export function setSkinResolver(fn) {
+    skinResolver = typeof fn === 'function' ? fn : () => null;
+}
+
 export function rigConfigFor(partsObj, fallback = null) {
     const character = characterOfPart(partsObj && partsObj.body) || fallback;
     if (!character) return null;
     const filters = partFiltersFor(partsObj, character);
+    const skin = skinResolver(character);
+    if (skin) filters['*'] = skin;   // 그림 전체 외형 색 (rig.js draw)
     const variants = variantsFor(partsObj, character);
     // 새 캐릭터: 같은 캐릭터 강화 파츠(rigUpgrade)를 낀 슬롯은 강화 그림으로 (D-044)
     const upgrades = {};

@@ -35,7 +35,7 @@
    난이도 곡선은 tools/tests/balance_sim.py 결과(MD/밸런스_기록.md)를 보고 조정한다.
    ========================================================================== */
 
-import { isZoneReleased } from './contentSchedule_v2.js';
+import { isZoneReleased, groupOfZone } from './contentSchedule_v2.js';
 
 // 구역 1: 새 기획 스테이지 1 "거대로봇 : 심연의 출격" (D-085, MD/기획_스테이지설계.md) — 11판(1-1 ~ 1-10 + 보스).
 // 지하 1,000m 제14 비밀 군사 벙커, 막는 세력 = 정부 직속 비밀 토벌군 '블랙 하운드' (적 능력은 enemies_v2.js).
@@ -921,7 +921,33 @@ export const CHAPTERS = [CHAPTER1, CHAPTER2, CHAPTER3, CHAPTER4, CHAPTER5, CHAPT
 CHAPTERS.forEach(ch => ch.stages.forEach(st => {
     st.chapter = ch.id; st.zone = ch.zone; st.art = ch.art; st.defense = ch.defense || null; st.midHeal = ch.midHeal || 0;
 }));
+
+/**
+ * 숨김 그룹 구역의 세기 (D-119 8번, Q-043 임시): 그룹 첫 판 노말 = '지금 헬' 수치 —
+ * 그룹 2(구역 7~8)는 7-1 노말이 지금 헬 6-1(적 체력 ×7.41)과 같게, 그룹 3(9~10)은 9-1이 지금 헬 8-1(×10.07)과 같게.
+ * 그룹 안 판 사이 비율은 그대로 두고 그룹 전체에 곱함. 보상은 체력만큼 올리지 않음. 위 구역 표의 숫자는 곱하기 전 값.
+ * 보스 기믹의 체력·피해(안테나·컨테이너 등)는 stage.enemy 배율을 쓰므로 같이 커짐.
+ */
+export const GROUP_SCALE = {
+    2: { hp: 1.61, dps: 1.41, base: 1.44, reward: 1.3 },
+    3: { hp: 1.68, dps: 1.45, base: 1.46, reward: 1.35 }
+};
+const r2 = v => Math.round(v * 100) / 100;
+const r100 = v => Math.round(v / 100) * 100;
+CHAPTERS.forEach(ch => ch.stages.forEach(st => {
+    st.group = groupOfZone(ch.zone);
+    const g = GROUP_SCALE[st.group];
+    if (!g) return;
+    st.enemy = { ...st.enemy, hp: r2(st.enemy.hp * g.hp), dps: r2(st.enemy.dps * g.dps) };
+    st.base = { mid: r100(st.base.mid * g.base), final: r100(st.base.final * g.base) };
+    st.reward = { kill: Math.round(st.reward.kill * g.reward), mid: Math.round(st.reward.mid * g.reward / 50) * 50, final: Math.round(st.reward.final * g.reward / 50) * 50 };
+}));
 export const STAGES = CHAPTERS.flatMap(ch => ch.stages);
+
+/** 그룹의 마지막 판 (그 그룹의 다음 난이도를 여는 판 — difficulty_v2.js) */
+export const GROUP_FINAL = { 1: '6-B', 2: '8-B', 3: '10-B' };
+/** 그룹의 첫 판 */
+export const GROUP_FIRST = { 1: '1-1', 2: '7-1', 3: '9-1' };
 
 export function chapterOf(stageOrId) {
     const id = typeof stageOrId === 'string' ? stageOrId : stageOrId && stageOrId.id;
@@ -960,8 +986,13 @@ export function isUnlocked(id, progress) {
 /** 시험용 전체 해제와 상관없이 진행으로 열린 스테이지 */
 export function isUnlockedNormally(id, progress) {
     const i = STAGES.findIndex(s => s.id === id);
-    return i >= 0 && isZoneReleased(STAGES[i].zone) && (i === 0 || progress.stage(STAGES[i - 1].id).cleared);
+    if (!(i >= 0 && isZoneReleased(STAGES[i].zone) && (i === 0 || progress.stage(STAGES[i - 1].id).cleared))) return false;
+    // 숨김 그룹 첫 판(7-1·9-1)의 하드 이상: 그 그룹 마지막 판(8-B·10-B)을 바로 아래 난이도에서 깨야 열림 (D-119 8번)
+    const s = STAGES[i], d = DIFF_ORDER.indexOf(progress.difficulty);
+    if (s.group > 1 && GROUP_FIRST[s.group] === id && d > 0) return progress.stage(GROUP_FINAL[s.group], DIFF_ORDER[d - 1]).cleared;
+    return true;
 }
+const DIFF_ORDER = ['normal', 'hard', 'hell', 'nightmare'];   // difficulty_v2.js DIFFICULTIES 순서 (그쪽이 이 파일을 불러서 여기선 이름만)
 
 /** 기본으로 고를 스테이지: 아직 클리어하지 않은 가장 앞 스테이지 (전부 클리어면 마지막) */
 export function defaultStage(progress) {

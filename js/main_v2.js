@@ -9,6 +9,7 @@ import { LabController } from './ui_v2/lab_v2.js';
 import { SelectController } from './ui_v2/select_v2.js';
 import { sound } from './engine_v2/audio/sound_v2.js';
 import { progress } from './engine_v2/progress_v2.js';
+import { setSkinResolver } from './engine_v2/rig/rigAvatar.js';
 import { coach } from './ui_v2/coach_v2.js';
 import { registerV2Parts } from './engine_v2/partsExtra_v2.js';
 import { registerAllSets2 } from './engine_v2/sets2/index.js';
@@ -31,6 +32,7 @@ class GameRouterV2 {
         registerV2Parts();
         initCommerceDev();
         progress.init();
+        setSkinResolver(character => progress.skinFilterOf(character));   // 캐릭터 외형 색 (D-119)
         
         // 라우터 바인딩된 화면 전환 함수 (v2)
         const switchFn = (name) => this.switchScreen(name);

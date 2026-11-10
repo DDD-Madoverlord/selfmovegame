@@ -19,7 +19,8 @@ export const PETS = {
 };
 
 export const petOf = id => Object.hasOwn(PETS, id) ? PETS[id] : null;
-export const isPetReleased = (id, now = Date.now()) => !!petOf(id) && isZoneReleased(PETS[id].zone, now);
+// 숨김 그룹(D-119)은 보지 않음 — 구역 7 펫 '태엽 묘지기'는 상점·주간 패스 상품이라 구역이 숨겨져도 팔고 지급 (7-B 첫 클리어 길만 그룹 공개 뒤)
+export const isPetReleased = (id, now = Date.now()) => !!petOf(id) && isZoneReleased(PETS[id].zone, now, { ignoreGroups: true });
 export const emptyPets = () => ({ owned: [], levels: {}, equipped: null, earned: [] });
 export function petValue(id, level = 1) {
     const p = petOf(id);

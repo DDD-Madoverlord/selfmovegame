@@ -16,7 +16,7 @@ import { skillsForParts, legPassiveOf } from '../engine_v2/skills_v2.js';
 import { progress } from '../engine_v2/progress_v2.js';
 import { rosterOf } from '../engine_v2/roster_v2.js';
 import { STAGES, CHAPTERS, stageById, isUnlocked, defaultStage, chapterOf, chapterUnlocked, defaultStageIn, unlockAllStagesTemp, allStagesUnlocked } from '../engine_v2/stages_v2.js';
-import { isZoneReleased, isCharacterReleased, releaseDateOf } from '../engine_v2/contentSchedule_v2.js';
+import { isZoneReleased, isCharacterReleased, releaseDateOf, releaseLabelOf } from '../engine_v2/contentSchedule_v2.js';
 import { DIFFICULTIES, difficultyOf, difficultyUnlocked, stageFor, FINAL_STAGE_ID } from '../engine_v2/difficulty_v2.js';
 import { ENEMY_TYPES } from '../engine_v2/enemies_v2.js';
 import { sound } from '../engine_v2/audio/sound_v2.js';
@@ -264,7 +264,7 @@ export class MenuController {
 
     /** 잠긴 구역 안내 (지도 안개 · 안내 줄): 공개 전이면 날짜, 아니면 앞 구역 보스 */
     zoneLockText(ch) {
-        if (!zoneOpen(ch.zone)) return `${releaseDateOf('zones', ch.zone)} 공개 예정`;
+        if (!zoneOpen(ch.zone)) return releaseDateOf('zones', ch.zone) ? `${releaseDateOf('zones', ch.zone)} 공개 예정` : releaseLabelOf('zones', ch.zone);
         const prev = CHAPTERS[CHAPTERS.indexOf(ch) - 1];
         const last = prev && prev.stages[prev.stages.length - 1];
         if (!last) return '';

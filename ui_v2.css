@@ -1414,6 +1414,17 @@
 .v2-modcard p { margin: 0; font-size: 12px; color: var(--v2-text); }
 .v2-modcard small { font-size: 11px; color: var(--v2-dim); }
 .v2-modcard__acts { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 2px; }
+/* 캐릭터 외형 탭 (D-119): 캐릭터 한 줄에 기본 + 2종 */
+.v2-skinlist { display: grid; gap: 8px; }
+.v2-skinrow { --sk: #888; display: grid; grid-template-columns: minmax(96px, 1fr) repeat(3, minmax(88px, 1fr)); gap: 8px; align-items: center;
+    padding: 8px 10px; border: 1px solid rgba(255, 255, 255, 0.12); border-left: 3px solid var(--sk); background: rgba(255, 255, 255, 0.03); border-radius: 4px; }
+.v2-skinrow > b { font-size: 13px; color: #fff; }
+.v2-skin { display: grid; justify-items: center; gap: 4px; padding: 6px 4px; border: 1px solid transparent; border-radius: 4px; }
+.v2-skin.is-on { border-color: var(--v2-amber); background: rgba(255, 176, 32, 0.08); }
+.v2-skin i { width: 56px; height: 56px; background: #0d1016 center / cover no-repeat; border: 1px solid rgba(255, 255, 255, 0.15); }
+.v2-skin small { font-size: 11px; color: var(--v2-text); text-align: center; }
+.v2-skin button, .v2-skin .is-max { font-size: 11px; }
+@media (max-width: 640px) { .v2-skinrow { grid-template-columns: repeat(3, minmax(0, 1fr)); } .v2-skinrow > b { grid-column: 1 / -1; } }
 .v2-researchlist { display: flex; flex-direction: column; gap: 6px; }
 /* 파견 화면 (D-070, dispatchUi_v2.js): 칸마다 "파견 중" 장면(구역 그림이 흐르고 캐릭터가 걷다 적과 맞붙음) + 정보, 새 파견, 귀환 장면 */
 .v2-growth__body.is-dispatch { gap: 12px; }
@@ -2847,6 +2858,9 @@ body.v2-fit .v2-growth__box { width: 940px; max-height: 655px; }
 /* ??? ?? ?? ?? (v2) */
 .v2-charcard.is-coming-soon { border-style: dashed; border-color: #aa9063; }
 .v2-charcard__foot .v2-release-date { color: #e5bc79; }
+/* 날짜도 안 정한 숨김 그룹 캐릭터 (D-119): 검은 실루엣 */
+.v2-charcard.is-secret .v2-charcard__stage canvas { filter: brightness(0) opacity(0.85); }
+.v2-charcard.is-secret .v2-charcard__stats, .v2-charcard.is-secret .v2-charcard__skills { visibility: hidden; }
 .v2-dsp-zone.is-coming-soon { border-style: dashed; border-color: #aa9063; }
 .v2-dsp-zone.is-coming-soon small { color: #e5bc79; }
 

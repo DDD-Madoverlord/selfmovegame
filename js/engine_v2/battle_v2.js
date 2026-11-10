@@ -458,7 +458,7 @@ export class BattleEngine {
             : next && isUnlocked(next.id, progress) ? next : null;
         const advance = !!target && target.id !== clearedId && progress.selectedStage === clearedId;
         if (advance) progress.selectStage(target.id);
-        // 마지막 스테이지(4-B)를 처음 깨면 다음 난이도가 열림 + 강화 한도 상승 (D-063)
+        // 그룹 1 마지막 판(6-B, D-119 — 예전 4-B)을 처음 깨면 다음 난이도가 열림 + 강화 한도 상승 (D-063)
         const unlocked = victory && this.stage.id === FINAL_STAGE_ID && wasLocked && difficultyUnlocked(nextDiff.id, progress) ? nextDiff : null;
         const loot = this.finishGrowth(victory, firstClear);   // 스킬 코어 + 파츠 드랍 (battle/growth.js)
         const result = {
@@ -467,12 +467,14 @@ export class BattleEngine {
             loot,
             difficulty: difficultyOf(diff),
             unlocked,
+            maxLevel: progress.maxLevel(),   // 지금 강화 한도 (난이도 한도 + 숨김 그룹 +2씩, D-119)
             starFlags: [...this.starFlags],
             bestStars: progress.stage(this.stage.id, diff).stars,
             prevStars,
             newStars: record.newStars,
             bonus: record.bonus,
             pets: record.pets,
+            chars: record.chars || [],   // 이 판으로 구역 n-1이 열려 합류한 캐릭터 (D-119)
             next,
             timeUp: !victory && this.timeUp,
             livesOut: !victory && this.livesOut,

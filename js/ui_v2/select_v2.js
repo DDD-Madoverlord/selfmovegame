@@ -10,7 +10,7 @@
 
 import { gameState } from '../engine/state.js';
 import { progress } from '../engine_v2/progress_v2.js';
-import { isCharacterReleased, releaseDateOf } from '../engine_v2/contentSchedule_v2.js';
+import { isCharacterReleased, releaseDateOf, releaseLabelOf } from '../engine_v2/contentSchedule_v2.js';
 import { ROSTER, rosterOf, SLOTS } from '../engine_v2/roster_v2.js';
 import { RigAvatar, rigConfigFor } from '../engine_v2/rig/rigAvatar.js';
 import { RIG_CHARACTERS } from '../engine_v2/rig/characters.js';
@@ -120,11 +120,11 @@ export class SelectController {
         });
     }
 
-    /** 카드 누름: 그 캐릭터로 바꿈 (지금 장착은 기억). 잠긴 캐릭터는 별로 해금, 파견 중이면 못 고름 (Q-006) */
+    /** 카드 누름: 그 캐릭터로 바꿈 (지금 장착은 기억). 잠긴 캐릭터는 그 구역에 가면 합류(D-119), 파견 중이면 못 고름 (Q-006) */
     pick(id) {
         if (!isCharacterReleased(id)) {
             sound.play('ui_error');
-            this.renderInfo(`곧 공개 · ${releaseDateOf('characters', id)}`);
+            this.renderInfo(releaseLabelOf('characters', id));
             return;
         }
         if (id === progress.character) {
@@ -140,7 +140,7 @@ export class SelectController {
             const res = progress.unlockCharacter(id);
             if (!res.success) {
                 sound.play('ui_error');
-                this.renderInfo(`${res.reason} — 별은 스테이지 별(난이도마다 따로)로 모아요`);
+                this.renderInfo(res.reason);
                 return;
             }
         }
@@ -171,7 +171,12 @@ export class SelectController {
         const on = c.id === progress.character;
         const locked = !progress.isCharacterUnlocked(c.id);
         const soon = !isCharacterReleased(c.id);
+        const secret = soon && !releaseDateOf('characters', c.id);   // 날짜도 안 정한 숨김 그룹 (D-119): 실루엣 · ???
         const away = progress.isDispatched(c.id);
+        el.classList.toggle('is-secret', secret);
+        el.querySelector('.v2-charcard__head h2').textContent = secret ? '???' : (RIG_CHARACTERS[c.id] ? RIG_CHARACTERS[c.id].name : c.faction);
+        el.querySelector('.v2-charcard__head small').textContent = secret ? '???' : c.tag;
+        el.querySelector('.v2-charcard__desc').textContent = secret ? '아직 공개되지 않은 캐릭터입니다. 공개되는 날 그 이야기의 구역과 함께 열립니다.' : c.desc;
         el.classList.toggle('is-selected', on);
         el.classList.toggle('is-empty', !ready);
         el.classList.toggle('is-locked', locked);
@@ -194,8 +199,8 @@ export class SelectController {
         el.querySelector('.v2-charcard__skills').innerHTML = chips.join('');
 
         el.querySelector('.v2-charcard__foot').innerHTML = `<span>파츠 <b>${own.owned}</b> / ${own.total} 보유</span>`
-            + (soon ? `<em class="v2-release-date">곧 공개 · ${releaseDateOf('characters', c.id)}</em>`
-                : locked ? `<em class="is-lock">${icon('lock', 12)} ★${progress.characterStars(c.id)}로 해금</em>`
+            + (soon ? `<em class="v2-release-date">${releaseLabelOf('characters', c.id)}</em>`
+                : locked ? `<em class="is-lock">${icon('lock', 12)} 구역 ${progress.characterZone(c.id)} 도착 시 합류</em>`
                 : away ? '<em class="is-need">파견 중</em>'
                     : ready ? '<em class="is-ready">출격 가능</em>' : '<em class="is-need">연구소에서 몸통 구매</em>');
 

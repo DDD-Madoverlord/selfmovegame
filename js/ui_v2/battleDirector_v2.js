@@ -27,6 +27,8 @@ import { difficultyOf, difficultyOfStage } from '../engine_v2/difficulty_v2.js';
 import { gradeOf, OPTIONS, MUTATORS } from '../engine_v2/growth_v2.js';
 import { setOf, setLabelOf } from '../engine_v2/sets_v2.js';
 import { petOf } from '../engine_v2/pets_v2.js';
+import { rosterOf } from '../engine_v2/roster_v2.js';
+const hexRgb = h => [1, 3, 5].map(i => parseInt(h.slice(i, i + 2), 16)).join(', ');
 
 // 별 3개 조건 (D-029): 요새 / 최종 기지 / 목표 시간 안에 클리어
 const starLabels = stage => ['중간 요새', '최종 기지', `${stage.starTime}초 안에`];
@@ -508,7 +510,8 @@ export class BattleDirector {
                 </dl>
                 ${lootHtml(r.loot)}
                 ${(r.pets || []).map(id => `<p class="v2-result__pet">펫 획득 · ${petOf(id).name} — 작전 지원에서 장착할 수 있어요</p>`).join('')}
-                ${r.unlocked ? `<p class="v2-result__unlock" style="--diff:${r.unlocked.color}">${icon('star', 16)} <b>${r.unlocked.name}</b> 난이도가 열렸습니다 · 파츠 강화 한도 Lv${r.unlocked.maxLevel}</p>` : ''}
+                ${r.unlocked ? `<p class="v2-result__unlock" style="--diff:${r.unlocked.color}">${icon('star', 16)} <b>${r.unlocked.name}</b> 난이도가 열렸습니다 · 파츠 강화 한도 Lv${r.maxLevel || r.unlocked.maxLevel}</p>` : ''}
+                ${(r.chars || []).map(id => `<p class="v2-result__unlock v2-result__join" style="--diff:${rosterOf(id)?.color ? hexRgb(rosterOf(id).color) : '62, 230, 255'}">${icon('star', 16)} <b>${rosterOf(id)?.faction || id}</b> 합류! 캐릭터 선택에서 고를 수 있습니다</p>`).join('')}
                 ${r.victory ? '' : reportHtml(r.report)}
                 </div>
                 <div class="v2-result__actions">

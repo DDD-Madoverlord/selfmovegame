@@ -1,7 +1,7 @@
 /* ==========================================================================
    게임 통계 이벤트 층 (v2): 기기 안 기록으로 유입 → 첫 플레이 → 재접속을 확인한다.
    이벤트: first_open, session_start, screen_view, stage_start, stage_end,
-           part_purchase, session_end. 개인정보 없이 무작위 installId만 사용한다.
+           part_purchase, character_unlock(구역 도착 합류, D-119), session_end. 개인정보 없이 무작위 installId만 사용한다.
    공급자 추가: addAnalyticsProvider(event => { ... }); Firebase Analytics / GA4도
    이 함수로 연결한다. 실제 외부 전송 공급자를 붙일 때 개인정보 동의·처리방침이 필요하다.
    ========================================================================== */

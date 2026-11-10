@@ -7,7 +7,9 @@
 
 import { gameState } from '../engine/state.js';
 import { progress } from '../engine_v2/progress_v2.js';
-import { MODULES, MODULE_MAX_LEVEL, RESEARCH, gradeOf, OPTIONS } from '../engine_v2/growth_v2.js';
+import { MODULES, MODULE_MAX_LEVEL, RESEARCH, gradeOf, OPTIONS, SKINS, SKIN_STARS } from '../engine_v2/growth_v2.js';
+import { ROSTER } from '../engine_v2/roster_v2.js';
+import { isCharacterReleased } from '../engine_v2/contentSchedule_v2.js';
 import { sound } from '../engine_v2/audio/sound_v2.js';
 import { icon } from './icons.js';
 import { mountDispatch, tickDispatch, unmountDispatch, dispatchAct, showReturn } from './dispatchUi_v2.js';
@@ -97,6 +99,8 @@ function act(name, d) {
     if (name === 'randomSupport') { progress.randomSupport(); return render(); }
     if (name === 'supportAuto') { progress.setSupportAuto(!progress.supportAuto); return render(); }
     if (name === 'buyModule') r = progress.buyModule(d.id);
+    if (name === 'buySkin') r = progress.buySkin(d.id);
+    if (name === 'equipSkin') { progress.equipSkin(d.char, d.id || null); sound.play('ui_equip'); return render(); }
     if (name === 'equipModule') { progress.equipModule(Number(d.slot), d.id || null); sound.play('ui_tab'); return render(); }
     if (name === 'upModule') r = progress.upgradeModule(d.id);
     if (name === 'buyResearch') r = progress.buyResearch(d.id);
@@ -116,8 +120,8 @@ function render(preserveScroll = true) {
     if (!panel) return;
     const scrollTop = preserveScroll ? (panel.querySelector('.v2-growth__body')?.scrollTop || 0) : 0;
     const petUnlocked = progress.stage('1-1', 'normal').cleared || progress.pets.owned.some(id => progress.canUsePet(id));
-    const tabs = [['coop', '협력 출격'], ['modules', '전술 모듈'], ['dispatch', '파견'], ['research', '계정 연구'], ['pets', '펫']];
-    const body = tab === 'coop' ? supportHtml() : tab === 'dispatch' ? '' : tab === 'research' ? researchHtml() : tab === 'pets'
+    const tabs = [['coop', '협력 출격'], ['modules', '전술 모듈'], ['dispatch', '파견'], ['research', '계정 연구'], ['skins', '외형'], ['pets', '펫']];
+    const body = tab === 'coop' ? supportHtml() : tab === 'dispatch' ? '' : tab === 'research' ? researchHtml() : tab === 'skins' ? skinsHtml() : tab === 'pets'
         ? petUnlocked ? petsHtml() : '<p class="v2-growth__hint">노말 1-1을 클리어하면 펫이 열립니다.</p>' : modulesHtml();
     panel.innerHTML = `<div class="v2-growth__box v2-panel">
         <div class="v2-growth__head" data-currency>
@@ -154,6 +158,23 @@ function modulesHtml() {
     }).join('');
     return `<p class="v2-growth__hint">출격 때 끼우는 보조 스킬 (키 4·5, AUTO면 쓸 상황에 자동). 칸: 노말 1칸 → 하드를 열면 2칸. 별로 해금, DM으로 강화.</p>
         <div class="v2-modslots">${slotHtml}</div><div class="v2-modgrid">${cards}</div>`;
+}
+
+/** 캐릭터 외형 (D-119 11번): 캐릭터마다 색 바꿔 입기 2종, 별 25개. 미리보기는 캐릭터 얼굴 그림에 같은 색 필터 */
+function skinsHtml() {
+    const rows = ROSTER.filter(c => isCharacterReleased(c.id)).map(c => {
+        const on = progress.skins.equipped[c.id] || null;
+        const opt = (id, name, filter) => {
+            const own = !id || progress.ownsSkin(id);
+            const btn = on === id ? '<span class="is-max">입는 중</span>'
+                : own ? `<button data-act="equipSkin" data-char="${c.id}" data-id="${id || ''}">입기</button>`
+                : `<button data-act="buySkin" data-id="${id}" ${progress.availableStars() < SKIN_STARS ? 'disabled' : ''}>★${SKIN_STARS}</button>`;
+            return `<div class="v2-skin${on === id ? ' is-on' : ''}"><i style="background-image:url('assets/sprites/intro/face_${c.id}.webp');${filter ? `filter:${filter}` : ''}"></i><small>${esc(name)}</small>${btn}</div>`;
+        };
+        return `<div class="v2-skinrow" style="--sk:${c.color}"><b>${esc(c.faction)}</b>${opt(null, '기본', '')}${SKINS[c.id].map(k => opt(k.id, k.name, k.filter)).join('')}</div>`;
+    }).join('');
+    return `<p class="v2-growth__hint">별로 캐릭터 색을 바꿔 입어요. 하나에 ★${SKIN_STARS}, 사면 바로 입고, 언제든 기본으로 돌아갈 수 있어요. 출격·선택창·연구소에 모두 보입니다.</p>
+        <div class="v2-skinlist">${rows}</div>`;
 }
 
 function researchHtml() {

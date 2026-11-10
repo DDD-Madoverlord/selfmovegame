@@ -316,7 +316,9 @@ export class Skeleton {
             if (!img || !part) continue;
             const m = Mat.mul(base, b.world);
             ctx.setTransform(m[0], m[1], m[2], m[3], m[4], m[5]);
-            const f = this.partFilters && this.partFilters[b.part];   // 파츠별 색 (rigAvatar.setPartFilters)
+            // 파츠별 색 (rigAvatar.setPartFilters) + '*' = 그림 전체에 씌우는 외형 색 (D-119, progress.skinFilterOf)
+            const pf = this.partFilters, own = pf && pf[b.part], all = pf && pf['*'];
+            const f = all && own ? `${all} ${own}` : all || own;
             if (f) ctx.filter = f;
             ctx.drawImage(img, part.x - b.pivot[0], part.y - b.pivot[1]);
             if (f) ctx.filter = 'none';

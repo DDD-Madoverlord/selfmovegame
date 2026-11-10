@@ -181,7 +181,7 @@ function validate(entries) {
     if (data.tutorial !== undefined) validateTutorial(data.tutorial);
     if (data.savedAt !== undefined && !Number.isFinite(data.savedAt)) throw new Error('저장 시간이 올바르지 않습니다.');
     if (data.saveId !== undefined && (typeof data.saveId !== 'string' || !data.saveId)) throw new Error('저장 식별자가 올바르지 않습니다.');
-    for (const key of ['shards', 'cores', 'spentStars']) {
+    for (const key of ['shards', 'cores', 'spentStars', 'charStarRefund']) {
         if (data[key] !== undefined && !Number.isFinite(data[key])) throw new Error(`진행 데이터의 ${key} 값이 올바르지 않습니다.`);
     }
     const records = [data.stages || {}, ...Object.values(data.diffStages || {})];
@@ -195,6 +195,10 @@ function validate(entries) {
     }
     if (data.options && Object.values(data.options).some(v => !Array.isArray(v) || v.some(id => typeof id !== 'string'))) {
         throw new Error('파츠 옵션의 모양이 올바르지 않습니다.');
+    }
+    if (data.skins !== undefined && (!object(data.skins) || !Array.isArray(data.skins.owned) || data.skins.owned.some(id => typeof id !== 'string')
+        || !object(data.skins.equipped) || Object.values(data.skins.equipped).some(id => typeof id !== 'string'))) {
+        throw new Error('캐릭터 외형의 모양이 올바르지 않습니다.');
     }
     if (data.modules !== undefined && (!object(data.modules)
         || ['owned', 'equipped'].some(key => data.modules[key] !== undefined && !Array.isArray(data.modules[key]))

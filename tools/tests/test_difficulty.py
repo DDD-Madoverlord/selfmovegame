@@ -1,4 +1,5 @@
-"""난이도 (D-063): 노말·하드·헬·나이트메어 — 잠금·해금, 난이도별 기록·별 보너스, 배율, 엘리트 속성, 보스 기술 간격, 강화 한도, 저장"""
+"""난이도 (D-063): 노말·하드·헬·나이트메어 — 잠금·해금, 난이도별 기록·별 보너스, 배율, 엘리트 속성, 보스 기술 간격, 강화 한도, 저장.
+다음 난이도는 그룹 1 마지막 판 6-B로 열림(D-119, 예전 4-B), 강화 한도는 숨김 그룹 첫 판(7-1·9-1)이 열릴 때마다 +2 (검사는 숨김 그룹을 연 상태)"""
 from test_stages import clear_stage_fast
 
 ALL = "(await import('/js/engine_v2/stages_v2.js')).STAGES.map(s => s.id)"   # 모든 스테이지 id (구역이 늘어도 그대로)
@@ -28,7 +29,7 @@ def run(ctx):
                  foot: document.getElementById('menu-map-foot-v2').textContent, max: progress.maxLevel() }};""")
     ctx.check(st['tabs'] == [['normal', False], ['hard', True], ['hell', True], ['nightmare', True]],
               '난이도 버튼 4개: 처음엔 노말만 열림', str(st['tabs']))
-    ctx.check(st['diff'] == 'normal' and '노말 4-B' in st['foot'], '잠긴 하드: 선택 안 됨 + "노말 4-B까지" 안내', st['foot'])
+    ctx.check(st['diff'] == 'normal' and '노말 6-B' in st['foot'], '잠긴 하드: 선택 안 됨 + "노말 6-B까지" 안내', st['foot'])
     ctx.check(st['max'] == 5, '노말만 열렸을 때 강화 한도 Lv5')
 
     # 배율: 노말은 원래 스테이지 그대로, 하드·나이트메어는 곱한 복사본
@@ -50,7 +51,7 @@ def run(ctx):
               f"나이트메어: 궤도 폭격 간격 20 → {st['artWant']}초(경고 시간 그대로), 제한 시간 늘어남", str(st))
     ctx.check(st['aff'] == [1, 2, 3], '엘리트 속성 수: 하드 구역 1 = 1개, 헬 = 2개, 나이트메어 구역 4 = 3개', str(st['aff']))
 
-    # 노말 4-B까지 깨면 하드가 열리고 강화 한도 Lv7, 하드는 기록이 따로라 1-1부터
+    # 노말을 다 깨면 하드가 열리고 강화 한도 Lv7 + 그룹 2·3 첫 판 +4 = Lv11, 하드는 기록이 따로라 1-1부터
     g.js(clear_all('normal') + f" {menu}.renderStages();")
     st = g.js(f"""{menu}.selectDifficulty('hard');
         const {{ isUnlocked }} = await import('/js/engine_v2/stages_v2.js');
@@ -60,7 +61,7 @@ def run(ctx):
                  hell: document.querySelector('#menu-diffs-v2 [data-diff="hell"]').classList.contains('is-locked'),
                  cost: progress.upgradeCost('arm_red_robot'), note: !document.getElementById('menu-diffnote-v2').hidden,
                  sub: document.getElementById('menu-sortie-sub-v2').textContent }};""")
-    ctx.check(st['diff'] == 'hard' and st['max'] == 7 and st['cost'], '노말 4-B 클리어 → 하드 열림, 강화 한도 Lv7 (Lv5에서 더 강화 가능)', str(st))
+    ctx.check(st['diff'] == 'hard' and st['max'] == 7 + 4 and st['cost'], '노말 6-B 클리어 → 하드 열림, 강화 한도 하드 Lv7 + 숨김 그룹 2개 +4 = Lv11 (Lv5에서 더 강화 가능)', str(st))
     ctx.check(st['cur'] == '1-1' and not st['u12'] and st['n12'], '하드 기록은 따로: 하드 1-2는 잠김 (노말 기록은 그대로)', str(st))
     ctx.check(st['hell'] and st['note'] and '하드' in st['sub'], '헬은 아직 잠김, 레이더 배율 요약·출격 버튼에 하드 표시', str(st))
     g.shot('difficulty_menu', '#screen-menu-v2')
@@ -85,17 +86,17 @@ def run(ctx):
     ctx.check(gained >= want, f'하드 보상: 요새 + 기지 + 새 별 보너스 = {want:,} 이상', str(gained))
     g.shot('difficulty_result', '#screen-battle-v2')
 
-    # 하드 4-B를 처음 깨면 헬이 열림 (결과 화면 안내) + 강화 한도 Lv9
+    # 하드 6-B를 처음 깨면 헬이 열림 (결과 화면 안내) + 강화 한도 헬 Lv9 + 4 = Lv13
     g.js("b.stopBattle(); window.madOverlordGameV2.switchScreen('menu');")
     g.wait(400)
-    g.js(clear_all('hard', but='4-B') + " progress.selectStage('4-B'); window.madOverlordGameV2.switchScreen('battle');")
+    g.js(clear_all('hard', but='6-B') + " progress.selectStage('6-B'); window.madOverlordGameV2.switchScreen('battle');")
     g.wait(2900)
     g.js("b.finishBattle(true);")
     g.wait(1500)
     st = g.js("""return { stage: b.stage.id, diff: b.difficulty, unlock: document.querySelector('.v2-result__unlock')?.textContent || '',
-        hell: progress.stage('4-B', 'hard').cleared, max: progress.maxLevel() };""")
-    ctx.check(st['stage'] == '4-B' and st['hell'] and '헬' in st['unlock'] and 'Lv9' in st['unlock'] and st['max'] == 9,
-              '하드 4-B 클리어 → 결과 화면 "헬 난이도가 열렸습니다 · 강화 한도 Lv9"', str(st))
+        hell: progress.stage('6-B', 'hard').cleared, max: progress.maxLevel() };""")
+    ctx.check(st['stage'] == '6-B' and st['hell'] and '헬' in st['unlock'] and 'Lv13' in st['unlock'] and st['max'] == 13,
+              '하드 6-B 클리어 → 결과 화면 "헬 난이도가 열렸습니다 · 강화 한도 Lv13"(헬 9 + 숨김 그룹 4)', str(st))
     g.shot('difficulty_unlock', '#screen-battle-v2')
 
     # 나이트메어 4-B: 보스 기술 간격 ÷bossHaste, 엘리트 속성 3개 (원래 종류 정의는 그대로)
@@ -114,13 +115,13 @@ def run(ctx):
     hs = N['bossHaste']
     ctx.check(st['diff'] == 'nightmare' and hs > 1 and abs(st['gaze'] - st['orig'] / hs) < 0.011 and abs(st['wave'] - st['origWave'] / hs) < 0.011
               and st['warn'] == 1.0, f'나이트메어 보스: 기술 간격 ÷{hs} (경고 시간 그대로)', str(st))
-    ctx.check(st['orig'] == 9 and st['aff'] == 3 and st['max'] == 10, '원래 보스 정의는 그대로, 엘리트 속성 3개, 강화 한도 Lv10', str(st))
+    ctx.check(st['orig'] == 9 and st['aff'] == 3 and st['max'] == 14, '원래 보스 정의는 그대로, 엘리트 속성 3개, 강화 한도 나이트메어 Lv10 + 4 = Lv14', str(st))
 
     # 저장 → 다시 열기: 고른 난이도·난이도별 기록 유지
     g.js("window.madOverlordGameV2.switchScreen('menu'); progress.save();")
     g.reload_v2()
     st = g.js("""return { diff: progress.difficulty, hard: progress.stage('1-1', 'hard').cleared, hell: progress.stage('4-B', 'hell').cleared,
         max: progress.maxLevel(), on: document.querySelector('#menu-diffs-v2 .is-on')?.dataset.diff };""")
-    ctx.check(st == {'diff': 'nightmare', 'hard': True, 'hell': True, 'max': 10, 'on': 'nightmare'},
+    ctx.check(st == {'diff': 'nightmare', 'hard': True, 'hell': True, 'max': 14, 'on': 'nightmare'},
               '저장: 난이도·난이도별 기록·강화 한도가 다시 열어도 유지', str(st))
     ctx.check(not g.errors, '페이지 오류 없음', '; '.join(g.errors[:3]))

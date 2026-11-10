@@ -30,7 +30,8 @@ import { TutorialMethods, emptyTutorial } from './tutorial_v2.js';
 import { track } from './analytics_v2.js';
 import { gradeOf, TIER_UNLOCK } from './growth_v2.js';
 import { isDropOnly, dropGroupOf } from './sets_v2.js';
-import { allStagesUnlocked, isUnlockedNormally } from './stages_v2.js';
+import { allStagesUnlocked, isUnlockedNormally, GROUP_FIRST } from './stages_v2.js';
+import { revealAllTemp } from './contentSchedule_v2.js';
 import * as saveStore from './saveStore_v2.js';
 import { settings } from './settings_v2.js';
 import { SupportProgressMethods } from './support_v2.js';
@@ -265,6 +266,7 @@ class Progress {
         if (this.everythingUnlocked) return false;
         saveStore.isolateSaveInMemory();
         this.everythingUnlocked = true;
+        revealAllTemp();   // 숨김 그룹(구역 7~10·캐릭터 4명)도 이번 실행 동안만 공개 (D-119)
         ROSTER.forEach(c => { if (!this.unlockedChars.includes(c.id)) this.unlockedChars.push(c.id); });
         SLOTS.forEach(slot => (PARTS_DB[slot] || []).forEach(p => { if (p.id !== 'none') this.owned.add(p.id); }));
         this.save();
@@ -338,9 +340,18 @@ class Progress {
         return this.levels[id] || 1;
     }
 
-    /** 강화 한도: 열린 난이도 중 가장 높은 난이도의 한도 (노말 Lv5 → 하드 Lv7 → 헬 Lv9 → 나이트메어 Lv10) */
+    /** 강화 한도: 열린 난이도 중 가장 높은 난이도의 한도 (노말 Lv5 → 하드 Lv7 → 헬 Lv9 → 나이트메어 Lv10)
+     *  + 숨김 그룹 첫 판(7-1 · 9-1)이 노말에서 열릴 때마다 +2 (D-119 8번, Q-043 임시 — 그룹 노말이 이미 헬 수준) */
     maxLevel() {
-        return highestDifficulty(this).maxLevel;
+        const groups = [2, 3].filter(g => this.groupReached(g)).length;
+        return highestDifficulty(this).maxLevel + 2 * groups;
+    }
+
+    /** 숨김 그룹 첫 판이 노말에서 열렸는지 (고른 난이도와 상관없이) */
+    groupReached(group) {
+        const diff = this.difficulty;
+        this.difficulty = DEFAULT_DIFFICULTY;
+        try { return isUnlockedNormally(GROUP_FIRST[group], this); } finally { this.difficulty = diff; }
     }
 
     /** 장착한 파츠 중 지금 DM으로 강화할 수 있는 것이 있는지 (연구소 강화 안내 — main_v2.js) */
@@ -454,7 +465,10 @@ class Progress {
         if (bonus) gameState.darkMatter += bonus;
         gameState.notify();
         const pets = this.checkPetRewards();
-        return { newStars, bonus, pets };
+        const chars = this.syncCharacterUnlocks();   // 구역 n-1이 열리면 그 구역 캐릭터 합류 (D-119 10번)
+        chars.forEach(id => track('character_unlock', { character: id, zone: this.characterZone(id) }));
+        if (chars.length) this.saveSoon();
+        return { newStars, bonus, pets, chars };
     }
 }
 

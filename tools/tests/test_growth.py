@@ -253,13 +253,17 @@ def run(ctx):
     g.js("b.stopBattle(); window.madOverlordGameV2.switchScreen('menu');")
     g.wait(300)
     st = g.js("""const total = progress.totalStars();
+        const spent = progress.spentStars;
         const a = progress.isCharacterUnlocked('kaiju'); const r = progress.unlockCharacter('kaiju');
-        const b2 = progress.isCharacterUnlocked('kaiju');
-        progress.spentStars = progress.totalStars();
-        const fail = progress.unlockCharacter('doll');
-        return { total, a, r: r.success, b2, fail: fail.success, mech: progress.isCharacterUnlocked('mech') };""")
-    ctx.check(st['total'] == 330 and not st['a'] and st['r'] and st['b2'] and not st['fail'] and st['mech'],
-              '별: 노말 110판 × 3 = 330개, 캐릭터 해금(거대괴수 ★6), 별이 모자라면 못 엶, 거대로봇은 처음부터', str(st))
+        const doll = progress.isCharacterUnlocked('doll');
+        const keep = progress.stages['6-B'];
+        delete progress.stages['6-B'];   // 6-B를 안 깬 것으로: 7-1이 안 열림 → 인형사 아직
+        progress.unlockedChars = progress.unlockedChars.filter(id => id !== 'doll');
+        const dollAfter = progress.isCharacterUnlocked('doll');
+        progress.stages['6-B'] = keep;
+        return { total, a, r: r.success, stars: progress.spentStars - spent, doll, dollAfter, mech: progress.isCharacterUnlocked('mech') };""")
+    ctx.check(st['total'] == 330 and st['a'] and st['r'] and st['stars'] == 0 and st['doll'] and not st['dollAfter'] and st['mech'],
+              '별: 노말 110판 × 3 = 330개 · 캐릭터는 별을 안 씀(D-119): 구역 n-1이 열리면 합류(거대괴수·인형사), 6-B를 안 깼으면 인형사 잠김 · 거대로봇은 처음부터', str(st))
     st = g.js(f"""progress.spentStars = 0;
         for (const d of ['hard', 'hell']) ({ALL}).forEach(id => progress.recordsOf(d)[id] = {CLEAR});
         const avail = progress.availableStars();
@@ -360,6 +364,7 @@ def run(ctx):
     st = g.js("""const raw = JSON.parse(localStorage.getItem('mo_v2_save'));
         ['grades','options','shards','cores','skillLevels','modules','research','spentStars','unlockedChars','dispatch'].forEach(k => delete raw[k]);
         raw.owned = [...new Set([...(raw.owned || []), 'body_hero'])];
+        raw.stages = {};   // 노말 기록 없음 — 구역 도착 합류(D-119)가 아니라 예전 저장 옮기기로만 열리는지 보려고
         localStorage.setItem('mo_v2_save', JSON.stringify(raw));
         return true;""")
     g.reload_v2()
