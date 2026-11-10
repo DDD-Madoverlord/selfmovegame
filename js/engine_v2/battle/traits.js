@@ -30,8 +30,13 @@ export const TraitMethods = {
         this.sigRole = roleOfArm(equippedObjs && equippedObjs.arm);
     },
 
-    /** 주인공이 적에게 주는 피해 배율 (협력 공격 제외 — enemyField.js dealDamageToEnemy) */
+    /** 주인공이 적에게 주는 피해 배율 (협력 공격 제외 — enemyField.js dealDamageToEnemy): 고유 특성 × 특성 트리 '주는 피해' (D-125) */
     sigTargetMul(e) {
+        return this.sigCharMul(e) * (1 + (this.treeMods?.dmg || 0));
+    },
+
+    /** 고유 특성만의 피해 배율 */
+    sigCharMul(e) {
         const s = SIGNATURE;
         switch (this.sigChar) {
         case 'mech': return this.sigRole === 'ranged' && this.isAttacking ? 1 + s.mech.anchorDmg : 1;
@@ -47,7 +52,8 @@ export const TraitMethods = {
 
     /** 주인공이 받는 피해 배율 (sets.js incomingMul) */
     sigIncomingMul() {
-        return this.sigChar === 'mech' && this.sigRole === 'melee' ? 1 - SIGNATURE.mech.meleeGuard : 1;
+        const tree = 1 - (this.treeMods?.taken || 0);   // 특성 트리 '받는 피해 −' (D-125)
+        return (this.sigChar === 'mech' && this.sigRole === 'melee' ? 1 - SIGNATURE.mech.meleeGuard : 1) * tree;
     },
 
     /** 졸개(합성괴인 기본 졸개·총동원령) 공격력 배율 (allies.js) */

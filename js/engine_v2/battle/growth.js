@@ -123,6 +123,15 @@ export const GrowthBattleMethods = {
         this.gear = progress.gearTotals(equippedObjs);
         this.setCount = setCounts(equippedObjs);   // 세트 효과 (Q-008): 세트 id → 끼운 부위 수
         this.growthCharacter = characterOfPart(equippedObjs.body) || progress.character;   // 드랍은 출전 캐릭터 파츠
+        // 특성 트리 (D-125): 출전 캐릭터가 고른 특성 — 장비 옵션과 같은 키는 gear에 더하고, 나머지는 treeMods
+        // (dmg → traits.js sigTargetMul · taken → sigIncomingMul · ult → kit.js kitUltRate · hp → 여기서 최대 내구도)
+        const tree = progress.traitEffects(this.growthCharacter);
+        for (const [k, v] of Object.entries(tree.gear)) this.gear[k] = (this.gear[k] || 0) + v;
+        this.treeMods = tree.mods;
+        if (tree.mods.hp) {
+            this.maxPlayerHp = Math.round(this.maxPlayerHp * (1 + tree.mods.hp));
+            this.playerHp = this.maxPlayerHp;
+        }
         this.ccImmuneT = 0;
         this.loot = { cores: 0 };
         this.mutator = this.stage.mutator ? { id: this.stage.mutator, ...MUTATORS[this.stage.mutator] } : null;

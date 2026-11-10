@@ -157,7 +157,7 @@ export const KitMethods = {
         return 1 + this.kitMod('cdRate');
     },
     kitUltRate() {
-        return 1 + this.kitMod('ult');
+        return 1 + this.kitMod('ult') + (this.treeMods?.ult || 0);   // 특성 트리 '필살기 충전' (D-125)
     },
     kitCcMul() {
         if (this.kitFlag('ccImmune')) return 0;

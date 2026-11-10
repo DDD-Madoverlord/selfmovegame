@@ -19,6 +19,7 @@ import { isZoneReleased, isCharacterReleased, releaseLabelOf } from './contentSc
 import { minGradeOf, dropGroupOf, setOf, setPerkOf } from './sets_v2.js';
 import { DIFFICULTIES, highestDifficulty, difficultyOf } from './difficulty_v2.js';
 import { emptyPets } from './pets_v2.js';
+import { TRAITS, TRAIT_TIER_STARS, GEAR_KEYS } from './traits_v2.js';
 import {
     GRADES, gradeOf, gradeIndex, OPTIONS, OPTION_CAPS, DROP, AFFINITY, SKILL_LEVEL, CORES,
     MODULES, MODULE_SLOTS, MODULE_MAX_LEVEL, MODULE_LEVEL_COST, DISPATCH, CHARACTER_ZONE, LEGACY_CHARACTER_STARS, RESEARCH, pickWeighted,
@@ -32,7 +33,8 @@ export function emptyGrowth() {
         grades: {}, options: {}, shards: 0, cores: 0, skillLevels: {},
         modules: { owned: [], equipped: [], levels: {} }, research: {}, spentStars: 0, unlockedChars: [], dispatch: [], pets: emptyPets(),
         skins: { owned: [], equipped: {} }, charStarRefund: 0,
-        stones: 0   // 승급석 — 스페셜맵 보스 러시 보상, 5번 파츠 성장의 승급 재료 (D-123)
+        stones: 0,  // 승급석 — 스페셜맵 보스 러시 보상, 5번 파츠 성장의 승급 재료 (D-123)
+        traits: {}  // 특성 트리 (D-125): { 캐릭터 id: [단마다 고른 갈래 0|1] } — 길이 = 연 단 수
     };
 }
 export const GROWTH_KEYS = Object.keys(emptyGrowth());
@@ -51,6 +53,8 @@ export const GrowthMethods = {
         g.modules = { owned: [], equipped: [], levels: {}, ...g.modules };
         g.skins = { owned: Array.isArray(g.skins.owned) ? g.skins.owned.filter(id => skinById(id)) : [],
             equipped: Object.fromEntries(Object.entries(g.skins.equipped || {}).filter(([c, id]) => skinCharacterOf(id) === c)) };
+        g.traits = Object.fromEntries(Object.entries(g.traits).filter(([c, v]) => TRAITS[c] && Array.isArray(v))
+            .map(([c, v]) => [c, v.slice(0, TRAIT_TIER_STARS.length).map(b => (b === 1 ? 1 : 0))]));
         Object.assign(this, g);
         // 세트 파츠: 등급 바닥에 맞게 옵션 수를 채움 (예전에 산 A·B 세트 → 레어 옵션 1개)
         for (const id of this.owned || []) this.ensureGradeOptions(id);
@@ -298,6 +302,54 @@ export const GrowthMethods = {
         if (this.isCharacterUnlocked(id)) return { success: true };
         const z = CHARACTER_ZONE[id];
         return { success: false, reason: `구역 ${z}에 도착하면 합류합니다 (${z - 1}-B 노말 클리어)` };
+    },
+
+    // ---- 특성 트리 (D-119 3번 안 B · D-125, Q-038 임시) — 캐릭터마다 3단 × 2갈래, 단을 별 4 · 8 · 12로 열고 갈래는 언제든 무료로 바꿈 ----
+    /** 연 단마다 고른 갈래 [0|1] (길이 = 연 단 수) */
+    traitPicks(character) {
+        return (this.traits && this.traits[character]) || [];
+    },
+    /** 다음 단을 여는 별 (다 열었거나 없는 캐릭터면 null) */
+    traitOpenCost(character) {
+        const n = this.traitPicks(character).length;
+        return TRAITS[character] && n < TRAIT_TIER_STARS.length ? TRAIT_TIER_STARS[n] : null;
+    },
+    openTraitTier(character) {
+        if (!TRAITS[character]) return { success: false, reason: '없는 캐릭터입니다' };
+        if (!this.isCharacterUnlocked(character)) return { success: false, reason: '합류한 캐릭터만 특성을 열 수 있어요' };
+        const cost = this.traitOpenCost(character);
+        if (cost == null) return { success: false, reason: '모든 단을 열었어요' };
+        if (!this.spendStars(cost)) return { success: false, reason: `별이 부족합니다 (★${cost} 필요)` };
+        this.traits[character] = [...this.traitPicks(character), 0];
+        gameState.notify();
+        return { success: true, tier: this.traits[character].length };
+    },
+    /** 연 단의 갈래 바꾸기 (무료) */
+    pickTrait(character, tier, branch) {
+        const picks = this.traitPicks(character);
+        if (!(Number.isInteger(tier) && tier >= 0 && tier < picks.length) || ![0, 1].includes(branch)) return false;
+        this.traits[character] = picks.map((b, i) => (i === tier ? branch : b));
+        gameState.notify();
+        return true;
+    },
+    /** 고른 특성 합계: gear(장비 옵션과 같은 키) + mods(dmg · taken · hp · ult) — battle/growth.js setupGrowth */
+    traitEffects(character) {
+        const out = { gear: {}, mods: { dmg: 0, taken: 0, hp: 0, ult: 0 } };
+        const tree = TRAITS[character];
+        if (!tree) return out;
+        this.traitPicks(character).forEach((b, i) => {
+            const t = tree[i] && tree[i][b];
+            if (!t) return;
+            for (const [k, v] of Object.entries(t.fx)) {
+                if (GEAR_KEYS.includes(k)) out.gear[k] = (out.gear[k] || 0) + v;
+                else out.mods[k] += v;
+            }
+        });
+        return out;
+    },
+    /** 특성에 쓴 별 합계 (화면 안내용) */
+    traitStarsSpent() {
+        return Object.values(this.traits || {}).reduce((n, v) => n + TRAIT_TIER_STARS.slice(0, v.length).reduce((a, c) => a + c, 0), 0);
     },
 
     // ---- 캐릭터 외형 (D-119 11번) ----

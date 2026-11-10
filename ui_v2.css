@@ -1415,6 +1415,43 @@
 .v2-modcard small { font-size: 11px; color: var(--v2-dim); }
 .v2-modcard__acts { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 2px; }
 /* 캐릭터 외형 탭 (D-119): 캐릭터 한 줄에 기본 + 2종 */
+/* 특성 트리 (D-125) */
+.v2-traitchars { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
+.v2-growth .v2-traitchars button[data-act][data-char] { --sk: #888; font: 700 12px var(--v2-font); display: grid; grid-template-columns: 28px auto; grid-template-rows: auto auto; column-gap: 6px; align-items: center;
+    padding: 4px 8px 4px 4px; background: rgba(255, 255, 255, 0.04); border: 1px solid rgba(255, 255, 255, 0.12); border-radius: 4px; color: var(--v2-text); }
+.v2-growth .v2-traitchars button[data-act][data-char].is-on { border-color: var(--v2-amber); box-shadow: 0 0 0 1px var(--v2-amber); }
+.v2-traitchars button i { display: block; grid-row: 1 / 3; width: 28px; height: 28px; background: #0d1016 center / cover no-repeat; }
+.v2-traitchars button small { font-size: 11px; text-align: left; }
+.v2-traitchars button em { font-style: normal; font-size: 10px; color: var(--v2-dim); text-align: left; }
+.v2-traitbox { --sk: #888; display: grid; gap: 8px; padding: 10px 12px; border-left: 3px solid var(--sk); background: rgba(255, 255, 255, 0.03); border-radius: 4px; }
+.v2-traitsig { display: grid; gap: 2px; padding-bottom: 6px; border-bottom: 1px solid rgba(255, 255, 255, 0.08); }
+.v2-traitsig b { color: #fff; font-size: 13px; }
+.v2-traitsig small { color: var(--v2-dim); font-size: 12px; }
+.v2-traitbox__lock { margin: 0; font-size: 12px; color: var(--v2-amber); }
+.v2-traittier { display: grid; grid-template-columns: 120px 1fr; gap: 10px; align-items: center; }
+.v2-traittier__head span { font-size: 12px; color: #fff; }
+.v2-traittier__head .is-dim { color: var(--v2-dim); }
+.v2-traittier__head button { font-size: 12px; }
+.v2-traittier__opts { display: grid; grid-template-columns: 1fr auto 1fr; gap: 6px; align-items: center; }
+.v2-traittier__or { font-size: 11px; color: var(--v2-dim); }
+.v2-trait, .v2-growth .v2-traittier__opts button.v2-trait[data-act] { display: grid; font: 600 12px var(--v2-font); gap: 2px; padding: 6px 10px; text-align: left; background: rgba(255, 255, 255, 0.04); border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 4px; color: var(--v2-text); }
+.v2-trait b { font-size: 12px; color: #fff; }
+.v2-trait small { font-size: 11px; color: var(--v2-dim); }
+button.v2-trait { cursor: pointer; }
+.v2-growth .v2-traittier__opts button.v2-trait[data-act].is-on { border-color: var(--v2-amber); box-shadow: 0 0 0 1px var(--v2-amber); }
+.v2-trait.is-on b { color: var(--v2-amber); }
+.v2-trait.is-locked { opacity: 0.45; }
+@media (max-width: 640px) {
+    .v2-traittier { grid-template-columns: 1fr; gap: 4px; }
+}
+/* 휴대폰 가로처럼 낮은 화면: 캐릭터 줄은 한 줄로 밀어서 보기 (트리가 바로 보이게) */
+@media (max-height: 500px) {
+    .v2-traitchars { flex: none; flex-wrap: nowrap; overflow-x: auto; overflow-y: hidden; padding-bottom: 4px; margin-bottom: 6px; }
+    .v2-traitbox { flex: none; }
+    .v2-growth .v2-traitchars button[data-act][data-char] { flex: 0 0 auto; }
+    .v2-traittier { grid-template-columns: 96px 1fr; }
+}
 .v2-skinlist { display: grid; gap: 8px; }
 .v2-skinrow { --sk: #888; display: grid; grid-template-columns: minmax(96px, 1fr) repeat(3, minmax(88px, 1fr)); gap: 8px; align-items: center;
     padding: 8px 10px; border: 1px solid rgba(255, 255, 255, 0.12); border-left: 3px solid var(--sk); background: rgba(255, 255, 255, 0.03); border-radius: 4px; }

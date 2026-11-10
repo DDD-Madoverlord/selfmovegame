@@ -11,6 +11,7 @@ import { MODULES, MODULE_MAX_LEVEL, RESEARCH, gradeOf, OPTIONS, SKINS, SKIN_STAR
 import { ROSTER } from '../engine_v2/roster_v2.js';
 import { isCharacterReleased } from '../engine_v2/contentSchedule_v2.js';
 import { SPECIAL, bossReward, smashLayout, bossZones } from '../engine_v2/special_v2.js';
+import { TRAITS, TRAIT_TIER_STARS, SIGNATURE_TEXT } from '../engine_v2/traits_v2.js';
 import { sound } from '../engine_v2/audio/sound_v2.js';
 import { icon } from './icons.js';
 import { mountDispatch, tickDispatch, unmountDispatch, dispatchAct, showReturn } from './dispatchUi_v2.js';
@@ -22,7 +23,7 @@ const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;',
 /** 재화 칩 안쪽 HTML */
 export function resChipHtml() {
     // em = 휴대폰 배치(Q-015)에서 글자 이름 대신 보이는 아이콘
-    return `<span title="남은 별 (캐릭터 해금·전술 모듈·계정 연구)" aria-label="별 ${progress.availableStars()}"><em>${icon('star', 15)}</em><i>★</i><b>${progress.availableStars()}</b></span>`
+    return `<span title="남은 별 (전술 모듈·계정 연구·특성·외형)" aria-label="별 ${progress.availableStars()}"><em>${icon('star', 15)}</em><i>★</i><b>${progress.availableStars()}</b></span>`
         + `<span title="파츠 조각 (등급 올리기)" aria-label="조각 ${progress.shards}"><em>${icon('shard', 15)}</em><i>조각</i><b>${progress.shards}</b></span>`
         + `<span title="스킬 코어 (스킬 강화)" aria-label="코어 ${progress.cores}"><em>${icon('core', 15)}</em><i>코어</i><b>${progress.cores}</b></span>`
         // 승급석 (D-124 · 스페셜맵 보스 러시) — 한 번이라도 얻은 뒤부터 보임
@@ -45,6 +46,7 @@ export function optionText(partId) {
 // ---- 작전 지원 창 ----
 let panel = null;
 let tab = 'modules';
+let traitChar = null;   // 특성 탭에서 보고 있는 캐릭터 (처음엔 고른 캐릭터)
 let timer = null;
 let onChange = null;
 
@@ -104,6 +106,9 @@ function act(name, d) {
     if (name === 'supportAuto') { progress.setSupportAuto(!progress.supportAuto); return render(); }
     if (name === 'buyModule') r = progress.buyModule(d.id);
     if (name === 'buySkin') r = progress.buySkin(d.id);
+    if (name === 'traitChar') { traitChar = d.char; sound.play('ui_tab'); return render(false); }
+    if (name === 'openTrait') r = progress.openTraitTier(d.char);
+    if (name === 'pickTrait') { progress.pickTrait(d.char, Number(d.tier), Number(d.branch)); sound.play('ui_equip'); return render(); }
     if (name === 'startSpecial') {   // 스페셜맵 입장 (D-123): 횟수 1 쓰고 전투로
         const res = progress.startSpecial(d.mode);
         if (!res.success) { toast(res.reason, false); return render(); }
@@ -131,8 +136,8 @@ function render(preserveScroll = true) {
     if (!panel) return;
     const scrollTop = preserveScroll ? (panel.querySelector('.v2-growth__body')?.scrollTop || 0) : 0;
     const petUnlocked = progress.stage('1-1', 'normal').cleared || progress.pets.owned.some(id => progress.canUsePet(id));
-    const tabs = [['coop', '협력 출격'], ['special', '스페셜'], ['modules', '전술 모듈'], ['dispatch', '파견'], ['research', '계정 연구'], ['skins', '외형'], ['pets', '펫']];
-    const body = tab === 'coop' ? supportHtml() : tab === 'dispatch' ? '' : tab === 'research' ? researchHtml() : tab === 'skins' ? skinsHtml() : tab === 'special' ? specialHtml() : tab === 'pets'
+    const tabs = [['coop', '협력 출격'], ['special', '스페셜'], ['modules', '전술 모듈'], ['traits', '특성'], ['dispatch', '파견'], ['research', '계정 연구'], ['skins', '외형'], ['pets', '펫']];
+    const body = tab === 'coop' ? supportHtml() : tab === 'dispatch' ? '' : tab === 'research' ? researchHtml() : tab === 'skins' ? skinsHtml() : tab === 'traits' ? traitsHtml() : tab === 'special' ? specialHtml() : tab === 'pets'
         ? petUnlocked ? petsHtml() : '<p class="v2-growth__hint">노말 1-1을 클리어하면 펫이 열립니다.</p>' : modulesHtml();
     panel.innerHTML = `<div class="v2-growth__box v2-panel">
         <div class="v2-growth__head" data-currency>
@@ -186,6 +191,44 @@ function specialHtml() {
     return `<p class="v2-growth__hint">하루 3회씩(한국 시간 0시에 다시 채움). 들어가면 1회를 써요. 보스 러시의 승급석은 파츠 승급 재료가 됩니다.</p>
         <div class="v2-special">${card('boss', '보스 러시', [`다음 <b>${step}단계</b> · ${band} · ${zones[(step - 1) % zones.length]}구역 보스`, `이기면 승급석 ${rw.stones} · 코어 ${rw.cores} · DM ${rw.dm.toLocaleString()}${rw.shards ? ` · 처음이면 조각 ${rw.shards}` : ''}`, `10단계 하드 · 20단계 헬 · 30단계 나이트메어 · 최고 ${progress.special.bossBest}단계`], `${step}단계 도전`)}
         ${card('smash', '파괴 작전', [`이번 주: <b>${esc(lay.name)}</b> — ${SPECIAL.smash.sec}초 동안 물체를 최대한 부수기`, '3초 안에 이어 부수면 연속 보너스, 모두 부수면 남은 시간 보너스', `등급 S ${SPECIAL.smash.reward.S.shards}조각 · A ${SPECIAL.smash.reward.A.shards} · B ${SPECIAL.smash.reward.B.shards} · C ${SPECIAL.smash.reward.C.shards} · 이번 주 최고 ${(sb.week ? sb.score : 0).toLocaleString()}`], '도전')}</div>`;
+}
+
+/** 특성 트리 (D-119 3번 · D-125): 위 = 캐릭터 고르기, 아래 = 고유 특성(항상) + 3단 × 2갈래. 단은 별로 열고, 연 단의 갈래는 무료로 바꿈 */
+function traitsHtml() {
+    const chars = ROSTER.filter(c => isCharacterReleased(c.id) && TRAITS[c.id]);
+    if (!traitChar || !chars.some(c => c.id === traitChar)) traitChar = chars.some(c => c.id === progress.character) ? progress.character : chars[0]?.id;
+    const c = chars.find(x => x.id === traitChar);
+    if (!c) return '';
+    const unlocked = progress.isCharacterUnlocked(c.id);
+    const picks = progress.traitPicks(c.id);
+    const cost = progress.traitOpenCost(c.id);
+    const chips = chars.map(x => {
+        const n = progress.traitPicks(x.id).length;
+        return `<button data-act="traitChar" data-char="${x.id}" class="${x.id === traitChar ? 'is-on' : ''}" style="--sk:${x.color}" ${progress.isCharacterUnlocked(x.id) ? '' : 'title="아직 합류 전"'}>`
+            + `<i style="background-image:url('assets/sprites/intro/face_${x.id}.webp')"></i><small>${esc(x.faction)}</small><em>${n}/3</em></button>`;
+    }).join('');
+    const sig = SIGNATURE_TEXT[c.id];
+    const tiers = TRAITS[c.id].map((pair, i) => {
+        const open = i < picks.length;
+        const opts = pair.map((t, b) => {
+            const on = open && picks[i] === b;
+            const inner = `<b>${esc(t.name)}</b><small>${esc(t.desc)}</small>`;
+            return open ? `<button class="v2-trait${on ? ' is-on' : ''}" data-act="pickTrait" data-char="${c.id}" data-tier="${i}" data-branch="${b}" aria-pressed="${on}">${inner}</button>`
+                : `<div class="v2-trait is-locked">${inner}</div>`;
+        }).join('<span class="v2-traittier__or">또는</span>');
+        const head = open ? `<span>${i + 1}단</span>`
+            : i === picks.length && cost != null
+                ? `<button data-act="openTrait" data-char="${c.id}" ${!unlocked || progress.availableStars() < cost ? 'disabled' : ''}>★${cost}로 ${i + 1}단 열기</button>`
+                : `<span class="is-dim">${i + 1}단 · ★${TRAIT_TIER_STARS[i]}</span>`;
+        return `<div class="v2-traittier${open ? ' is-open' : ''}"><div class="v2-traittier__head">${head}</div><div class="v2-traittier__opts">${opts}</div></div>`;
+    }).join('');
+    return `<p class="v2-growth__hint">캐릭터마다 3단 특성. 단을 별로 열면(★4 · 8 · 12) 두 갈래 중 하나가 켜지고, 연 단은 언제든 무료로 바꿀 수 있어요. 출격한 캐릭터(몸통 파츠)의 특성만 켜집니다. 쓴 별 ★${progress.traitStarsSpent()}.</p>
+        <div class="v2-traitchars">${chips}</div>
+        <div class="v2-traitbox" style="--sk:${c.color}">
+            <div class="v2-traitsig"><b>고유 특성 · ${esc(sig ? sig[0] : '')}</b><small>${esc(sig ? sig[1] : '')} — 항상 켜짐</small></div>
+            ${unlocked ? '' : `<p class="v2-traitbox__lock">${esc(progress.unlockCharacter(c.id).reason || '아직 합류 전')}</p>`}
+            ${tiers}
+        </div>`;
 }
 
 /** 캐릭터 외형 (D-119 11번): 캐릭터마다 색 바꿔 입기 2종, 별 25개. 미리보기는 캐릭터 얼굴 그림에 같은 색 필터 */

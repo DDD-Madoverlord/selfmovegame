@@ -206,6 +206,10 @@ function validate(entries) {
         || !object(data.skins.equipped) || Object.values(data.skins.equipped).some(id => typeof id !== 'string'))) {
         throw new Error('캐릭터 외형의 모양이 올바르지 않습니다.');
     }
+    if (data.traits !== undefined && (!object(data.traits)
+        || Object.values(data.traits).some(v => !Array.isArray(v) || v.length > 3 || v.some(b => b !== 0 && b !== 1)))) {
+        throw new Error('특성 트리의 모양이 올바르지 않습니다.');
+    }
     if (data.modules !== undefined && (!object(data.modules)
         || ['owned', 'equipped'].some(key => data.modules[key] !== undefined && !Array.isArray(data.modules[key]))
         || (data.modules.levels !== undefined && !object(data.modules.levels)))) {
