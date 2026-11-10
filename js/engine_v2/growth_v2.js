@@ -172,6 +172,21 @@ export const MUTATORS = {
 };
 export const MUTATOR_ORDER = ['icefloor', 'bloodmoon', 'ironwall', 'reinforce', 'overload', 'venom'];
 
+/** 전장 변이 여러 개를 하나로 묶음 (오버로드의 탑 D-126 — 나이트메어는 하나): 배율은 곱하고, 거점 피해 감소는 겹쳐 곱하고, 폭발은 더함 */
+export function combineMutators(ids) {
+    const list = (ids || []).filter(id => MUTATORS[id]);
+    if (!list.length) return null;
+    const out = { ...MUTATORS[list[0]], id: list[0], ids: list, name: list.map(id => MUTATORS[id].name).join(' · ') };
+    for (const k of ['moveMul', 'cdMul', 'spawnMul', 'toxicMul', 'toxicWidth', 'siegeCut', 'deathBlast']) delete out[k];
+    for (const id of list) {
+        const m = MUTATORS[id];
+        for (const k of ['moveMul', 'cdMul', 'spawnMul', 'toxicMul', 'toxicWidth']) if (m[k]) out[k] = (out[k] || 1) * m[k];
+        if (m.siegeCut) out.siegeCut = 1 - (1 - (out.siegeCut || 0)) * (1 - m.siegeCut);
+        if (m.deathBlast) out.deathBlast = (out.deathBlast || 0) + m.deathBlast;
+    }
+    return out;
+}
+
 /** 이번 주 전장 변이 (서버 없이: 1970-01-05 월요일부터 센 주 번호) */
 export function weeklyMutator(now = Date.now()) {
     const week = Math.floor((now - Date.UTC(1970, 0, 5)) / (7 * 24 * 3600 * 1000));

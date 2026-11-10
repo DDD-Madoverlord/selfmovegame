@@ -199,7 +199,8 @@ function validate(entries) {
     if (data.special !== undefined && (!object(data.special) || !object(data.special.used)
         || ['boss', 'smash'].some(k => !(Number.isInteger(data.special.used[k]) && data.special.used[k] >= 0))
         || !(Number.isInteger(data.special.bossBest) && data.special.bossBest >= 0) || !object(data.special.smashBest)
-        || (data.special.dayKey !== null && typeof data.special.dayKey !== 'string'))) {
+        || (data.special.dayKey !== null && typeof data.special.dayKey !== 'string')
+        || (data.special.tower !== undefined && (!object(data.special.tower) || !(Number.isInteger(data.special.tower.best) && data.special.tower.best >= 0))))) {
         throw new Error('스페셜맵 기록의 모양이 올바르지 않습니다.');
     }
     if (data.skins !== undefined && (!object(data.skins) || !Array.isArray(data.skins.owned) || data.skins.owned.some(id => typeof id !== 'string')

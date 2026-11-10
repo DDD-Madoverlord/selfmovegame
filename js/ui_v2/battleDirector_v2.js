@@ -30,9 +30,16 @@ import { petOf } from '../engine_v2/pets_v2.js';
 import { rosterOf } from '../engine_v2/roster_v2.js';
 const hexRgb = h => [1, 3, 5].map(i => parseInt(h.slice(i, i + 2), 16)).join(', ');
 /** 스페셜맵 결과 (D-123) — 제목과 보상 한 줄 */
-const specialTitle = r => r.special.mode === 'boss' ? (r.victory ? 'BOSS DOWN' : 'BOSS RUSH FAILED') : `GRADE ${r.special.grade}`;
+const specialTitle = r => r.special.mode === 'boss' ? (r.victory ? 'BOSS DOWN' : 'BOSS RUSH FAILED')
+    : r.special.mode === 'tower' ? (r.victory ? 'FLOOR CLEAR' : 'TOWER FAILED') : `GRADE ${r.special.grade}`;
 function specialHtml(r) {
     const s = r.special;
+    if (s.mode === 'tower') {   // 오버로드의 탑 (D-126)
+        const gain = [s.stones ? `승급석 +${s.stones}` : '', s.cores ? `스킬 코어 +${s.cores}` : '', s.shards ? `조각 +${s.shards}` : '', s.dm ? `DM +${s.dm.toLocaleString()}` : ''].filter(Boolean).join(' · ');
+        return s.victory
+            ? `<p class="v2-result__special">오버로드의 탑 <b>${s.floor}층</b> 돌파${gain ? ` · ${gain}` : ''} · 이번 주 ${s.weekBest}층</p>`
+            : `<p class="v2-result__special">오버로드의 탑 <b>${s.floor}층</b> 실패 — 강해져서 다시 도전하세요 (최고 ${s.best}층)</p>`;
+    }
     if (s.mode === 'boss') {
         return s.victory
             ? `<p class="v2-result__special">보스 러시 <b>${s.step}단계</b> 돌파${s.first ? ' (처음)' : ''} · 승급석 +${s.stones} · 스킬 코어 +${s.cores}${s.shards ? ` · 조각 +${s.shards}` : ''} · DM +${s.dm.toLocaleString()}</p>`
@@ -69,6 +76,7 @@ const lootHtml = loot => {
 const diffTag = stage => {
     const d = difficultyOf(difficultyOfStage(stage));
     const mut = stage.mutator && MUTATORS[stage.mutator];   // 나이트메어 전장 변이 (Q-006)
+    if (stage.mutators && stage.mutators.length) return ` · 변이: ${stage.mutators.map(id => MUTATORS[id]?.name).join(' · ')}`;   // 오버로드의 탑 (D-126)
     return d.id === 'normal' ? '' : ` · <span class="v2-diffbadge" style="--diff:${d.color}">${d.name}</span>${mut ? ` · 변이: ${mut.name}` : ''}`;
 };
 const clock = sec => `${String(Math.floor(sec / 60)).padStart(2, '0')}:${String(Math.floor(sec % 60)).padStart(2, '0')}`;
@@ -529,7 +537,8 @@ export class BattleDirector {
                 </div>
                 <div class="v2-result__actions">
                     ${r.next ? `<button class="v2-btn v2-btn--primary" data-act="next">${icon('play', 16)} 다음 ${r.next.id}</button>` : ''}
-                    ${r.special ? (r.special.left > 0 ? `<button class="v2-btn v2-btn--primary" data-act="retry">${icon('play', 16)} 한 번 더 (오늘 ${r.special.left}회 남음)</button>` : '<button class="v2-btn v2-btn--ghost" disabled>오늘 횟수를 다 썼어요</button>')
+                    ${r.special && r.special.mode === 'tower' ? `<button class="v2-btn v2-btn--primary" data-act="retry">${icon('play', 16)} ${r.victory ? `다음 층 (${r.special.nextFloor}층)` : `다시 도전 (${r.special.nextFloor}층)`}</button>`
+                    : r.special ? (r.special.left > 0 ? `<button class="v2-btn v2-btn--primary" data-act="retry">${icon('play', 16)} 한 번 더 (오늘 ${r.special.left}회 남음)</button>` : '<button class="v2-btn v2-btn--ghost" disabled>오늘 횟수를 다 썼어요</button>')
                         : `<button class="v2-btn ${r.next ? 'v2-btn--ghost' : 'v2-btn--primary'}" data-act="retry">${r.next ? '' : icon('play', 16)} ${r.victory ? '다시 출격' : '재도전'}</button>`}
                     <button class="v2-btn v2-btn--ghost" data-act="lab">${icon('gear', 16)} 연구소</button>
                     <button class="v2-btn v2-btn--ghost" data-act="menu">메인 메뉴</button>

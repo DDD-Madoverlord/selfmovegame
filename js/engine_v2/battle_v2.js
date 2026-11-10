@@ -458,8 +458,10 @@ export class BattleEngine {
         const sp = this.stage;
         const mode = sp.special;
         const special = mode === 'boss' ? { mode, ...progress.finishSpecialBoss(sp.specialStep, victory) }
+            : mode === 'tower' ? { mode, ...progress.finishTower(sp.specialStep, victory) }   // 오버로드의 탑 (D-126)
             : { mode, ...progress.finishSpecialSmash(this.smashScore || 0), broken: this.smashBroken || 0 };
-        special.left = progress.specialLeft(mode);
+        special.left = mode === 'tower' ? Infinity : progress.specialLeft(mode);   // 탑은 횟수 제한 없음
+        if (mode === 'tower') special.nextFloor = progress.nextTowerFloor();
         const win = mode === 'smash' ? true : victory;
         const result = {
             victory: win, stage: sp, special, loot: null, difficulty: difficultyOf(this.difficulty), unlocked: null,
@@ -471,8 +473,8 @@ export class BattleEngine {
         this.stopBattle();
         setTimeout(() => { if (!this.isActive) sound.playBgm('menu', 2.5); }, 1200);
         this.director.showResult(result, act => {
-            if (act === 'retry') {   // 같은 모드 한 번 더 (횟수가 남았으면)
-                const r = progress.startSpecial(mode);
+            if (act === 'retry') {   // 같은 모드 한 번 더 (횟수가 남았으면) · 탑은 다음 층 / 같은 층 다시
+                const r = mode === 'tower' ? progress.startTower() : progress.startSpecial(mode);
                 if (r.success) { this.pendingSpecial = r.stage; if (this.onNavigate) this.onNavigate('battle'); return; }
                 act = 'menu';
             }

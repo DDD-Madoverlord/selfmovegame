@@ -108,8 +108,8 @@ def run(ctx):
     st = g.js("""const p = document.querySelector('.v2-growth'); const tab = [...p.querySelectorAll('[data-act=tab]')].find(b => b.dataset.tab === 'special'); tab && tab.click();
         const cards = [...p.querySelectorAll('.v2-special__card')];
         return { n: cards.length, text: cards.map(c => c.textContent.replace(/\\s+/g, ' ').slice(0, 60)), dots: cards.map(c => c.querySelectorAll('.v2-special__left i.is-on').length) };""")
-    ctx.check(st['n'] == 2 and st['dots'] == [3, 2] and '보스 러시' in st['text'][0] and '다음 1단계' in st['text'][0],
-              "작전 지원 '스페셜' 탭: 보스 러시(다음 1단계 · 남은 3회) · 파괴 작전(남은 2회)", str(st))
+    ctx.check(st['n'] == 3 and st['dots'][:2] == [3, 2] and '보스 러시' in st['text'][0] and '다음 1단계' in st['text'][0] and '오버로드의 탑' in st['text'][2],
+              "작전 지원 '스페셜' 탭: 보스 러시(다음 1단계 · 남은 3회) · 파괴 작전(남은 2회) · 오버로드의 탑(D-126, 횟수 없음)", str(st))
     g.shot('special_tab', '.v2-growth')
     g.page.click('.v2-special__card[data-mode="boss"] [data-act=startSpecial]')
     g.wait(2500)

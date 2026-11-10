@@ -8,10 +8,13 @@
 
 import { gameState } from '../engine/state.js';
 import { SPECIAL, bossReward, smashGrade, bossStage, smashStage } from './special_v2.js';
+import { TOWER, towerReward, towerStage } from './tower_v2.js';
 import { kstDayKey, kstWeekKey } from './kstTime_v2.js';
 import { track } from './analytics_v2.js';
 
-export const emptySpecial = () => ({ dayKey: null, used: { boss: 0, smash: 0 }, bossBest: 0, smashBest: { week: null, score: 0 }, lastSeenAt: 0 });
+// tower: 오버로드의 탑 (D-126) { best 깬 가장 높은 층, week 주 키, weekBest 이번 주 깬 가장 높은 층 } — 횟수 제한 없음
+export const emptySpecial = () => ({ dayKey: null, used: { boss: 0, smash: 0 }, bossBest: 0, smashBest: { week: null, score: 0 }, lastSeenAt: 0,
+    tower: { best: 0, week: null, weekBest: 0 } });
 
 export const SpecialMethods = {
     loadSpecial(data) {
@@ -23,7 +26,9 @@ export const SpecialMethods = {
             used: { boss: Math.max(0, Math.floor(v.used?.boss || 0)), smash: Math.max(0, Math.floor(v.used?.smash || 0)) },
             bossBest: Math.min(SPECIAL.boss.steps, Math.max(0, Math.floor(v.bossBest || 0))),
             smashBest: { week: typeof v.smashBest?.week === 'string' ? v.smashBest.week : null, score: Math.max(0, Math.floor(v.smashBest?.score || 0)) },
-            lastSeenAt: Number.isFinite(v.lastSeenAt) ? v.lastSeenAt : 0
+            lastSeenAt: Number.isFinite(v.lastSeenAt) ? v.lastSeenAt : 0,
+            tower: { best: Math.max(0, Math.floor(v.tower?.best || 0)), week: typeof v.tower?.week === 'string' ? v.tower.week : null,
+                weekBest: Math.max(0, Math.floor(v.tower?.weekBest || 0)) }
         };
     },
     specialData() {
@@ -74,6 +79,41 @@ export const SpecialMethods = {
         gameState.notify();
         return { victory: true, step, first, stones: r.stones, cores: r.cores, dm: r.dm, shards };
     },
+    // ---- 오버로드의 탑 (D-126) ----
+    nextTowerFloor() {
+        return (this.special.tower?.best || 0) + 1;
+    },
+    /** 이번 주 깬 가장 높은 층 (새 주면 0) */
+    towerWeekBest(now = Date.now()) {
+        const t = this.special.tower;
+        return t && t.week === kstWeekKey(this.specialTime(now)) ? t.weekBest : 0;
+    },
+    /** 들어가기 (횟수 없음): 다음 층 스테이지 */
+    startTower(now = Date.now()) {
+        if (!this.stage(TOWER.unlockStage, 'normal').cleared) return { success: false, reason: `노말 ${TOWER.unlockStage}를 깨면 열립니다` };
+        const stage = towerStage(this.nextTowerFloor(), now);
+        track('special_start', { mode: 'tower', step: stage.specialStep });
+        return { success: true, stage };
+    },
+    /** 탑 층 끝: 처음 깬 층이면 보상 · 최고 층 · 주간 최고 */
+    finishTower(floor, victory, now = Date.now()) {
+        track('special_end', { mode: 'tower', step: floor, result: victory ? 'victory' : 'defeat' });
+        if (!victory) return { victory: false, floor, best: this.special.tower.best };
+        const t = this.special.tower;
+        const week = kstWeekKey(this.specialTime(now));
+        if (t.week !== week) { t.week = week; t.weekBest = 0; }
+        t.weekBest = Math.max(t.weekBest, floor);
+        const first = floor > t.best;
+        const r = first ? towerReward(floor) : { dm: 0, cores: 0, shards: 0, stones: 0 };
+        if (first) t.best = floor;
+        this.cores = (this.cores || 0) + r.cores;
+        this.shards = (this.shards || 0) + r.shards;
+        this.stones = (this.stones || 0) + r.stones;
+        gameState.darkMatter += r.dm;
+        gameState.notify();
+        return { victory: true, floor, first, ...r, best: t.best, weekBest: t.weekBest };
+    },
+
     /** 파괴 작전 끝: 점수 → 등급 보상, 주간 최고 기록 */
     finishSpecialSmash(score, now = Date.now()) {
         const grade = smashGrade(score);

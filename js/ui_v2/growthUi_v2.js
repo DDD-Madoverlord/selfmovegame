@@ -7,10 +7,11 @@
 
 import { gameState } from '../engine/state.js';
 import { progress } from '../engine_v2/progress_v2.js';
-import { MODULES, MODULE_MAX_LEVEL, RESEARCH, gradeOf, OPTIONS, SKINS, SKIN_STARS } from '../engine_v2/growth_v2.js';
+import { MODULES, MODULE_MAX_LEVEL, RESEARCH, gradeOf, OPTIONS, SKINS, SKIN_STARS, MUTATORS } from '../engine_v2/growth_v2.js';
 import { ROSTER } from '../engine_v2/roster_v2.js';
 import { isCharacterReleased } from '../engine_v2/contentSchedule_v2.js';
 import { SPECIAL, bossReward, smashLayout, bossZones } from '../engine_v2/special_v2.js';
+import { towerReward, towerMutators, towerZones, isBossFloor } from '../engine_v2/tower_v2.js';
 import { TRAITS, TRAIT_TIER_STARS, SIGNATURE_TEXT } from '../engine_v2/traits_v2.js';
 import { sound } from '../engine_v2/audio/sound_v2.js';
 import { icon } from './icons.js';
@@ -109,6 +110,13 @@ function act(name, d) {
     if (name === 'traitChar') { traitChar = d.char; sound.play('ui_tab'); return render(false); }
     if (name === 'openTrait') r = progress.openTraitTier(d.char);
     if (name === 'pickTrait') { progress.pickTrait(d.char, Number(d.tier), Number(d.branch)); sound.play('ui_equip'); return render(); }
+    if (name === 'startTower') {   // 오버로드의 탑 (D-126): 횟수 없음, 다음 층으로
+        const res = progress.startTower();
+        if (!res.success) { toast(res.reason, false); return render(); }
+        closeGrowthPanel();
+        window.madOverlordGameV2.startSpecial(res.stage);
+        return;
+    }
     if (name === 'startSpecial') {   // 스페셜맵 입장 (D-123): 횟수 1 쓰고 전투로
         const res = progress.startSpecial(d.mode);
         if (!res.success) { toast(res.reason, false); return render(); }
@@ -188,9 +196,17 @@ function specialHtml() {
     const card = (mode, title, lines, btn) => `<div class="v2-special__card" data-mode="${mode}"><b>${title}</b><div class="v2-pips v2-special__left" title="오늘 남은 횟수">${dots(mode)}</div>
         ${lines.map(l => `<small>${l}</small>`).join('')}
         <button data-act="startSpecial" data-mode="${mode}" ${progress.specialLeft(mode) > 0 ? '' : 'disabled'}>${progress.specialLeft(mode) > 0 ? btn : '오늘 횟수 끝'}</button></div>`;
-    return `<p class="v2-growth__hint">하루 3회씩(한국 시간 0시에 다시 채움). 들어가면 1회를 써요. 보스 러시의 승급석은 파츠 승급 재료가 됩니다.</p>
+    // 오버로드의 탑 (D-126): 횟수 없음 — 다음 층 · 쌓인 변이 · 처음 깨면 받는 보상
+    const fl = progress.nextTowerFloor(), tr = towerReward(fl), muts = towerMutators(fl), tz = towerZones();
+    const trw = [`DM ${tr.dm.toLocaleString()}`, tr.cores ? `코어 ${tr.cores}` : '', tr.shards ? `조각 ${tr.shards}` : '', tr.stones ? `승급석 ${tr.stones}` : ''].filter(Boolean).join(' · ');
+    const tower = `<div class="v2-special__card" data-mode="tower"><b>오버로드의 탑</b><div class="v2-tower__muts" title="쌓인 전장 변이 (5층마다 하나)">${muts.map(id => `<span class="v2-tower__mut" title="${esc(MUTATORS[id].desc)}">${icon(MUTATORS[id].icon, 13)}${esc(MUTATORS[id].name)}</span>`).join('') || '<small>변이 없음 (5층부터 쌓임)</small>'}</div>
+        <small>다음 <b>${fl}층</b>${isBossFloor(fl) ? ' · <b>보스 층</b>' : ''} · ${tz[(fl - 1) % tz.length]}구역 · 층마다 적 +6%</small>
+        <small>처음 깨면 ${trw}</small>
+        <small>횟수 제한 없음 · 최고 ${progress.special.tower.best}층 · 이번 주 ${progress.towerWeekBest()}층</small>
+        <button data-act="startTower">${fl}층 도전</button></div>`;
+    return `<p class="v2-growth__hint">보스 러시 · 파괴 작전은 하루 3회씩(한국 시간 0시에 다시 채움), 오버로드의 탑은 횟수 제한 없이 한 층씩. 승급석은 파츠 승급 재료가 됩니다.</p>
         <div class="v2-special">${card('boss', '보스 러시', [`다음 <b>${step}단계</b> · ${band} · ${zones[(step - 1) % zones.length]}구역 보스`, `이기면 승급석 ${rw.stones} · 코어 ${rw.cores} · DM ${rw.dm.toLocaleString()}${rw.shards ? ` · 처음이면 조각 ${rw.shards}` : ''}`, `10단계 하드 · 20단계 헬 · 30단계 나이트메어 · 최고 ${progress.special.bossBest}단계`], `${step}단계 도전`)}
-        ${card('smash', '파괴 작전', [`이번 주: <b>${esc(lay.name)}</b> — ${SPECIAL.smash.sec}초 동안 물체를 최대한 부수기`, '3초 안에 이어 부수면 연속 보너스, 모두 부수면 남은 시간 보너스', `등급 S ${SPECIAL.smash.reward.S.shards}조각 · A ${SPECIAL.smash.reward.A.shards} · B ${SPECIAL.smash.reward.B.shards} · C ${SPECIAL.smash.reward.C.shards} · 이번 주 최고 ${(sb.week ? sb.score : 0).toLocaleString()}`], '도전')}</div>`;
+        ${card('smash', '파괴 작전', [`이번 주: <b>${esc(lay.name)}</b> — ${SPECIAL.smash.sec}초 동안 물체를 최대한 부수기`, '3초 안에 이어 부수면 연속 보너스, 모두 부수면 남은 시간 보너스', `등급 S ${SPECIAL.smash.reward.S.shards}조각 · A ${SPECIAL.smash.reward.A.shards} · B ${SPECIAL.smash.reward.B.shards} · C ${SPECIAL.smash.reward.C.shards} · 이번 주 최고 ${(sb.week ? sb.score : 0).toLocaleString()}`], '도전')}${tower}</div>`;
 }
 
 /** 특성 트리 (D-119 3번 · D-125): 위 = 캐릭터 고르기, 아래 = 고유 특성(항상) + 3단 × 2갈래. 단은 별로 열고, 연 단의 갈래는 무료로 바꿈 */
