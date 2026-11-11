@@ -17,6 +17,9 @@ export const HERO_BONES = [
     { name: 'torso', parent: 'root', part: 'torso', z: 6 },
     { name: 'cape1', parent: 'torso', part: 'cape1', z: 1 },
     { name: 'cape2', parent: 'cape1', part: 'cape2', z: 0 },
+    // 망토 안감 (D-121 보완): 몸통에 고정, 망토 뒤. 망토가 흔들려 벌어질 때 로브와 망토 사이가 비지 않게 — 그림은 긴 로브 세트(capeIn_b·_v)만
+    //   (기본·다른 세트는 그림이 없어 그리지 않음, tools/rig/robe_cape.py)
+    { name: 'capeIn', parent: 'torso', part: 'capeIn', z: -1 },
     { name: 'thighB', parent: 'torso', part: 'thighB', z: 3 },
     { name: 'shinB', parent: 'thighB', part: 'shinB', z: 2 },
     { name: 'thighF', parent: 'torso', part: 'thighF', z: 5 },

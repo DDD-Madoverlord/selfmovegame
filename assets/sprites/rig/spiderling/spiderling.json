@@ -1,0 +1,18 @@
+{
+  "frameWidth": 65,
+  "frameHeight": 40,
+  "anchorX": 30.5,
+  "res": 2.0,
+  "clips": {
+    "walk": {
+      "src": "assets/sprites/rig/spiderling/spiderling_walk.webp",
+      "frames": 16,
+      "duration": 0.42
+    },
+    "attack": {
+      "src": "assets/sprites/rig/spiderling/spiderling_attack.webp",
+      "frames": 14,
+      "duration": 0.7
+    }
+  }
+}

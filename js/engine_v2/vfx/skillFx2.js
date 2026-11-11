@@ -33,6 +33,54 @@ function ellipseGlow(ctx, x, y, rx, ry, color) {
 }
 const hash = (i, k = 1) => { const v = Math.sin(i * 127.1 + k * 311.7) * 43758.5453; return v - Math.floor(v); };
 
+// 박쥐 한 마리 (박쥐 떼, D-120): 몸통 + 뾰족 귀 + 손가락 뼈가 있는 날개막 (flap -1 위로 들림 ~ 1 아래로 내려침), 하늘빛 눈·테두리
+function drawBat(ctx, x, y, k, face, flap, alpha, color) {
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.scale(face * k, k);
+    ctx.globalAlpha = alpha;
+    ctx.globalCompositeOperation = 'source-over';
+    const lift = -flap * 13;   // 날개 끝 높이
+    const wing = side => {   // side 1 = 앞(보는 쪽) 날개, -1 = 뒤 날개
+        const sx = side;
+        ctx.beginPath();
+        ctx.moveTo(2 * sx, -3);
+        ctx.quadraticCurveTo(10 * sx, -8 + lift * 0.5, 22 * sx, -4 + lift);       // 날개 위 테 (팔)
+        ctx.lineTo(18 * sx, 4 + lift * 0.6);                                         // 날개 끝 → 막 가장자리 물결
+        ctx.quadraticCurveTo(14 * sx, 1 + lift * 0.45, 12 * sx, 6 + lift * 0.35);
+        ctx.quadraticCurveTo(8 * sx, 3 + lift * 0.25, 5 * sx, 7 + lift * 0.15);
+        ctx.quadraticCurveTo(3 * sx, 3, 1 * sx, 4);
+        ctx.closePath();
+    };
+    for (const side of [-1, 1]) {
+        wing(side);
+        ctx.fillStyle = side > 0 ? '#3a3350' : '#221d2e'; ctx.fill();
+        ctx.lineWidth = 1.4; ctx.strokeStyle = '#0a080e'; ctx.stroke();
+        if (side > 0) {   // 앞 날개 가장자리 하늘빛 테 (어두운 배경에서도 보이게)
+            ctx.save(); ctx.globalCompositeOperation = 'lighter';
+            wing(side); ctx.lineWidth = 0.9; ctx.strokeStyle = `rgba(${color}, 0.35)`; ctx.stroke(); ctx.restore();
+        }
+        // 손가락 뼈
+        ctx.beginPath();
+        ctx.moveTo(4 * side, -2); ctx.lineTo(18 * side, 4 + lift * 0.6);
+        ctx.moveTo(4 * side, -2); ctx.lineTo(12 * side, 6 + lift * 0.35);
+        ctx.lineWidth = 0.8; ctx.strokeStyle = 'rgba(120, 110, 150, 0.8)'; ctx.stroke();
+    }
+    // 몸 + 머리 + 귀
+    ctx.beginPath(); ctx.ellipse(0, 1, 4.2, 6, 0, 0, TAU); ctx.fillStyle = '#231e2e'; ctx.fill(); ctx.lineWidth = 1.2; ctx.strokeStyle = '#0a080e'; ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(1, -5); ctx.lineTo(2, -11); ctx.lineTo(4, -6); ctx.lineTo(5.5, -10.5); ctx.lineTo(6.5, -4);
+    ctx.quadraticCurveTo(8, 0, 4, 1); ctx.quadraticCurveTo(0, 0, 1, -5); ctx.closePath();
+    ctx.fillStyle = '#2c2638'; ctx.fill(); ctx.stroke();
+    // 하늘빛 테 + 눈
+    ctx.globalCompositeOperation = 'lighter';
+    ctx.lineWidth = 0.9; ctx.strokeStyle = `rgba(${color}, 0.45)`;
+    ctx.beginPath(); ctx.moveTo(-2 , -3); ctx.quadraticCurveTo(-10, -8 + lift * 0.5, -22, -4 + lift); ctx.stroke();
+    ctx.fillStyle = `rgba(${color}, 1)`;
+    ctx.fillRect(4.6, -4.4, 1.6, 1.6);
+    glow(ctx, 5.4, -3.6, 4, `rgba(${color}, 0.5)`);
+    ctx.restore();
+}
+
 // ---- 그림 한 장 (수리 드론) ----
 const ART = { repair_drone: 'assets/sprites/vfx/art/repair_drone.webp' };
 const artImages = new Map();
@@ -249,93 +297,119 @@ export const EXTRA_DRAW = {
         ctx.restore();
     },
 
-    // 바닥 갈라짐 (지면 내려찍기, D-119 보완): 옆에서 본 땅 — 내려찍은 자리 땅 윗면이 쩍 벌어져(V자 틈) 앞면 바위로 금이 타고 내려가고,
-    //   틈 가장자리 바닥 판이 비스듬히 들림. 땅 윗면을 따라 들쭉날쭉한 갈라짐이 좌우로 이어짐. 틈은 0.15초에 벌어지고 끝에서 옅어짐 (바닥 층)
-    //   (처음 넣은 위에서 내려다본 금은 땅 띠가 얇아 가는 선처럼 보였음)
-    fissure(ctx, x, y, it, u, s, time) {
-        const life = it.remaining ? it.remaining() : it.dur - it.t;
-        const fade = smooth(life / 0.45), open = easeOut(clamp01(it.t / 0.15));
-        if (fade <= 0) return;
-        const L = (it.len || 170) * s, glowC = it.glow || '160, 255, 50';
-        if (!it.shape) {
-            const rnd = (k => () => { k = (k * 9301 + 49297) % 233280; return k / 233280; })(Math.floor(Math.random() * 233280));
-            const jagLine = (x0, y0, x1, y1, n, amp) => Array.from({ length: n + 1 }, (_, i) => {
-                const f = i / n, j = i === 0 || i === n ? 0 : (rnd() - 0.5) * amp;
-                return [x0 + (x1 - x0) * f + j * 0.4, y0 + (y1 - y0) * f + j];
-            });
-            // 틈: [가운데 x 비율, 윗폭, 깊이] — 가운데가 가장 크게
-            const splits = [[0, 26, 62], [-0.42, 15, 40], [0.45, 17, 44], [-0.82, 8, 24], [0.85, 9, 26]].map(([fx, w, d]) => {
-                const cx = fx * L + (rnd() - 0.5) * 10, n = 5, left = [], right = [];
-                let ox = 0;
-                for (let i = 0; i <= n; i++) {
-                    const f = i / n, hw = w * Math.pow(1 - f, 1.1) / 2;
-                    ox += i ? (rnd() - 0.5) * w * 0.5 : 0;
-                    left.push([cx + ox - hw - rnd() * 2, f * d]); right.push([cx + ox + hw + rnd() * 2, f * d]);
-                }
-                const branches = [0, 1].map(k => {   // 앞면 바위로 비스듬히 내려가는 금
-                    const sgn = k ? 1 : -1, a = sgn * (0.5 + rnd() * 0.6), len = d * (0.7 + rnd() * 0.6);
-                    const sy = d * (0.25 + rnd() * 0.3);
-                    return { pts: jagLine(cx + sgn * w * 0.2, sy, cx + sgn * w * 0.2 + Math.sin(a) * len, sy + Math.cos(Math.abs(a)) * len * 0.8, 4, 6), w: Math.max(2, w * 0.22) };
-                });
-                return { cx, w, d, left, right, branches };
-            });
-            const surface = jagLine(-L * 1.05, 0, L * 1.05, 0, 22, 3);   // 땅 윗면을 따라가는 갈라짐
-            const slabs = [[-0.12, -1], [0.1, 1], [-0.5, -1], [0.55, 1]].map(([fx, side]) => ({ fx, side, w: 30 + rnd() * 14, tilt: side * (0.22 + rnd() * 0.18) }));
-            it.shape = { splits, surface, slabs };
-        }
-        const { splits, surface, slabs } = it.shape;
-        const S = (px, py) => [x + px * s, y + py * s];   // 모양은 s=1 기준 px → 화면
-        const path = pts => { ctx.beginPath(); pts.forEach((p, i) => { const q = S(...p); i ? ctx.lineTo(q[0], q[1]) : ctx.moveTo(q[0], q[1]); }); };
+    // ---- D-120 (2026-11-11 피드백) ----
+    // 반구 충격파 (대지 강타·지면 내려찍기 — 사용자 참고 영상): 땅 위로 빛나는 반구가 퍼짐. 반구 테는 옆(땅 가까이)이 밝고 꼭대기로 갈수록 옅음,
+    //   땅에는 납작한 타원 고리. 처음 0.12초는 가운데 섬광 + 땅을 따라 가로 빛줄기  { r, h(높이 비), color }
+    domeWave(ctx, x, y, it, u, s, time) {
+        const R = (it.r || 220) * s * easeOut(Math.min(1, u * 1.15)) + 18 * s;
+        const H = R * (it.h ?? 0.55), RY = R * (it.flat ?? 0.13);
+        const a = u < 0.06 ? u / 0.06 : Math.pow(1 - (u - 0.06) / 0.94, 0.9);
+        const c = it.color || '255, 205, 120';
         ctx.save();
-        ctx.globalAlpha = fade;
-        ctx.lineJoin = 'round'; ctx.lineCap = 'round';
-        // 땅 윗면 갈라짐 (좌우로 이어짐): 어두운 띠 + 밝은 윗입술
-        const reach = open * L / s;
-        const surf = surface.filter(([px]) => Math.abs(px) <= reach + 1);
-        if (surf.length > 1) {
-            path(surf.map(([px, py]) => [px, py + 1.5])); ctx.lineWidth = 4.5 * s; ctx.strokeStyle = 'rgba(12, 8, 6, 0.85)'; ctx.stroke();
-            path(surf.map(([px, py]) => [px, py - 1.2])); ctx.lineWidth = 1.2 * s; ctx.strokeStyle = 'rgba(200, 180, 140, 0.4)'; ctx.stroke();
+        ctx.globalCompositeOperation = 'lighter';
+        if (u < 0.3) {   // 섬광 + 가로 빛줄기
+            const f = 1 - u / 0.3;
+            glow(ctx, x, y - 14 * s, 80 * s * (0.6 + f * 0.6), `rgba(255, 245, 220, ${0.85 * f})`);
+            ellipseGlow(ctx, x, y, 210 * s * (0.7 + 0.5 * (1 - f)), 5 * s, `rgba(255, 240, 210, ${0.9 * f})`);
         }
-        // 틈과 앞면 금
-        for (const sp of splits) {
-            const k = open;
-            const L2 = sp.left.map(([px, py]) => [sp.cx + (px - sp.cx) * k, py * k]), R2 = sp.right.map(([px, py]) => [sp.cx + (px - sp.cx) * k, py * k]);
-            for (const br of sp.branches) {
-                const n = Math.max(2, Math.ceil(br.pts.length * k));
-                path(br.pts.slice(0, n)); ctx.lineWidth = (br.w + 2) * s; ctx.strokeStyle = 'rgba(8, 5, 4, 0.75)'; ctx.stroke();
-                path(br.pts.slice(0, n)); ctx.lineWidth = br.w * 0.5 * s; ctx.strokeStyle = 'rgba(4, 2, 2, 0.95)'; ctx.stroke();
-            }
-            path([...L2, ...R2.slice().reverse()]); ctx.closePath();
-            ctx.fillStyle = '#0d0806'; ctx.fill();
-            ctx.lineWidth = 1.6 * s; ctx.strokeStyle = 'rgba(60, 44, 30, 0.95)'; ctx.stroke();
-            const hot = smooth(1 - it.t / 1.0);   // 틈 깊은 곳 기운 (처음에만)
-            if (hot > 0) {
-                ctx.globalCompositeOperation = 'lighter';
-                const mid = L2.map((p, i) => [(p[0] + R2[i][0]) / 2, p[1]]);
-                path(mid); ctx.lineWidth = Math.max(1.5, sp.w * 0.18 * k) * s; ctx.strokeStyle = `rgba(${glowC}, ${0.35 * hot})`; ctx.stroke();
-                ctx.globalCompositeOperation = 'source-over';
-            }
-            // 벌어진 입술 위쪽 밝은 모서리
-            path([L2[0], L2[1]]); ctx.lineWidth = 1.4 * s; ctx.strokeStyle = 'rgba(205, 185, 145, 0.6)'; ctx.stroke();
-            path([R2[0], R2[1]]); ctx.stroke();
+        // 반구 테: 아래(땅)에서 밝고 위로 사라지는 세로 그라데이션 선
+        const grad = ctx.createLinearGradient(0, y, 0, y - H);
+        grad.addColorStop(0, `rgba(${c}, ${0.95 * a})`);
+        grad.addColorStop(0.45, `rgba(${c}, ${0.55 * a})`);
+        grad.addColorStop(1, `rgba(${c}, 0)`);
+        const dome = () => { ctx.beginPath(); ctx.ellipse(x, y, R, H, 0, Math.PI, TAU); };
+        for (const [w, al] of [[18, 0.25], [7, 0.6], [2.6, 1]]) {
+            ctx.globalAlpha = al;
+            dome(); ctx.lineWidth = w * s; ctx.strokeStyle = grad; ctx.stroke();
         }
-        // 들린 바닥 판: 틈 가장자리 판이 틈 반대쪽을 축으로 비스듬히 솟음 (윗면 흙빛 + 앞면 어두운 바위)
-        const lift = easeOut(clamp01(it.t / 0.12));
-        for (const sl of slabs) {
-            const [hx, hy] = S(sl.fx * L / s + sl.side * sl.w * 0.9, 0);   // 돌쩌귀 (틈 반대쪽 끝)
-            const w = sl.w * s, h = 9 * s;
-            ctx.save();
-            ctx.translate(hx, hy);
-            ctx.rotate(sl.tilt * lift);
-            const dir = -sl.side;   // 틈 쪽으로 뻗음
-            ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(dir * w, 0); ctx.lineTo(dir * w * 0.92, h); ctx.lineTo(dir * w * 0.1, h * 1.1); ctx.closePath();
-            ctx.fillStyle = '#2a201a'; ctx.fill();                                  // 앞면
-            ctx.lineWidth = 1.4 * s; ctx.strokeStyle = '#120c08'; ctx.stroke();
-            ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(dir * w, 0); ctx.lineTo(dir * w * 0.96, -3 * s); ctx.lineTo(0, -3.5 * s); ctx.closePath();
-            ctx.fillStyle = '#5e4c3a'; ctx.fill();                                  // 윗면 (땅 겉)
-            ctx.beginPath(); ctx.moveTo(0, -3.5 * s); ctx.lineTo(dir * w * 0.96, -3 * s);
-            ctx.lineWidth = 1.2 * s; ctx.strokeStyle = 'rgba(215, 195, 155, 0.7)'; ctx.stroke();
-            ctx.restore();
+        ctx.globalAlpha = 1;
+        // 땅 타원 고리 (앞쪽 반은 밝게, 뒤쪽 반은 옅게)
+        for (const [w, al] of [[10, 0.25], [2.4, 0.95]]) {
+            ctx.lineWidth = w * s;
+            ctx.strokeStyle = `rgba(${c}, ${al * a})`;
+            ctx.beginPath(); ctx.ellipse(x, y, R, RY, 0, 0, Math.PI); ctx.stroke();
+            ctx.strokeStyle = `rgba(${c}, ${al * a * 0.45})`;
+            ctx.beginPath(); ctx.ellipse(x, y, R, RY, 0, Math.PI, TAU); ctx.stroke();
+        }
+        ellipseGlow(ctx, x, y, R * 0.9, RY * 1.2, `rgba(${c}, ${0.18 * a})`);   // 고리 안 땅 빛
+        ctx.restore();
+    },
+
+    // 먼지 구름 (대지 강타·지면 내려찍기): 가운데서 솟는 기둥 뭉게구름 + 땅을 따라 좌우로 굴러 퍼지는 뭉게구름. 위는 밝고 아래는 어두운 뭉치,
+    //   천천히 커지며 떠오르다 끝 60%에 걸쳐 옅어짐  { w(좌우 퍼짐), h(기둥 높이), color, n }
+    dustCloud(ctx, x, y, it, u, s, time) {
+        if (!it.puffs) {
+            const r = (k => () => { k = (k * 9301 + 49297) % 233280; return k / 233280; })(Math.floor(Math.random() * 233280));
+            it.puffs = [];
+            const W = it.w || 220, Hc = it.h || 130;
+            for (let i = 0; i < 16; i++) {   // 기둥: 위로 갈수록 작아지고 조금씩 기울어짐 (뭉치 여러 개가 겹쳐 한 덩어리)
+                const f = i / 15;
+                it.puffs.push({ x: (r() - 0.5) * 30 + f * 12, y: -(10 + f * Hc), r: 27 - f * 8 + r() * 9, d: 0.04 + f * 0.25, rise: 14 + r() * 12, drift: (r() - 0.3) * 12 });
+            }
+            for (let i = 0; i < 28; i++) {   // 바닥 구름: 좌우로 굴러감
+                const side = i % 2 ? 1 : -1, f = 0.1 + r() * 0.9;
+                it.puffs.push({ x: side * W * f, y: -(6 + r() * 14), r: 15 + r() * 13 * (1.2 - f), d: 0.02 + f * 0.18, rise: 3 + r() * 7, drift: side * 16 * f, ground: true });
+            }
+            it.puffs.sort((p, q) => q.r - p.r);
+        }
+        const t = it.t, life = it.dur;
+        const fade = 1 - smooth((u - 0.4) / 0.6);
+        const c = (it.color || '150, 138, 168').split(',').map(Number);
+        const lite = c.map(v => Math.min(255, Math.round(v * 1.12 + 12))).join(', '), dark = c.map(v => Math.round(v * 0.62)).join(', '), mid = c.join(', ');
+        ctx.save();
+        ctx.globalCompositeOperation = 'source-over';
+        for (const p of it.puffs) {
+            const k = smooth((t - p.d) / 0.35);
+            if (k <= 0) continue;
+            const grow = 1 + (t / life) * 0.55;
+            const px = x + (p.ground ? p.x * easeOut(Math.min(1, (t - p.d) / 0.6)) : p.x) * s + p.drift * t * s;
+            const py = y + (p.ground ? p.y : p.y * easeOut(Math.min(1, (t - p.d) / 0.5))) * s - p.rise * t * s;
+            const rr = p.r * s * k * grow;
+            const al = (it.alpha ?? 0.8) * fade * k;
+            // 부드러운 뭉치: 위쪽이 살짝 밝고 가장자리는 번지듯 사라짐 (공처럼 반들거리지 않게)
+            const g = ctx.createRadialGradient(px, py - rr * 0.2, 0, px, py, rr);
+            g.addColorStop(0, `rgba(${lite}, ${al * 0.85})`);
+            g.addColorStop(0.5, `rgba(${mid}, ${al * 0.7})`);
+            g.addColorStop(0.8, `rgba(${dark}, ${al * 0.3})`);
+            g.addColorStop(1, `rgba(${dark}, 0)`);
+            ctx.fillStyle = g;
+            ctx.beginPath(); ctx.arc(px, py, rr, 0, TAU); ctx.fill();
+        }
+        ctx.restore();
+    },
+
+    // 박쥐 떼 (박쥐 음파 연구체 '박쥐 떼'): n마리가 앞쪽 구역 위를 날아다니다 차례로 적에게 내리꽂혀 물고 다시 날아오름.
+    //   targets() → [[dx, 위로 높이]...] (기준점에서 적 가슴까지). 날개를 퍼덕이는 검은 박쥐 + 하늘빛 눈·테  { n, w, color }
+    batSwarm(ctx, x, y, it, u, s, time) {
+        const life = it.remaining ? it.remaining() : it.dur - it.t;
+        const vis = Math.min(smooth(it.t / 0.4), smooth(life / 0.4));
+        if (vis <= 0) return;
+        const n = it.n || 7, W = (it.w || 320) * s, c = it.color || '120, 230, 255';
+        const tg = it.targets ? it.targets() : [];
+        ctx.save();
+        for (let i = 0; i < n; i++) {
+            const ph = hash(i, 3) * TAU, sp = 0.9 + hash(i, 5) * 0.5;
+            const born = Math.min(1, Math.max(0, (it.t - i * 0.08) / 0.5));   // 주인공 쪽에서 차례로 날아나옴
+            // 맴돌기: 구역 위에서 8자로
+            const ox = x + W * (0.5 + 0.42 * Math.sin(it.t * 0.9 * sp + ph)) * (0.25 + 0.75 * born);
+            const oy = y - (95 + 35 * Math.sin(it.t * 1.8 * sp + ph * 2) + hash(i, 7) * 30) * s;
+            // 내리꽂기: 1.6초마다 한 번 (박쥐마다 엇갈림) 적에게
+            let bx = ox, by = oy, dive = 0;
+            if (tg.length) {
+                const cyc = ((it.t * 0.62 + hash(i, 9)) % 1);
+                dive = cyc < 0.3 ? Math.sin(cyc / 0.3 * Math.PI) : 0;
+                const [dx, up] = tg[i % tg.length];
+                const tx = x + dx + (hash(i, 11) - 0.5) * 16 * s, ty = y - up + (hash(i, 13) - 0.5) * 20 * s;
+                bx = ox + (tx - ox) * dive; by = oy + (ty - oy) * dive;
+                if (dive > 0.92) {   // 무는 순간 하늘빛 번쩍
+                    ctx.globalCompositeOperation = 'lighter';
+                    glow(ctx, tx, ty, 16 * s, `rgba(${c}, ${0.6 * vis})`);
+                }
+            }
+            const vx = Math.cos(it.t * 0.9 * sp + ph) * (dive > 0 ? 0 : 1);
+            const face = vx >= 0 ? 1 : -1;
+            const flap = Math.sin(time * (16 + hash(i, 15) * 6) + ph);   // 날개 퍼덕임 (-1 위 ~ 1 아래)
+            drawBat(ctx, bx, by, (it.size ?? 1.6) * (0.8 + hash(i, 17) * 0.35) * s, face, flap, vis, c);
         }
         ctx.restore();
     },

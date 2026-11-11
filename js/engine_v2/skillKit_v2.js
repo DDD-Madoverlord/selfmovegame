@@ -87,6 +87,20 @@ export function kitHit(b, e, dmg, o = {}) {
     if (o.hitVfx && b.enemies.includes(e)) b.fx.play(o.hitVfx, aimAt(e).x, aimAt(e).b);
 }
 
+/** 총구에서 탄이 날아가 꽂힐 때 맞음 (hit 단계 shot, D-120 독침 연사) — shot: { fly(날아가는 그림 — dur은 거리로 바꿈), flash(총구), speed } */
+function kitShot(b, e, s, stop) {
+    const m = monster.getMuzzlePoint() || { x: b.monsterX + 90, bottom: 120 };
+    const a = aimAt(e), sh = s.shot;
+    const fly = Math.max(0.06, Math.min(0.3, Math.hypot(a.x - m.x, a.b - m.bottom) / (sh.speed || 1400)));
+    if (sh.flash) b.fx.play(sh.flash, m.x, m.bottom);
+    b.fx.play({ layers: sh.fly.layers.map(l => ({ ...l, dur: fly })) }, m.x, m.bottom, { to: [a.x, a.b] });
+    b.schedule(fly, () => {
+        if (!b.isActive || !live(b, e)) return;
+        if (s.vfx) b.fx.play(s.vfx, aimAt(e).x, aimAt(e).b);
+        kitHit(b, e, s.dmg, { ...s, stop });
+    });
+}
+
 // ---- 단계 실행 ----
 const STEP = {
     /** 고른 대상을 times번 때림 */
@@ -96,8 +110,10 @@ const STEP = {
             b.schedule(i * (s.every ?? 0.12), () => {
                 const list = pickTargets(b, s.pick, s.n || 1, range);
                 list.forEach((e, k) => {
+                    const stop = i === (s.times || 1) - 1 && k === 0;
+                    if (s.shot) { kitShot(b, e, s, stop); return; }
                     if (s.vfx) b.fx.play(s.vfx, aimAt(e).x, s.ground ? FOOT_B : aimAt(e).b);
-                    kitHit(b, e, s.dmg, { ...s, stop: i === (s.times || 1) - 1 && k === 0 });
+                    kitHit(b, e, s.dmg, { ...s, stop });
                 });
                 if (s.sfx) sound.play(s.sfx, { vol: 0.6 });
             });

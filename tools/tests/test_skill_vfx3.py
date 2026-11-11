@@ -33,7 +33,7 @@ CASES = [
     ('comet', SET('hero', 'v'), 'arm', [200, 400, 600], f"""
         return {{ fall: __seen.has('meteor_cyan|250'), boom: __seen.has('meteor_cyan|350') }};"""),
     ('ground_slam', KAIJU_A, 'arm', [450, 900], f"""
-        return {{ fissure: __seen.has('fissure|undefined'), noRubble: ![...__seen].some(k => k.startsWith('ground_rubble')) }};"""),
+        return {{ blast: __seen.has('domeWave|undefined') && __seen.has('dustCloud|undefined'), noRubble: ![...__seen].some(k => k.startsWith('ground_rubble')) }};"""),
     ('wrecking_ball', SET('mech', 'c'), 'head', [700, 1300], f"""
         const k = {ITEMS}.filter(it => it.sheet === 'wrecking_ball' && it.loopSec).length;
         return {{ one: k <= 1, rolled: __seen.has('wrecking_ball|260') }};"""),

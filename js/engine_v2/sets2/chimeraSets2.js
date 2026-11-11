@@ -5,12 +5,72 @@
    스킬은 부품 단계(skillKit_v2.js), 동작은 rig/chimeraRig.js (slashes·soar는 2차에서 더함)
    ========================================================================== */
 
-import { packOf, V, fxOf } from './common.js';
+import { packOf, V, fxOf, spr } from './common.js';
 import { kitHit, pickTargets, enemiesNear } from '../skillKit_v2.js';
 import { aimAt } from '../bases_v2.js';
 import { FOOT_B } from '../battle/tuning.js';
+import { monsterControllerV2 as monster } from '../monster_v2.js';
 
 const ORANGE = '255, 150, 40', VENOM = '190, 90, 255', SONIC = '120, 230, 255', BLADE = '200, 180, 255', SEA = '60, 150, 255', GOLD = '255, 210, 90';
+
+// ---- D-120 (2026-11-11 피드백) ----
+// 삼두 포효: 스킬 설명(사자 포효 기절 → 독수리 돌풍 밀침 → 뱀 독)이 화면에서 세 박자로 보이게 — 박자마다 이름 + 그 머리다운 그림
+const mouthOf = () => monster.getSocketPoint?.('mouth', 'head') || monster.getMuzzlePoint() || null;
+const ROAR_WAVE = fxOf(spr('roar_triple', 380, { anchorX: 0.05, dur: 0.6, glow: 1.2 }),
+    ...[0, 0.1, 0.2].map(at => ({ type: 'ring', at, dur: 0.45, r: 120, width: 6, color: ORANGE })));   // 사자: 입에서 주황 음파 + 퍼지는 고리
+const STUN_HIT = fxOf({ type: 'starburst', at: 0, dur: 0.32, r: 34, points: 5, inner: 0.45, color: '255, 215, 90', outline: '24, 14, 8', width: 3 },
+    { type: 'sparks', at: 0, count: 8, speed: 180, color: '255, 225, 120' });                               // 기절: 노란 별
+const GUST_FEATHERS = fly => fxOf(spr('feather_black', 210, { dur: fly, frameRange: [1, 3], loopSec: 0.24, travel: true, angleOffset: 0, alpha: 0.9, glow: 0.6 }),
+    { type: 'streaks', at: 0, count: 18, speed: 980, angle: 0, cone: 0.35, len: 70, life: [0.3, 0.5], color: '235, 245, 255' });   // 독수리: 깃털과 바람 줄기가 휩쓸고 감
+const GUST_DUST = fxOf({ type: 'dust', at: 0, count: 6, speed: 260, dir: 'right', size: 18, life: 0.7, color: '200, 190, 170' });
+function roarPhase(b, ctx, s) {
+    const m = mouthOf() || { x: b.monsterX + 120, bottom: 150 };
+    b.fx.play(ROAR_WAVE, m.x, m.bottom);
+    b.director.shake(6, 350);
+    b.createDamagePopup(b.monsterX + 30, 250, '사자 포효!', false);
+}
+roarPhase.preview = api => { const [x, y] = api.socket('mouth', 'head'); api.vfx.play(ROAR_WAVE, x, y, { scale: api.VFX_SCALE }); };
+function gustPhase(b, ctx, s) {
+    const x0 = b.frontX() - 20, fly = 0.45;
+    b.fx.play(GUST_FEATHERS(fly), x0, 120, { to: [x0 + 420, 110] });
+    b.enemiesInRange(320).forEach(e => b.fx.play(GUST_DUST, aimAt(e).x, FOOT_B));
+    b.createDamagePopup(b.monsterX + 30, 250, '독수리 돌풍!', false);
+}
+gustPhase.preview = api => { const x0 = api.CHAR_X + 60; api.vfx.play(GUST_FEATHERS(0.45), x0, api.enemyChestY(), { scale: api.VFX_SCALE, to: [x0 + 520, api.enemyChestY()] }); };
+// 뱀: 뱀 머리가 적마다 독 덩이를 뱉음 → 맞는 순간 독 (예전엔 적 자리 산성 터짐만)
+function venomSpit(b, ctx, s) {
+    const m = mouthOf() || { x: b.monsterX + 120, bottom: 150 };
+    b.createDamagePopup(b.monsterX + 30, 250, '뱀 독!', false);
+    b.enemiesInRange(s.range).forEach((e, i) => b.schedule(i * 0.06, () => {
+        if (!b.isActive || !b.enemies.includes(e)) return;
+        b.fx.launchOrb(m, () => aimAt(e), '150, 255, 80', 0.32, () => {
+            if (!b.enemies.includes(e)) return;
+            b.fx.play(V.acid(60, 90), aimAt(e).x, aimAt(e).b);
+            kitHit(b, e, s.dmg, s);
+        }, i ? null : 'kaiju_spore', { core: true });
+    }));
+}
+venomSpit.preview = api => api.dummies.forEach((d, i) => api.later(i * 0.06, () => api.vfx.launchOrb({ from: api.socket('mouth', 'head'),
+    to: () => [d.x, api.enemyChestY()], color: '150, 255, 80', dur: 0.32, scale: api.VFX_SCALE, core: true, onArrive: () => api.hit(i) })));
+
+// 박쥐 떼: 앞쪽 구역 위를 박쥐 7마리가 날아다니며 적에게 차례로 내리꽂힘 (예전엔 박쥐 없이 어두운 터짐만)
+function batSwarm(b, ctx, s) {
+    const x0 = () => b.monsterX + 5;
+    const w = s.w || 340;
+    b.fx.play(fxOf({ type: 'batSwarm', at: 0, dur: s.sec, n: 7, w, color: SONIC,
+        targets: () => b.enemies.filter(e => !e.isBuilding && aimAt(e).x >= x0() && aimAt(e).x <= x0() + w).slice(0, 4)
+            .map(e => [aimAt(e).x - x0(), aimAt(e).b - FOOT_B]) }), x0(), FOOT_B, { follow: () => [x0(), FOOT_B] });
+}
+batSwarm.preview = (api, scale) => {
+    const x0 = api.CHAR_X, k = scale * 0.56;
+    api.vfx.play(fxOf({ type: 'batSwarm', at: 0, dur: 3.5, n: 7, w: 340 * 0.56, color: SONIC,
+        targets: () => api.dummies.map(d => [d.x - x0, (api.GROUND_Y - api.enemyChestY()) ])}), x0, api.GROUND_Y, { scale });
+    void k;
+};
+// 독침 연사: 앞발 독침 끝에서 보라 독침이 날아가 꽂힘 (예전엔 탄 없이 맞은 자리만)
+const STINGER_SHOT = { speed: 1300, fly: fxOf(spr('needle_crimson', 95, { frameRange: [1, 1], hue: -70, travel: true, anchorX: 0.6, glow: 1.3 })),
+    flash: fxOf(spr('needle_crimson', 46, { dur: 0.12, frameRange: [2, 3], hue: -70, glow: 1.2 })) };
+const SPIDERLING = { art: 'spiderling', scale: 1.3, spread: 34 };   // 새끼 거미 그림 (tools/rig/make_spiderling.py, 예전엔 슬라임을 보라로 물들임)
 
 // 사냥의 광란: sec초 동안 every초마다 체력 낮은 적을 물어뜯음, 쓰러뜨리면 체력 회복
 function frenzy(b, ctx, s) {
@@ -83,11 +143,13 @@ export const CHIMERA_SETS2 = packOf('chimera', [
         skills: {
             cmTripleRoar: { name: '삼두 포효', slot: 'head', ult: true, cd: 0, icon: 'roar', color: '#ff9628', target: 'enemy', range: 320, clip: 'summon', sfx: 'rampage_roar',
                 desc: '세 머리가 차례로 — 사자 포효(앞쪽 1.5초 기절) → 독수리 돌풍(밀쳐냄) → 뱀 독(4초 지속 피해)',
-                steps: [{ at: 0.25, do: 'hit', pick: 'all', range: 320, dmg: 1, status: { stun: 1.5 }, vfx: V.sheet('roar_triple', 300, { anchorX: 0.05, dur: 0.5 }), ground: false },
-                    { at: 0.25, do: 'fx', x: -40, b: 140, vfx: V.sheet('roar_triple', 330, { anchorX: 0.05, dur: 0.6 }) },
-                    { at: 0.85, do: 'push', range: 320, dist: 120, dmg: 0.6 },
-                    { at: 0.85, do: 'fx', x: 40, b: 120, vfx: fxOf({ type: 'speedlines', at: 0, dur: 0.4, count: 10, len: 110, angle: 0, cone: 0.6, width: 4, color: '255, 255, 255' }) },
-                    { at: 1.45, do: 'hit', pick: 'all', range: 360, dmg: 0.4, status: { poison: [4, 0.3] }, vfx: V.acid(60, 90) }] },
+                // D-120: 세 박자가 이름과 함께 보이게 — 사자(입에서 주황 음파·고리 → 적마다 기절 별) → 독수리(깃털·바람 줄기가 휩쓸고 흙먼지)
+                //   → 뱀(입에서 적마다 독 덩이를 뱉어 맞는 순간 독). 피해·기절·밀침·독 수치는 그대로
+                steps: [{ at: 0.25, do: 'custom', fn: roarPhase, preview: roarPhase.preview },
+                    { at: 0.3, do: 'hit', pick: 'all', range: 320, dmg: 1, status: { stun: 1.5 }, vfx: STUN_HIT },
+                    { at: 0.85, do: 'custom', fn: gustPhase, preview: gustPhase.preview },
+                    { at: 0.95, do: 'push', range: 320, dist: 120, dmg: 0.6 },
+                    { at: 1.45, do: 'custom', fn: venomSpit, range: 360, dmg: 0.4, status: { poison: [4, 0.3] }, preview: venomSpit.preview }] },
             cmSoarDive: { name: '비상 강하', slot: 'body', cd: 14, icon: 'wave', color: '#ff9628', target: 'enemy', range: 240, clip: 'soar',
                 desc: '날아올라(공중 동안 피해 안 받음) 1초 뒤 앞쪽에 내리꽂힘 — 넓은 범위 피해 + 밀쳐냄',
                 steps: [{ do: 'buff', key: 'soar', sec: 1.1, mods: { flags: ['invuln'] } },
@@ -105,7 +167,7 @@ export const CHIMERA_SETS2 = packOf('chimera', [
     {
         letter: 'c', tier: 'rare', no: 3, name: '거미 실험체', style: 'range', tint: 'hue-rotate(-40deg) saturate(1.3) brightness(0.8)',
         bonus: { 4: '거미줄에 걸린 적이 쓰러지면 새끼 거미 1기 (최대 4)' },
-        kit: { 4: { on: [{ when: 'kill', inZone: 'web', summon: { art: 'slime', scale: 0.45, filter: 'hue-rotate(200deg) brightness(0.55) saturate(1.4)', hp: 0.05, dps: 0.12, life: 8, hit: { poison: [3, 0.1] }, color: '#be5aff' } }] } },
+        kit: { 4: { on: [{ when: 'kill', inZone: 'web', summon: { ...SPIDERLING, hp: 0.05, dps: 0.12, life: 8, hit: { poison: [3, 0.1] }, color: '#be5aff' } }] } },
         head: { name: '복안 거미 머리', look: '얼굴 가득 빛나는 보라 겹눈', skill: 'cmWebTrap', desc: '필살기 거미줄 덫: 앞쪽 6초 거미줄 — 느려지고 받는 피해 +20%' },
         body: { name: '거미 다리 몸통', look: '등에서 솟은 마디 거미 다리 넷', skill: 'cmSpiderlings', desc: '새끼 거미 떼: 새끼 거미 4기 (8초, 독)' },
         arm: { name: '독침 앞발', look: '보라 독이 맺힌 긴 독침', skill: 'cmStingers', desc: '독침 연사: 독침 5발 — 4초 독' },
@@ -117,10 +179,11 @@ export const CHIMERA_SETS2 = packOf('chimera', [
                 steps: [{ at: 0.3, do: 'zone', tag: 'web', field: 'web', x: 10, w: 430, sec: 6, slow: true, vuln: 0.2, dps: 0.1 }] },
             cmSpiderlings: { name: '새끼 거미 떼', slot: 'body', cd: 14, icon: 'minions', color: '#be5aff', target: 'self', clip: 'flex', cast: true,
                 desc: '새끼 거미 4기 (8초) — 적에 달라붙어 독',
-                steps: [{ do: 'summon', n: 4, art: 'slime', scale: 0.45, filter: 'hue-rotate(200deg) brightness(0.55) saturate(1.4)', hp: 0.05, dps: 0.12, speed: 0.9, life: 8, hit: { poison: [3, 0.1] }, color: '#be5aff', label: '새끼 거미!' }] },
+                steps: [{ do: 'summon', n: 4, ...SPIDERLING, hp: 0.05, dps: 0.12, speed: 0.9, life: 8, hit: { poison: [3, 0.1] }, color: '#be5aff', label: '새끼 거미!' }] },
             cmStingers: { name: '독침 연사', slot: 'arm', cd: 8, icon: 'injector', color: '#be5aff', target: 'enemy', range: 160, clip: 'spray',
                 desc: '독침 5발 — 맞은 적 4초 독',
-                steps: [{ at: 0.15, do: 'hit', pick: 'random', n: 1, times: 5, every: 0.1, dmg: 0.6, status: { poison: [4, 0.2] }, vfx: V.needle(150, 90) }] }
+                steps: [{ at: 0.15, do: 'hit', pick: 'random', n: 1, times: 5, every: 0.1, dmg: 0.6, status: { poison: [4, 0.2] }, shot: STINGER_SHOT,
+                    vfx: V.needle(-70, 70, { dur: 0.22, frameRange: [2, 4] }) }] }
         }
     },
 
@@ -140,7 +203,8 @@ export const CHIMERA_SETS2 = packOf('chimera', [
                 steps: [{ at: 0.2, do: 'wave', from: 0, speed: 620, dist: 520, w: 55, dmg: 0.8, status: { weak: [3, 0.4] }, vfx: V.sheet('sonic_ring', 170, { dur: 0.4 }), vfxEvery: 0.09, b: 120, repeat: 6, repeatGap: 1 }] },
             cmBats: { name: '박쥐 떼', slot: 'body', cd: 14, icon: 'minions', color: '#78e6ff', target: 'self', clip: 'summon', p: { heal: 0.006 },
                 desc: '8초간 박쥐 무리가 앞 적을 쪼아 피해 + 내 체력 회복',
-                steps: [{ at: 0.2, do: 'zone', follow: true, x: -30, w: 340, sec: 8, dps: 0.45, heal: '$heal', puff: V.dark(160, 70, { dur: 0.4 }), puffEvery: 0.15, puffB: 70 }] },
+                steps: [{ at: 0.2, do: 'zone', follow: true, x: -30, w: 340, sec: 8, dps: 0.45, heal: '$heal' },
+                    { at: 0.2, do: 'custom', fn: batSwarm, sec: 8, w: 340, preview: batSwarm.preview }] },
             cmSonicClaw: { name: '음파 할퀴기', slot: 'arm', cd: 8, icon: 'claw', color: '#78e6ff', target: 'enemy', range: 200, clip: 'smash',
                 desc: '음파 칼날 3줄이 앞으로 — 관통',
                 steps: [{ at: 0.35, do: 'wave', from: -20, speed: 720, dist: 340, w: 40, dmg: 1.0, vfx: V.sheet('sonic_ring', 120, { dur: 0.3 }), vfxEvery: 0.06, b: 110, repeat: 3, repeatGap: 0.12 }] }

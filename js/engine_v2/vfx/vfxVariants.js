@@ -183,6 +183,18 @@ const groundSpr = (sheet, size, extra) => spr(sheet, size, { anchorY: 0.85, dur:
 const puff = (size, extra = {}) => [spr('defeat_puff', size, { anchorY: 0.9, dur: 0.55, blend: 'normal', glow: 0, ...extra }),
     spr('defeat_puff', size, { anchorY: 0.9, dur: 0.55, alpha: 0.35, glow: 1.2, ...extra })];
 const sc = (character, kind, extra = {}) => ({ character, kind, ...extra });
+// 땅 강타 (대지 강타·지면 내려찍기, D-120 — 사용자 참고 영상 2026-11-11): 섬광 + 가로 빛줄기 → 빛나는 반구 충격파와 땅 고리가 퍼짐 →
+//   위로 튀는 불꽃 줄기·바위 조각·자갈 + 빛나는 땅 균열 → 기둥과 좌우로 구르는 먼지 구름이 2초 넘게 남았다가 옅어짐
+//   c: 테·균열 빛 색, dust: 먼지 색, k: 크기 배율
+const groundBlast = ({ c = '255, 205, 120', crack = '255, 170, 60', dust = '150, 138, 168', rock = '118, 106, 138', k = 1 } = {}) => [
+    { type: 'domeWave', at: 0, dur: 1.0, r: 230 * k, h: 0.55, color: c },
+    { type: 'cracks', at: 0.02, dur: 1.7, count: 7, len: 125 * k, color: crack },
+    { type: 'streaks', at: 0.02, count: 28, speed: 540 * k, angle: -Math.PI / 2, cone: 1.8, len: 26, life: [0.3, 0.6], color: '255, 228, 175' },
+    { type: 'shards', at: 0.03, count: 14, speed: 430 * k, size: 6, spin: 7, life: [0.8, 1.3], shape: 'rock', floor: 0, color: rock },
+    { type: 'debris', at: 0.05, count: 18, speed: 300 * k, size: 3, color: rock },
+    { type: 'embers', at: 0.1, count: 18, speed: 150 * k, cone: 2.4, life: [0.7, 1.4], size: 1.6, color: '255, 175, 80' },
+    { type: 'dustCloud', at: 0.08, dur: 2.8, w: 210 * k, h: 110 * k, color: dust, alpha: 0.9 }
+];
 const D_MORE = [
     // 거대로봇
     [MECH_VFX, 'MECH_VFX', 'laserHit', '관통 레이저 적중', sc('mech', 'hit', { arm: 'cannon' }),
@@ -229,10 +241,9 @@ const D_MORE = [
     [SET_VFX, 'SET_VFX', 'spikeStorm', '가시 폭풍', sc('kaiju', 'selfGround', { clip: 'attack' }),
         d => def(groundSpr('ground_impact', 240), ...keep(d, 'crystals', 'debris', 'ring'))],
     [SET_VFX, 'SET_VFX', 'groundSlam', '지면 내려찍기', sc('kaiju', 'charge', { clip: 'attack' }),
-        // D-119: 선으로 그린 균열(cracks) 대신 바닥이 실제로 갈라짐 — 땅 윗면이 V자로 벌어져 앞면 바위로 금이 내려가고 바닥 판이 들림 (skillFx2 fissure, 바닥 층) → 1.6초 뒤 옅어짐
-        //   (처음 넣은 바위 무더기 ground_rubble은 "바위가 깨지는 것 같다"는 피드백으로 뺌)
-        d => def({ type: 'fissure', at: 0, dur: 1.8, len: 170, glow: '160, 255, 50', layer: 'ground' },
-            groundSpr('ground_impact', 300), ...imageShockwave(440, 135).layers, ...keep(d, 'shards'))],
+        // D-120: 대지 강타와 같은 땅 강타(groundBlast)를 괴수 산성 빛으로 — 반구 충격파·땅 균열이 연두, 먼지는 흙빛
+        //   (D-119 바닥 갈라짐 fissure → 사용자 참고 영상 방식으로 바꿈, 2026-11-11)
+        d => def(...groundBlast({ c: '170, 255, 90', crack: '150, 255, 60', dust: '140, 132, 120', rock: '110, 100, 92' }))],
     [SET_VFX, 'SET_VFX', 'sporeBurst', '독 포자 폭발', sc('kaiju', 'charge'),
         d => def(spr('spore_burst', 200, { dy: -50, dur: 0.6 }), ...keep(d, 'ring'))],
     [SET_VFX, 'SET_VFX', 'spitSplash', '산성 침', sc('kaiju', 'charge'), d => def(spr('acid_burst', 110, { dy: -12 }))],
@@ -263,7 +274,8 @@ const D_MORE = [
     [SET_VFX, 'SET_VFX', 'adrenaline', '아드레날린', sc('chimera', 'selfGround'),
         d => def(spr('power_aura', 230, { anchorY: 0.92, dur: 0.8, glow: 1.15 }), ...keep(d, 'motes'))],
     [SET_VFX, 'SET_VFX', 'earthSmash', '대지 강타', sc('chimera', 'charge', { clip: 'attack' }),
-        d => def(groundSpr('ground_impact', 380), ...imageShockwave(540, 50).layers, ...keep(d, 'cracks', 'shards'))],
+        // D-120: 사용자 참고 영상처럼 — 반구 충격파·불꽃·바위·빛나는 균열·오래 남는 먼지 구름 (groundBlast)
+        d => def(...groundBlast({ k: 1.05 }))],
     [SET_VFX, 'SET_VFX', 'stomp', '짓밟기', sc('chimera', 'selfGround'), d => def(...imageShockwave(180, 50, 0.4).layers)],
     [SET_VFX, 'SET_VFX', 'mobilize', '총동원령', sc('chimera', 'selfGround'),
         d => def(spr('summon_portal', 280, { anchorY: 0.76, dur: 0.8, glow: 1.15 }), ...keep(d, 'glow'))],

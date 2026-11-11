@@ -253,7 +253,7 @@ export function variantThumb(character, file, variant) {
 const SLOT_PARTS = {
     mech: { head: ['head'], body: ['body', 'canister'], arm: ['armR_cannon', 'armR_fist', 'armL'], leg: ['legR', 'legL'] },
     kaiju: { head: ['head', 'jaw'], body: ['body', 'tail1', 'tail2', 'tail3'], arm: ['armF'], leg: ['legF', 'legN'] },
-    hero: { head: ['head'], body: ['torso', 'pauldron', 'cape1', 'cape2'], arm: ['armF', 'sword'], leg: ['thighF', 'shinF', 'thighB', 'shinB'] },
+    hero: { head: ['head'], body: ['torso', 'pauldron', 'cape1', 'cape2', 'capeIn'], arm: ['armF', 'sword'], leg: ['thighF', 'shinF', 'thighB', 'shinB'] },
     chimera: { head: ['head'], body: ['torso', 'wing', 'tail1', 'tail2'], arm: ['armF', 'armB'], leg: ['legF', 'legB'] },
     diver: { head: ['head', 'head_up'], body: ['torso', 'torso_up'], arm: ['armF', 'armB', 'armF_up', 'armB_up', 'anchorB', 'anchorB_up'],
         leg: ['legF', 'legB', 'legF_up', 'legB_up'] },

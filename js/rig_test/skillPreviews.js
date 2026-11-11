@@ -103,6 +103,13 @@ export function kitPreview(key, slot) {
                 case 'fx': play(v, (s.on === 'self' ? api.CHAR_X : front) + (s.x || 0) * k, yOf(s.b), s); break;
                 case 'hit':
                     for (let t = 0; t < Math.min(6, s.times || 1); t++) api.later(t * (s.every ?? 0.12), () => api.dummies.slice(0, s.n || 1).forEach((d, i) => {
+                        if (s.shot) {   // 총구에서 날아가 꽂힘 (게임 kitShot과 같게, D-120)
+                            const m = api.muzzle(), fly = 0.16, di = (i + t) % api.dummies.length, to = [api.dummies[di].x, chestY];
+                            if (s.shot.flash) play(s.shot.flash, m[0], m[1]);
+                            play({ layers: s.shot.fly.layers.map(l => ({ ...l, dur: fly })) }, m[0], m[1], { to });
+                            api.later(fly, () => { play(v, to[0], to[1]); api.hit(di); });
+                            return;
+                        }
                         play(v, d.x, s.ground ? api.GROUND_Y : chestY); api.hit(i);
                     }));
                     break;

@@ -17,6 +17,7 @@
     (손잡이: 칼자루 끝 → 가드의 0.59 지점 — 기본 칼에서 (668, 668)이 나오는 비율. 지팡이는 자루가 기본 손잡이 자리를 지남)
  4. B(그림자 마법사): 연기 왕관·발밑 그림자 자락이 떨어진 조각이라 작은 조각도 남기고, 다리 범위를 오른쪽 자락까지 넓힘.
     다리는 긴 로브 속이라 로브 아랫자락이 다리 조각으로 잘려 걸을 때 함께 흔들렸음 → robe_legs.py가 로브를 몸통으로 옮김 (D-119)
+ 5. 긴 로브 세트(b·v)의 망토는 세로 직선이 아니라 로브 외곽선을 따라 robe_cape.py가 다시 나눔 (D-121)
 """
 import json
 import os
@@ -201,6 +202,9 @@ def main():
     for v in letters:
         if v in robe_legs.CUT_Y:
             robe_legs.merge(layout, v)
+    import robe_cape   # 망토·로브를 그림 경계선으로 다시 나눔 + b 신발 (D-121) — v 신발을 b가 빌려 쓰므로 v 먼저
+    for v in sorted((v for v in letters if v in robe_cape.BOUNDARY), key=lambda v: v != 'v'):
+        robe_cape.process(layout, v)
     with open(path, 'w', encoding='utf-8') as f:
         json.dump(layout, f, ensure_ascii=False, indent=2)
     print('rig.json 부위 그림:', len(layout['parts']), '개')
