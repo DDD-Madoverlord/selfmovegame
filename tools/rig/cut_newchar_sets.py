@@ -97,7 +97,22 @@ def _clip_arm(arm, poly):
     return fix
 
 
+def _grow_legs(**polys):
+    """세트 신발이 기본 다리 선보다 넓을 때(설피 등) 그 다각형 안의 몸통 픽셀을 다리로 — 다리가 돌 때 신발 끝이 몸통에 남지 않게.
+    다른 다리·팔에 이미 들어간 픽셀은 그대로 둠. 예: _grow_legs(legB=[...], legF=[...])"""
+    def fix(masks, full):
+        for leg, poly in polys.items():
+            add = masks['torso'] & poly_mask(full.shape[:2], poly)
+            masks['torso'] &= ~add
+            masks[leg] |= add
+    return fix
+
+
 SET_FIX = {
+    # 서리 늑대 사냥꾼 설피 (11-12 디스코드 QA '발모양 파츠') — 뒷발 뒤꿈치·설피 뒤쪽, 앞발 설피 앞코가 기본 다리 선 밖
+    # (망토 자락 끝은 y 790·834에서 끝나 그 아래만)
+    ('frost', 'd'): _grow_legs(legB=[(340, 798), (470, 798), (470, 845), (505, 845), (505, 906), (340, 906)],
+                               legF=[(515, 842), (690, 842), (690, 934), (515, 934)]),
     ('broadcaster', 'c'): _back_gray_to_torso(380),        # 송신기 배낭 안테나
     ('broadcaster', 'v'): _back_gray_to_torso(400, 178),   # 등에 진 스피커 탑 (왕관 위로 솟음)
     # 해킹 태블릿 팔 — 팔 없는 그림(3번째 시도)이 코트 왼쪽 자락·주머니 배지·모니터 한 점까지 바꿈
