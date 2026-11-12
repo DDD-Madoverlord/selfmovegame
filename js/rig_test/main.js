@@ -574,7 +574,7 @@ function applyEquip() {
     for (const [slot, p] of Object.entries(parts)) if (p && p.variant) variants[slot] = p.variant;
     const { alias, tint } = variantAlias(character.id, layout, variants);
     skeleton.partAlias = alias;
-    skeleton.variantSockets = variantSocketsFor(skeleton, alias);   // 세트 포신 총구 (D-118)
+    skeleton.variantSockets = variantSocketsFor(skeleton, alias, character);   // 세트 포신 총구 (D-118)
     skeleton.partFilters = Object.keys(tint).length ? tint : null;
     if (character.upgrade) {
         SLOTS.forEach(([slot]) => { state.upgrades[slot] = !!(parts[slot] && parts[slot].upgrade); });

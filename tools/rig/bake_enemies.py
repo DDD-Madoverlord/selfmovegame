@@ -34,6 +34,7 @@ ENEMIES = {
     'guardian': (196, 'walk:16,attack:16,bash:14'),
     'minion': (92, 'walk:16,attack:14'),        # 합성괴인 졸개(아군) — 경비병과 같은 키
     'rabbit': (72, 'walk:16,attack:14'),        # 뒤틀린 인형사의 토끼 인형(아군) — 작은 인형
+    'spiderling': (40, 'walk:16,attack:14'),    # 새끼 거미(아군 소환, D-120) — tools/rig/make_spiderling.py 픽셀 파츠
     # 구역 2: 고철 약탈단 (D-040) — 방벽병은 덩치·배낭이 커서 103, 고철왕은 넓은 탑승형이라 230
     'raider': (92, 'walk:16,attack:14'),
     'builder': (103, 'walk:16,attack:14'),

@@ -395,6 +395,7 @@ export const KitMethods = {
             playImageField(this.fx, o.field, z.w, z.sec, () => [z.x + z.w / 2, FOOT_B],
                 () => z.t > 0 && this.kitZones.includes(z), () => z.t);
         }
+        return z;   // 덫처럼 자리에 그림을 따로 붙일 때 씀 (D-119)
     },
     /** 그림 있는 장판: 자리 맞추기 / 끝나면 무너지며 사라짐 */
     kitZoneArt(z, gone = false) {
@@ -432,8 +433,10 @@ export const KitMethods = {
                     ...(z.field ? { follow: () => [z.x + offset, FOOT_B + (z.puffB ?? 8)],
                         alive: () => z.t > 0 && this.kitZones.includes(z) } : {}) });
             }
+            if (z.biteAge != null) z.biteAge += dt;
             z.tickT -= dt;
             const statusNow = z.status && z.tickT <= 0;
+            if (z.bitten) z.spent = true;   // 물린 틱의 다른 적까지만 같이 물림
             if (statusNow) z.tickT = z.every || 1;
             [...this.enemies].forEach(e => {
                 const cx = e.isBuilding || e.isBarricade ? e.x + 12 : aimOf(e).x;
@@ -449,7 +452,13 @@ export const KitMethods = {
                     e.x += Math.sign(d) * Math.min(Math.abs(d), z.pull * dt);
                     e.dom.style.left = `${e.x}px`;
                 }
-                if (statusNow) this.kitStatus(e, z.status);
+                if (statusNow && !z.spent) {
+                    this.kitStatus(e, z.status);
+                    if (z.hitFx && !(z.biteAge < 0.05)) this.fx.play(z.hitFx, z.x + z.w / 2, FOOT_B);   // 덫이 물 때 (D-119)
+                    z.biteAge = 0;
+                    // once: 한 번 물면 끝 — 물린 적의 속박이 풀릴 때 덫도 사라짐 (그동안 더 물지 않음, D-119 보완)
+                    if (z.once) { z.bitten = true; z.t = Math.min(z.t, z.status.root || z.status.stun || 1); }
+                }
                 if (z.dps) this.dealDamageToEnemy(e, this.playerDps * z.dps * (e.isBuilding ? (z.baseMul || 1) : 1) * dt, false, { dot: true });
             });
             const me = this.monsterX + 60;
@@ -484,8 +493,12 @@ export const KitMethods = {
     // ---- 움직이는 판정 ----
     /** o: { x, dir?, speed, dist, w(반폭), dmg, status?, knock?, push?(맞을 때마다 밀기 px), every?(다시 맞는 간격), back?, vfx?, vfxEvery?, b?, baseMul?, hitVfx? } */
     kitWave(o) {
-        this.kitWaves.push({ dir: 1, speed: 420, w: 50, every: 0, vfxEvery: 0.1, b: FOOT_B + 40, ...o, start: o.x, gone: 0, vfxT: 0, hit: new Map() });
+        const w = { dir: 1, speed: 420, w: 50, every: 0, vfxEvery: 0.1, b: FOOT_B + 40, ...o, start: o.x, gone: 0, vfxT: 0, hit: new Map() };
+        this.kitWaves.push(w);
         if (o.sfx) sound.play(o.sfx, { vol: 0.7 });
+        // ride: 판정과 같이 움직이는 그림 하나 (유령 기사 등, D-119) — 일정 간격으로 찍는 vfx는 잔상이 겹쳐 개수가 많아 보였음
+        if (o.ride) this.fx.play(o.ride, w.x, w.b, { follow: () => [w.x, w.b], alive: () => this.kitWaves.includes(w) });
+        return w;
     },
     tickKitWaves(dt) {
         if (!this.kitWaves.length) return;
@@ -523,6 +536,7 @@ export const KitMethods = {
                 w.hit = new Map();
                 return true;
             }
+            if (w.rideEnd) this.fx.play(w.rideEnd, w.x, w.b);   // 다 달린 자리에서 흩어짐 (철구 먼지·기사 흩어짐, D-119)
             return false;
         });
     },
@@ -639,7 +653,7 @@ export const KitMethods = {
                         if (def.vfx) this.fx.play(def.vfx, aim.x, aim.b);
                         hit(target, dmg / n, isCrit);
                         splash(aim.x, dmg / n);
-                    }, def.sfx ?? null);
+                    }, def.sfx ?? null, { core: true });
                 const n = (def.n || 1) + extraN;   // 여러 발이면 피해를 나눔 (쌍열 포격)
                 for (let i = 0; i < n; i++) this.schedule(i * (def.gap ?? 0.1), go);
                 break;

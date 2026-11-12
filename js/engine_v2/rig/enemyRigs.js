@@ -681,6 +681,42 @@ const SAW_CHOP = {
     events: impact(0.42, '255, 60, 80')
 };
 
+// 새끼 거미 (합성괴인 거미 실험체 '새끼 거미 떼' 소환물, D-120 — tools/rig/make_spiderling.py 픽셀 파츠)
+//   다리 8개가 엉덩이를 축으로 돌며 네 개씩 번갈아 디딤(가까운 쪽 1·3 + 먼 쪽 2·4 ↔ 나머지). 몸은 살짝 출렁
+const SPIDER_A = ['legN1', 'legF2', 'legN3', 'legF4'], SPIDER_B = ['legF1', 'legN2', 'legF3', 'legN4'];
+function spiderWalk(dur) {
+    const h = dur / 2, tracks = { body: { y: [[0, 0], [dur / 4, -10, 'out'], [h, 0, 'in'], [h + dur / 4, -10, 'out'], [dur, 0, 'in']] } };
+    const swing = (lead, a) => ({ rot: [[0, lead ? a : -a], [h, lead ? -a : a], [dur, lead ? a : -a]],
+        y: lead ? [[0, 0], [h * 0.5, -14, 'out'], [h, 0, 'in'], [dur, 0]] : [[0, 0], [h, 0], [h * 1.5, -14, 'out'], [dur, 0, 'in']] });
+    SPIDER_A.forEach((b, i) => { tracks[b] = swing(true, 9 - i * 0.5); });
+    SPIDER_B.forEach((b, i) => { tracks[b] = swing(false, 9 - i * 0.5); });
+    return { duration: dur, loop: true, tracks };
+}
+// 물기: 몸을 뒤로 웅크리며 앞다리를 치켜듦 → 앞으로 덮쳐 독니로 묾 (0.35 impact)
+const SPIDER_BITE = {
+    duration: 0.7, loop: true,
+    tracks: {
+        body: { x: [[0, 0], [0.25, 22, 'in'], [0.35, -34, 'out'], [0.5, -20], [0.7, 0]], rot: [[0, 0], [0.25, 8, 'in'], [0.35, -6, 'out'], [0.7, 0]],
+            y: [[0, 0], [0.25, 8], [0.35, -6], [0.7, 0]] },
+        legN1: { rot: [[0, 0], [0.25, 34, 'in'], [0.35, -10, 'out'], [0.7, 0]] },
+        legF1: { rot: [[0, 0], [0.25, 30, 'in'], [0.35, -8, 'out'], [0.7, 0]] },
+        legN2: { rot: [[0, 0], [0.25, 10], [0.35, -6], [0.7, 0]] },
+        legN4: { rot: [[0, 0], [0.25, -8], [0.35, 10], [0.7, 0]] }
+    },
+    events: [[0.35, 'impact', { socket: 'tip', bone: 'body', color: '190, 100, 255' }]]
+};
+const spiderling = {
+    id: 'spiderling', name: '새끼 거미', assetDir: dir('spiderling'),
+    bones: [{ name: 'root', parent: null }, { name: 'body', parent: 'root', part: 'torso', z: 5 },
+        ...[1, 2, 3, 4].map(i => ({ name: `legF${i}`, parent: 'body', part: `legF${i}`, z: 5 - i })),       // 먼 쪽: 몸 뒤
+        ...[1, 2, 3, 4].map(i => ({ name: `legN${i}`, parent: 'body', part: `legN${i}`, z: 5 + i }))],      // 가까운 쪽: 몸 앞
+    springs: [],
+    clips: { idle: { duration: 1.2, loop: true, tracks: { body: { y: [[0, 0], [0.6, 6], [1.2, 0]] } } }, walk: spiderWalk(0.42), attack: SPIDER_BITE },
+    arms: null, attack: 'attack', hitSocket: ['tip', 'body'],
+    debugSockets: [['tip', 'body'], ['footF', 'legN1'], ['footB', 'legN4']],
+    shadow: { rx: 150, ry: 12 }
+};
+
 export const ENEMY_RIGS = {
     guard: enemy('guard', '경비병', { walkOpt: { ...SOLDIER_WALK, armF: 12, armB: 12 }, clips: { attack: BATON_SWING } }),
     shield: enemy('shield', '방패병', { walkOpt: { ...SOLDIER_WALK, dur: 0.8, leg: 18, armF: 2, armB: 10 }, clips: { attack: SHIELD_BASH } }),
@@ -694,6 +730,7 @@ export const ENEMY_RIGS = {
     // 아군 (오른쪽을 보는 그림을 뒤집어 잘랐으므로 적처럼 왼쪽을 봄 — 게임에선 아군이라 다시 뒤집어 그림)
     minion: enemy('minion', '합성괴인 졸개', { tail: true, walkOpt: { ...SOLDIER_WALK, dur: 0.75, armF: 10, armB: 6, tail: 8 }, clips: { attack: MINION_SWING } }),
     // 뒤틀린 인형사의 토끼 인형 (새 캐릭터 D-049): 짧은 다리로 통통 뛰듯 걷는 인형
+    spiderling,   // 새끼 거미 (아군 소환, D-120)
     rabbit: enemy('rabbit', '토끼 인형', { arms: 'one', walkOpt: { dur: 0.55, leg: 26, lift: 30, bob: 16, arms: 6 }, clips: { attack: RABBIT_GRAB }, hitBone: 'arms' }),
     // ---- 구역 2: 고철 약탈단 ----
     raider: enemy('raider', '고철 약탈자', { walkOpt: { ...SOLDIER_WALK, armF: 12, armB: 12 }, clips: { attack: BATON_SWING } }),

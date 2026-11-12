@@ -1155,6 +1155,29 @@ function shapeSheet(name, hue, shape) {
     return c;
 }
 
+// 시트를 한 색으로 물들임 (D-119 구체 탄): 밝기는 그대로, 색만 rgb로 ('color' 섞기) — 투사체마다 고유 색 유지
+const colorSheets = new Map();
+function colorSheet(name, rgb) {
+    const key = `${name}|${rgb}`;
+    if (colorSheets.has(key)) return colorSheets.get(key);
+    const img = sheetImage(name);
+    if (!img || typeof document === 'undefined') return null;
+    const c = document.createElement('canvas');
+    c.width = img.naturalWidth;
+    c.height = img.naturalHeight;
+    const g = c.getContext('2d');
+    g.drawImage(img, 0, 0);
+    g.globalCompositeOperation = 'color';
+    g.fillStyle = `rgb(${rgb})`;
+    g.fillRect(0, 0, c.width, c.height);
+    g.globalCompositeOperation = 'destination-in';
+    g.drawImage(img, 0, 0);
+    c.naturalWidth = c.width;
+    c.naturalHeight = c.height;
+    colorSheets.set(key, c);
+    return c;
+}
+
 /** 시트를 미리 불러 둠 (첫 재생에 그림이 늦게 뜨지 않게) */
 export function preloadVfxSheets() {
     Object.keys(VFX_SHEETS).forEach(sheetImage);
@@ -2015,6 +2038,17 @@ function drawOrb(ctx, pr, time) {
     orbRibbon(ctx, pr, time, 7 * s, 0.8);
     const r = 10 * s * (0.95 + 0.05 * Math.sin(time * 20));
     glow(ctx, pr.x, pr.y, r * 3.2, `rgba(${pr.color}, 0.5)`);
+    // D-119: 손그림 기운 구체(dark_burst 1~2칸 — 소용돌이 고리 구체)를 탄 색으로 물들여 돌림 → 심 위에 겹침
+    const sheet = pr.core ? colorSheet('dark_burst', pr.color) : null;   // 적 탄·세뇌 구체는 그대로
+    if (sheet) {
+        const fw = sheet.naturalWidth / VFX_SHEETS.dark_burst.frames, fh = sheet.naturalHeight;
+        const f = 1 + (Math.floor(time * 14) % 2), size = 58 * s;
+        ctx.save();
+        ctx.translate(pr.x, pr.y);
+        ctx.rotate(time * 7);
+        ctx.drawImage(sheet, f * fw, 0, fw, fh, -size / 2, -size / 2, size, size);
+        ctx.restore();
+    }
     const g = ctx.createRadialGradient(pr.x - r * 0.25, pr.y - r * 0.25, 0, pr.x, pr.y, r);
     g.addColorStop(0, `rgba(${WHITE}, 1)`);
     g.addColorStop(0.3, `rgba(${WHITE}, 0.95)`);

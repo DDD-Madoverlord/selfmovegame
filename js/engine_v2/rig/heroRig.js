@@ -17,6 +17,9 @@ export const HERO_BONES = [
     { name: 'torso', parent: 'root', part: 'torso', z: 6 },
     { name: 'cape1', parent: 'torso', part: 'cape1', z: 1 },
     { name: 'cape2', parent: 'cape1', part: 'cape2', z: 0 },
+    // 망토 안감 (D-121 보완): 몸통에 고정, 망토 뒤. 망토가 흔들려 벌어질 때 로브와 망토 사이가 비지 않게 — 그림은 긴 로브 세트(capeIn_b·_v)만
+    //   (기본·다른 세트는 그림이 없어 그리지 않음, tools/rig/robe_cape.py)
+    { name: 'capeIn', parent: 'torso', part: 'capeIn', z: -1 },
     { name: 'thighB', parent: 'torso', part: 'thighB', z: 3 },
     { name: 'shinB', parent: 'thighB', part: 'shinB', z: 2 },
     { name: 'thighF', parent: 'torso', part: 'thighF', z: 5 },
@@ -98,6 +101,20 @@ export const HERO_CLIPS = {
             [0, 'step', { foot: 'footF', bone: 'shinF' }],
             [0.45, 'step', { foot: 'footB', bone: 'shinB' }]
         ]
+    },
+
+    // 조준 사격 (연발 석궁 기본 공격, D-119): 0~0.18 석궁을 앞으로 겨눔 → 0.32 쏨(반동) → 다시 겨눔 반복
+    attack_shoot: {
+        duration: 0.8,
+        loop: true,
+        tracks: {
+            armF: { rot: [[0, 0], [0.18, -24, 'out'], [0.3, -24], [0.34, -17, 'out'], [0.5, -24], [0.8, 0]] },
+            sword: { rot: [[0, 0], [0.18, -6, 'out'], [0.3, -6], [0.34, -1, 'out'], [0.5, -6], [0.8, 0]] },
+            torso: { x: [[0, 0], [0.18, 4, 'out'], [0.3, 4], [0.34, -5, 'out'], [0.5, 2], [0.8, 0]], rot: [[0, 0], [0.34, -1.5], [0.8, 0]] },
+            head: { rot: [[0, 0], [0.18, 2], [0.8, 0]] },
+            cape1: { rot: [[0, 0], [0.34, 5, 'out'], [0.8, 0]] }
+        },
+        events: [[0.32, 'shoot', { hit: 1 }]]
     },
 
     // 내려베기: 0~0.28 칼을 머리 위로 → 0.28~0.4 앞발을 내딛으며 내려침(타격) → 복귀
@@ -230,7 +247,9 @@ export const HERO = {
     arms: null,
     attack: 'attack_slash',
     hitSocket: ['tip', 'sword'],
-    sockets: { hand: [660, 666] },       // 칼 쥔 주먹 (스킬 시전 에너지/세뇌 구체 발사 위치)
+    // tip_c: 연발 석궁(세트 c) 앞 활대 가운데 = 볼트가 나가는 곳 (D-119)
+    sockets: { hand: [660, 666], tip_c: [948, 772] },       // hand: 칼 쥔 주먹 (스킬 시전 에너지/세뇌 구체 발사 위치)
+    variantSockets: { sword: ['tip'] },   // 무기 세트 그림을 끼우면 tip → tip_<글자> (있을 때만)
     autoGround: [['footF', 'shinF'], ['footB', 'shinB']],   // 다리가 몸통에 매달려 있어 발로 접지
     skillClips: [['시전', 'cast'], ['검 치켜들기', 'raise'], ['찌르기', 'thrust'], ['크게 휩쓸기', 'sweep']],   // rig_test.html 동작 버튼 (뒤 셋은 2차 세트, D-071)
     wind: [{ bone: 'cape1', rot: 4 }, { bone: 'cape2', rot: 7 }],   // 빨리 걸을수록 망토가 뒤로 (Q-008 Q6, reactions.js WIND)

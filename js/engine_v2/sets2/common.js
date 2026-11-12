@@ -87,7 +87,8 @@ export function packOf(character, list) {
             if (d.kitAttack) { part.attackType = 'kit'; part.kitAttack = d.kitAttack; }
             if (slot === 'arm' && !part.attackType && BASE_ATTACK[character]) part.attackType = BASE_ATTACK[character];
             if (d.rigArm) part.rigArm = d.rigArm;
-            if (d.shotFx) part.shotFx = d.shotFx;   // 기본 공격 발사 연출 (D-118 — attacks.js fireShotFx)
+            if (d.shotFx) part.shotFx = d.shotFx;
+            if (d.rigAttack) part.rigAttack = d.rigAttack;   // 리그 공격 동작 (D-119 — 연발 석궁 attack_shoot)   // 기본 공격 발사 연출 (D-118 — attacks.js fireShotFx)
             if (d.stats) Object.assign(part.stats, d.stats);
             pack.parts[slot].push(part);
             if (d.skill) pack.partSkill[id] = d.skill;

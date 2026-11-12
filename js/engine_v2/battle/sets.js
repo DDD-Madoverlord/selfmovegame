@@ -16,6 +16,14 @@ import { SET_VFX } from '../vfx/setVfx.js';
 import { aimAt as aimOf } from '../bases_v2.js';
 import { SET, FOOT_B } from './tuning.js';
 
+// 블랙홀 (그림자 마도사 팔, D-119): eclipse_sun(검은 해) 심 + mutation_burst 소용돌이 칸을 돌리고 + 둘레에서 빨려 드는 빛줄기(gather)
+const BLACK_HOLE_FX = sec => ({ layers: [
+    { type: 'sprite', sheet: 'mutation_burst', at: 0, dur: sec, size: 300, frameRange: [1, 2], loopSec: 0.5, pingPong: true, spin: -5, glow: 1.15, alpha: 0.9, fadeIn: 0.25, fadeOut: 0.3 },
+    { type: 'gather', at: 0, dur: sec, r: 170, count: 22, cycles: sec * 1.6, color: '200, 120, 255' },
+    { type: 'sprite', sheet: 'eclipse_sun', at: 0, dur: sec, size: 150, frameRange: [1, 4], loopSec: 0.9, pingPong: true, glow: 0, fadeIn: 0.2, fadeOut: 0.3 },
+    { type: 'glow', at: 0, dur: sec, r: 110, color: '120, 40, 200', dy: 60 }
+] });
+
 const ACID_RGB = '160, 255, 50';
 const DARK_RGB = '200, 110, 255';
 
@@ -190,7 +198,7 @@ export const SetMethods = {
             const w = SET.spit.puddleW;
             this.addZone({ x: aim.x - w / 2, w, sec: SET.spit.puddleSec, dps: this.playerDps * SET.spit.puddleDps, field: 'acid',
                 baseMul: this.setOn('kaiju_b') ? SET.setBonus.toxicBaseMul : 1 });   // 독안개 4부위: 거점 2배
-        }, 'kaiju_spore');
+        }, 'kaiju_spore', { core: true });
     },
 
     /** [암흑 구체] 적을 따라가 폭발 (작은 범위) */
@@ -207,7 +215,7 @@ export const SetMethods = {
                 if (e === target) this.dealDamageToEnemy(e, dmg, isCrit, { knock: 0.5 });
                 else if (Math.abs(aimOf(e).x - aim.x) < SET.orb.splash) this.dealDamageToEnemy(e, dmg * SET.orb.splashMul, false, { knock: 0.3 });
             });
-        }, 'hero_orb');
+        }, 'hero_orb', { core: true });
     },
 
     /** [산탄] 가까운 부채꼴 여러 적: 가장 가까운 적은 그대로, 나머지는 × mul */
@@ -299,7 +307,9 @@ export const SetMethods = {
 
     // ---- 블랙홀 (그림자 마도사 팔): radius 안 적을 한곳으로 끌어당기며 피해 ----
     startBlackHole(x, sec) {
-        this.blackHole = { x, t: sec, fxT: 0 };
+        const h = this.blackHole = { x, t: sec, fxT: Infinity };
+        // D-119: 0.5초마다 코드 소용돌이를 겹쳐 틀던 것 → 블랙홀 하나를 수명 동안 (검은 해 심 + 도는 보라 소용돌이 + 빨려 드는 빛줄기)
+        this.fx.play(BLACK_HOLE_FX(sec), x, 100, { follow: () => [h.x, 100], alive: () => this.blackHole === h });
     },
 
     tickBlackHole(dt) {
