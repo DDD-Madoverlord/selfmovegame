@@ -487,7 +487,9 @@ export const KitMethods = {
     scrollKit(dt) {
         const d = this.groundSpeed() * dt;
         this.kitZones.forEach(z => { if (!z.follow) z.x -= d; });
-        this.kitWaves.forEach(w => { w.x -= d; w.start -= d; });
+        // 움직이는 판정(파동·투사체)은 바닥에 끌려가지 않음 — 쏜 캐릭터의 진격 속도를 물려받은 셈. 예전엔 바닥(약 427px/초)과 같이
+        // 뒤로 밀려 걸으면서 쏘면 앞으로 못 나가고 제자리(느린 것은 뒤로) — 11-08 QA. 바닥을 타는 판정만 ground: true
+        this.kitWaves.forEach(w => { if (w.ground) { w.x -= d; w.start -= d; } });
     },
 
     // ---- 움직이는 판정 ----

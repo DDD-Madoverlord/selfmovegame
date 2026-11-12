@@ -16,7 +16,7 @@
 import { monsterControllerV2 as monster } from './monster_v2.js';
 import { sound } from './audio/sound_v2.js';
 import { aimAt } from './bases_v2.js';
-import { FOOT_B } from './battle/tuning.js';
+import { FOOT_B, SET } from './battle/tuning.js';
 import { imageField } from './vfx/imageEffects.js';
 
 /** 다리 파츠 id → 부품 패시브 (registerSets2가 채움, battle/kit.js가 읽음) */
@@ -209,11 +209,13 @@ const STEP = {
     dash(b, s) {
         b.dashForward(s.dist ?? 160, s.sec ?? 0.3, e => kitHit(b, e, s.dmg || 0, s), s.trail || null, { shove: !!s.shove });
     },
-    /** 순간 이동: 앞으로 dist (거점 앞에서 멈춤), 떠난 자리에 장판 */
+    /** 순간 이동: 앞으로 dist (거점·앞을 막는 적 앞에서 멈춤 — 적을 뚫고 화면 끝까지 가던 것, 11-08 QA), 떠난 자리에 장판 */
     blink(b, s) {
         const building = b.enemies.find(e => e.isBuilding);
+        const wall = b.dashBlocker();
         const start = b.monsterX;
-        const end = Math.max(start, Math.min(start + (s.dist ?? 200), building ? building.x - 110 : Infinity));
+        const end = Math.max(start, Math.min(start + (s.dist ?? 200), building ? building.x - 110 : Infinity,
+            wall ? wall.x - SET.shove.gap - 100 : Infinity));
         if (s.vfx) b.fx.play(s.vfx, start + 50, FOOT_B + 60);
         if (s.leave) b.kitZone({ ...s.leave, x: start - b.frontX() + 20 });
         b.monsterX = end;

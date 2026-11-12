@@ -11,6 +11,9 @@ export const EGG = { hatchSec: 1.6 };
 export const BABY = { hp: 260, dps: 22, speedMul: 0.6 };
 // 합성괴인 졸개: 주인공 능력치를 따라 커짐 (공격력 ×dps, 체력 ×hp) — 고정 17.5/350이던 때는 뒤 구역·거점에서 피해가 안 보였음 (2026-10-18, D-057)
 export const MINION = { dps: 0.12, hp: 0.14 };
+// 아군(소환수·졸개) 싸움 유지 (battle/allies.js tickAllies): 싸우는 중이면 stick px 더 멀어져도 계속, 시작한 공격 동작은 hold초는 끝까지
+// — 주인공 공격에 적이 조금씩 밀려 경계(65px)를 오가면 공격·걷기가 1초에 3~4번 바뀌어 공격 동작이 끝나지 못하고 팔만 떨며 앞으로 감 (11-08 QA, 얼음 기사)
+export const ALLY_FIGHT = { stick: 45, hold: 0.6 };
 export const DRONE = { dmgMul: 0.35, splash: 70 };
 // 타락 히어로: 머리 세뇌 파동(처치한 적 징집 확률 = 파츠 설명 25%), 몸통 흑마법 오라, 팔 어둠 파동(관통 + 감속)
 // curseZone: 적 왼쪽 끝 기준 저주 범위 (몸 앞 기준 px). auraDx: 저주 장판 중심 (몸 앞 기준, 장판은 발밑~범위 끝)

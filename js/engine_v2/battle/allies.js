@@ -10,7 +10,7 @@ import { monsterControllerV2 } from '../monster_v2.js';
 import { HERO_ORB } from '../vfx/heroVfx.js';
 import { HERO_VFX, CHIMERA_VFX } from '../vfx/vfxDefs.js';
 import { ensureEnemyStyles } from '../enemies_v2.js';
-import { BABY, EGG, FOOT_B, MINION } from './tuning.js';
+import { ALLY_FIGHT, BABY, EGG, FOOT_B, MINION } from './tuning.js';
 
 export const AllyMethods = {
     // [세뇌 스마트 구속구]: 적 보병 소멸 시 아군 미니언 징집 소환
@@ -120,12 +120,18 @@ export const AllyMethods = {
             }
 
             const hitRange = (closestEnemyToAlly && closestEnemyToAlly.isBuilding) ? 110 : 65;
-            const fighting = !!closestEnemyToAlly && minAllyDist <= hitRange;
-            if (fighting !== !!ally.attacking && ally.dom) {   // 싸우는 동안 공격 동작 (그림이 있는 아군)
-                ally.attacking = fighting;
-                ally.dom.classList.toggle('is-attacking', fighting);
+            // 싸우는 중이면 조금 밀려나도 계속 · 시작한 공격 동작은 잠깐 끝까지 (ALLY_FIGHT — 공격·걷기가 매 순간 바뀌던 것, 11-08 QA)
+            const fighting = !!closestEnemyToAlly && minAllyDist <= hitRange + (ally.attacking ? ALLY_FIGHT.stick : 0);
+            if (ally.atkHold > 0) ally.atkHold -= dt;
+            const swinging = fighting || (!!ally.attacking && ally.atkHold > 0 && !!closestEnemyToAlly);
+            if (swinging !== !!ally.attacking) {   // 싸우는 동안 공격 동작 (그림이 있는 아군)
+                ally.attacking = swinging;
+                if (swinging) ally.atkHold = ALLY_FIGHT.hold;
+                if (ally.dom) ally.dom.classList.toggle('is-attacking', swinging);
             }
-            if (fighting) {
+            if (swinging && !fighting) {
+                // 휘두르던 동작을 마저 끝냄 (제자리)
+            } else if (fighting) {
                 if (!ally.supportOwner || this.support?.active?.elapsed < (this.support?.active?.exitAt ?? SUPPORT.exitAt)) {
                     const mul = ally.supportOwner ? 1 : this.allyDmgMul() * this.supportAttackMul();
                     this.dealDamageToEnemy(closestEnemyToAlly, ally.dps * mul * dt, false,

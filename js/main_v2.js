@@ -17,6 +17,7 @@ import { runLoading } from './ui_v2/loading_v2.js';
 import { showTitle, skipTitle } from './ui_v2/title_v2.js';
 import { maybePromptAccount } from './ui_v2/account_v2.js';
 import { mountTuneTab } from './ui_v2/tunePanel_v2.js';
+import { shouldPlayIntro, playStoryIntro, introZoneOf } from './ui_v2/storyIntro_v2.js';
 import { isApp, checkForUpdate } from './ui_v2/appUpdate_v2.js';
 import { applyVfxChoices, readVfxChoices, readVfxStyle } from './engine_v2/vfx/vfxVariants.js';
 import { preloadVfxSheets } from './engine_v2/vfx/vfxPlayer.js';
@@ -78,8 +79,15 @@ class GameRouterV2 {
             });
         }
 
-        // 결과 화면 버튼 (다시 출격 / 연구소 / 메인 메뉴) → 화면 전환
-        battleEngineV2.onNavigate = name => this.switchScreen(name);
+        // 결과 화면 버튼 (다음 / 다시 출격 / 연구소 / 메인 메뉴) → 화면 전환
+        // '다음 N-1'로 새 구역 첫 판에 가도 지도에서 고른 때처럼 스토리 인트로를 먼저 (처음 한 번, D-100 · 11-07 QA)
+        battleEngineV2.onNavigate = name => {
+            if (name === 'battle' && !battleEngineV2.pendingSpecial && shouldPlayIntro(progress.selectedStage)) {
+                playStoryIntro(introZoneOf(progress.selectedStage)).then(() => this.switchScreen('battle'));
+                return;
+            }
+            this.switchScreen(name);
+        };
 
         // 특수 스킬 강제 발동 버튼 이벤트 (v2)
         const btnSpecial = document.getElementById('btn-trigger-special-v2');
