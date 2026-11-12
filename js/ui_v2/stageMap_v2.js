@@ -418,7 +418,12 @@ export class StageMap {
         const h = this.hero;
         const r = routeOf(this.pages[at.page].zone);
         const target = r.stops[at.k];
-        if (walk && h.page === at.page && h.pos != null && h.pos !== target) return this._walk(at.page, h.pos, target);
+        if (walk && h.page === at.page && h.pos != null && (h.pos !== target || this.walking)) return this._walk(at.page, h.pos, target);
+        if (this.walking) {   // 걷다가 순간 이동(다른 구역 등): 걷기를 멈춤 — 안 멈추면 걷기가 계속 자리를 덮어씀
+            cancelAnimationFrame(this.walking.raf);
+            this.walking = null;
+            h.rig.setMode('idle');
+        }
         // 다른 구역으로 넘어가면 그 지도로 순간 이동 (살짝 나타남)
         const land = this.track.children[at.page].querySelector('.v2-smap__land');
         if (h.el.parentNode !== land) {
@@ -448,39 +453,55 @@ export class StageMap {
         this.hero.y = py;
     }
 
-    /** 길(route 점 from → to)을 따라 걷기. 다 걸으면 onSelect */
+    /** 길(route 점 from → to)을 따라 걷기. 다 걸으면 onSelect
+     *  걷는 중에 다시 누르면: 같은 곳이면 그대로 계속, 다른 곳이면 지금 서 있는 자리에서 이어 걸음
+     *  (예전: 출발 정거장으로 돌아가 처음부터 다시 걸음 — 1 → 10 걷다가 10을 또 누르면 1부터, 11-07 QA) */
     _walk(page, from, to) {
         const h = this.hero;
         const route = routeOf(this.pages[page].zone).route;
-        const step = from < to ? 1 : -1;
-        const pts = [];
-        for (let i = from; i !== to + step; i += step) pts.push(route[i]);
-        const segs = pts.slice(1).map((p, i) => Math.hypot(p[0] - pts[i][0], p[1] - pts[i][1]));
-        const total = segs.reduce((a, b) => a + b, 0);
-        const dur = Math.max(0.35, total / this.walkSpeed);
-        h.rig.walkScale = Math.min(1, this.walkSpeed / WALK_SPEED);   // 느리게 하면 다리 동작도 같이 (발이 미끄러지지 않게)
-        const dx0 = h.dx, dx1 = this._heroDx(page, to);
+        const w = this.walking && this.walking.page === page ? this.walking : null;
+        if (w && w.to === to) return;
+        const f = w ? w.f : from;                          // 길 위 지금 자리 (소수 = 두 점 사이)
+        const step = f < to ? 1 : -1;
+        const idx = [];
+        for (let i = step > 0 ? Math.floor(f) + 1 : Math.ceil(f) - 1; step > 0 ? i <= to : i >= to; i += step) idx.push(i);
+        const pts = [w ? w.cur : route[from], ...idx.map(i => route[i])];
+        const fs = [f, ...idx];
         const id = this.pages[page].nodes[routeOf(this.pages[page].zone).stops.indexOf(to)]?.id;
         if (this.walking) cancelAnimationFrame(this.walking.raf);
-        this.look = null;
-        h.rig.setMode('walk');
-        const t0 = performance.now();
-        const tick = now => {
-            const t = Math.min(1, (now - t0) / 1000 / dur);
-            let d = t * total, k = 0;
-            while (k < segs.length - 1 && d > segs[k]) d -= segs[k++];
-            const a = pts[k], b = pts[k + 1], f = segs[k] ? d / segs[k] : 1;
-            this._heroAt([a[0] + (b[0] - a[0]) * f, a[1] + (b[1] - a[1]) * f], dx0 + (dx1 - dx0) * t);
-            if (Math.abs(b[0] - a[0]) > 2) h.el.classList.toggle('is-left', b[0] < a[0]);
-            this._camera(false);
-            if (t < 1) { this.walking.raf = requestAnimationFrame(tick); return; }
+        this.walking = null;
+        const arrive = () => {
             this.walking = null;
             h.pos = to;
             h.rig.setMode('idle');
             h.el.classList.remove('is-left');   // 멈추면 NPC 쪽(오른쪽)을 봄
             if (id) this.opts.onSelect?.(id);
         };
-        this.walking = { raf: requestAnimationFrame(tick) };
+        if (pts.length < 2) return arrive();
+        const segs = pts.slice(1).map((p, i) => Math.hypot(p[0] - pts[i][0], p[1] - pts[i][1]));
+        const total = segs.reduce((a, b) => a + b, 0);
+        const dur = Math.max(0.35, total / this.walkSpeed);
+        h.rig.walkScale = Math.min(1, this.walkSpeed / WALK_SPEED);   // 느리게 하면 다리 동작도 같이 (발이 미끄러지지 않게)
+        const dx0 = h.dx, dx1 = this._heroDx(page, to);
+        this.look = null;
+        h.rig.setMode('walk');
+        const t0 = performance.now();
+        const walking = { page, to, f, cur: pts[0], raf: 0 };
+        const tick = now => {
+            const t = Math.min(1, (now - t0) / 1000 / dur);
+            let d = t * total, k = 0;
+            while (k < segs.length - 1 && d > segs[k]) d -= segs[k++];
+            const a = pts[k], b = pts[k + 1], u = segs[k] ? Math.min(1, d / segs[k]) : 1;
+            walking.cur = [a[0] + (b[0] - a[0]) * u, a[1] + (b[1] - a[1]) * u];
+            walking.f = fs[k] + (fs[k + 1] - fs[k]) * u;
+            this._heroAt(walking.cur, dx0 + (dx1 - dx0) * t);
+            if (Math.abs(b[0] - a[0]) > 2) h.el.classList.toggle('is-left', b[0] < a[0]);
+            this._camera(false);
+            if (t < 1) { walking.raf = requestAnimationFrame(tick); return; }
+            arrive();
+        };
+        walking.raf = requestAnimationFrame(tick);
+        this.walking = walking;
     }
 
     /** 화면이 지도보다 납작하면 캐릭터(없으면 다음 정거장) 높이에 맞춰 지도를 위아래로 옮김 — 손으로 끈 뒤에는 그 자리 */

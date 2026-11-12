@@ -78,13 +78,16 @@ class Game:
         self.page = self.browser.new_page(viewport={'width': viewport[0], 'height': viewport[1]}, has_touch=touch, is_mobile=touch)
         self.page.on('pageerror', lambda e: self.errors.append('pageerror: ' + (e.stack or str(e))[:400]))
         self.page.on('console', self._console)
-        self.page.goto(f'{base}/index.html?t={time.time()}')
+        # openGroups=1: 숨김 그룹(구역 7~10·캐릭터 4명, D-119)을 열고 검사 — 숨김 자체는 test_groups.py가 끄고 확인
+        # skipTitle=1: 시작 화면·1-5 뒤 계정 안내를 건너뜀 (D-119 — 확인은 test_title.py)
+        self.page.goto(f'{base}/index.html?openGroups=1&skipTitle=1&t={time.time()}')
         if fresh:
             self.page.evaluate('() => localStorage.clear()')
             self.page.reload()
 
     def _console(self, msg):
-        if msg.type == 'error' and 'favicon' not in msg.text and 'status of 404' not in msg.text:
+        # ERR_NAME_NOT_RESOLVED: 바깥 서버 주소를 못 찾음(인터넷·외부 서비스 문제 — 11-10 Supabase 주소가 안 풀림). 게임 파일은 로컬 서버라 해당 없음
+        if msg.type == 'error' and 'favicon' not in msg.text and 'status of 404' not in msg.text and 'ERR_NAME_NOT_RESOLVED' not in msg.text:
             self.errors.append('console: ' + msg.text[:300])
 
     def enter_v2(self):

@@ -17,7 +17,7 @@
    배율은 tools/tests/balance_sim.py --diff=<id>로 재서 맞춘다 (MD/밸런스_기록.md "난이도").
    ========================================================================== */
 
-import { STAGES } from './stages_v2.js';
+import { STAGES, GROUP_FINAL } from './stages_v2.js';
 import { MUTATORS, weeklyMutator } from './growth_v2.js';
 
 export const DIFFICULTIES = [
@@ -33,10 +33,11 @@ export const DIFFICULTIES = [
 ];
 export const DEFAULT_DIFFICULTY = 'normal';
 /**
- * 다음 난이도를 여는 스테이지: 구역 4 보스전. 구역 5~8을 더하는 동안은 4-B 그대로 둔다 —
- * 마지막 스테이지로 옮기면 이미 연 난이도가 다시 잠김 (D-078 임의 결정, 구역이 다 들어오면 다시 정함)
+ * 다음 난이도를 여는 스테이지: 처음부터 공개된 그룹 1(구역 1~6)의 마지막 판 6-B (D-119 8번, 예전 4-B — D-078).
+ * 숨김 그룹(구역 7~8 · 9~10)은 그룹마다 따로: 그 그룹 첫 판의 하드 이상은 그룹 마지막 판(8-B · 10-B)을 바로 아래 난이도에서 깨야 열림 (stages_v2.js isUnlockedNormally).
+ * 4-B 시절에 이미 연 난이도는 그 난이도 기록이 하나라도 있으면 그대로 열어 둠 (다시 잠그지 않음)
  */
-export const FINAL_STAGE_ID = '4-B';
+export const FINAL_STAGE_ID = GROUP_FINAL[1];
 if (!STAGES.some(s => s.id === FINAL_STAGE_ID)) throw new Error(`difficulty_v2: FINAL_STAGE_ID '${FINAL_STAGE_ID}' 스테이지가 없음`);
 
 export function difficultyOf(id) {
@@ -46,8 +47,19 @@ export function difficultyOf(id) {
 /** 열린 난이도: 노말 + 바로 앞 난이도의 마지막 스테이지를 깬 난이도 */
 export function difficultyUnlocked(id, progress) {
     const i = DIFFICULTIES.findIndex(d => d.id === id);
-    return i === 0 || (i > 0 && progress.stage(FINAL_STAGE_ID, DIFFICULTIES[i - 1].id).cleared);
+    if (i === 0) return true;
+    if (i < 0) return false;
+    const played = progress.diffStages && progress.diffStages[id] && Object.keys(progress.diffStages[id]).length > 0;
+    return progress.stage(FINAL_STAGE_ID, DIFFICULTIES[i - 1].id).cleared || !!played;
 }
+
+/**
+ * 숨김 그룹(2·3)의 난이도 배율 (D-119 8번, Q-043 임시): 그룹 노말이 이미 '지금 헬' 수준이라 그대로 곱하면 너무 셈
+ * (나이트메어 7-1 적 체력 ×18.5 = 그룹 1 나이트메어 마지막 판의 1.6배) → 배율의 1보다 큰 부분을 k만큼만:
+ * 적 체력 하드 1.25 · 헬 1.5 · 나이트메어 1.8, 공격력·거점도 같은 k. 보상·시간·엘리트는 그대로
+ */
+export const GROUP_DIFF_K = { hard: 0.625, hell: 0.556, nightmare: 0.533 };
+const squeeze = (m, k) => 1 + (m - 1) * k;
 
 /** 열린 난이도 중 가장 높은 것 */
 export function highestDifficulty(progress) {
@@ -90,18 +102,20 @@ export function stageFor(stage, id = DEFAULT_DIFFICULTY, now = Date.now()) {
     const mutator = d.mutators ? weeklyMutator(now) : null;   // 나이트메어: 이번 주 전장 변이
     const key = `${d.id}:${stage.id}:${mutator || ''}`;
     if (stageCache.has(key)) return stageCache.get(key);
+    const k = stage.group > 1 ? GROUP_DIFF_K[d.id] || 1 : 1;
+    const hpM = squeeze(d.enemyHp, k), dpsM = squeeze(d.enemyDps, k), baseM = squeeze(d.base, k);
     const s = {
         ...stage,
         difficulty: d.id,
         timeLimit: roundTo(stage.timeLimit * d.time, 5),
         starTime: roundTo(stage.starTime * d.time, 5),
-        enemy: { ...stage.enemy, hp: round2(stage.enemy.hp * d.enemyHp), dps: round2(stage.enemy.dps * d.enemyDps),
+        enemy: { ...stage.enemy, hp: round2(stage.enemy.hp * hpM), dps: round2(stage.enemy.dps * dpsM),
             spawn: round2(stage.enemy.spawn * (mutator && MUTATORS[mutator].spawnMul || 1)) },
         mutator,
         elite: Math.min(0.5, round2((stage.elite || 0) + d.elite)),
         affixCount: affixCountFor(stage.zone, d),
         bossHaste: d.bossHaste,
-        base: { mid: roundTo(stage.base.mid * d.base, 100), final: roundTo(stage.base.final * d.base, 100) },
+        base: { mid: roundTo(stage.base.mid * baseM, 100), final: roundTo(stage.base.final * baseM, 100) },
         reward: {
             kill: Math.round(stage.reward.kill * d.reward),
             mid: roundTo(stage.reward.mid * d.reward, 50),

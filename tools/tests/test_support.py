@@ -162,13 +162,13 @@ def run(ctx):
     setup(g, 'hero', enemies=1)
     st = g.js("""const e = b.enemies[0]; e.boss = true; b.callSupport(); b.tickSupport(.5);
         b.playerHp = b.maxPlayerHp; const hp = b.playerHp; b.damagePlayer(100, 0, e);
-        return hp - b.playerHp;
+        return (hp - b.playerHp) / (b.roleTaken * b.sigIncomingMul());   // 원거리·근거리 배율(D-119)을 뺀 값
     """)
     ctx.check(abs(st - 85) < .001, '히어로 약화: 실제 보스 공격 피해 15% 감소', str(st))
     st = g.js("""const { SET } = await import('/js/engine_v2/battle/tuning.js');
         const e = b.enemies[0]; b.buffs.thornArmor = 2; const hp = e.hp, playerHp = b.playerHp;
         b.damagePlayer(100, 0, null, e);
-        return { reflected: hp - e.hp, actual: playerHp - b.playerHp, expected: 100 * (1 - SET.thorn.reduce) * .85 };
+        return { reflected: hp - e.hp, actual: playerHp - b.playerHp, expected: 100 * (1 - SET.thorn.reduce) * .85 * b.roleTaken * b.sigIncomingMul() };
     """)
     ctx.check(st['reflected'] == 0 and abs(st['actual'] - st['expected']) < .001,
               '공격자 추적: 지원 약화는 적용하고 기존 원거리 반격 규칙은 보존', str(st))

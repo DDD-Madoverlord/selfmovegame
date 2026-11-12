@@ -16,7 +16,8 @@ def run(ctx):
     ctx.check(st['scale'] not in ('', '0'), '화면 크기 맞춤 배율 적용', st['scale'])
     ctx.check(st['loaded'] >= 60, '로딩: 효과음 미리 받기', str(st['loaded']))
     st = g.js("return progress.equippedStats();")   # 기본 로봇: 속도 10 + 5 + 10 + 기본 다리 70, 공격력 80 + 60 + 기본 팔 520 + 30 (v2에서만, D-043)
-    ctx.check(st['speed'] == 95 and st['dps'] == 690, 'v2 능력치 덮어쓰기: 기본 로봇 속도 95·공격력 690', str(st))
+    ctx.check(st['speed'] == 95 * 2 and st['dps'] == round(690 * 1.2) and st['role'] == 'melee' and st['armor'] == 25,
+              'v2 능력치 덮어쓰기: 기본 로봇 속도 95·공격력 690 → 주먹(근거리) 이동 ×2 · 공격 ×1.2 · 방어력 25% (D-119)', str(st))
     g.shot('menu_main', '#screen-menu-v2')
 
     # 연구소: 고른 캐릭터(거대로봇) 파츠만, [파츠제거] 없음 (D-051)
@@ -76,22 +77,24 @@ def run(ctx):
     ctx.check(st['cards'] == 10 and st['visible'] == 4 and st['scroll'] and st['sel'] == 'mech',
               '선택창: 카드 10장 (한 화면 4장 + 가로로 넘김), 지금 캐릭터 = 거대로봇', str(st))
 
-    # 별로 여는 캐릭터 (Q-006): 별이 없으면 잠김 안내, 별을 모으면 눌러서 해금
+    # 구역에 가면 합류하는 캐릭터 (D-119 — 예전 별 해금 Q-006): 아직이면 잠김 안내, 구역 4의 4-1이 열리면 합류
     st = g.js("""return { lock: document.querySelector('.v2-charcard[data-char="chimera"]').classList.contains('is-locked'),
         foot: document.querySelector('.v2-charcard[data-char="chimera"] .v2-charcard__foot').textContent };""")
     g.page.click('.v2-charcard[data-char="chimera"]')
     g.wait(300)
     st2 = g.js("return { ch: progress.character, info: document.getElementById('select-info-v2').textContent };")
-    ctx.check(st['lock'] and '★9로 해금' in st['foot'] and st2['ch'] == 'mech' and '별이 부족' in st2['info'],
-              '선택창: 잠긴 합성괴인 — "★9로 해금", 별이 없으면 안 바뀌고 안내', str([st, st2]))
-    g.js("(await import('/js/engine_v2/stages_v2.js')).CHAPTER1.stages.map(s => s.id).forEach(id => progress.stages[id] = { stars: [true,true,true], cleared: true, bestTime: 60 });")
+    ctx.check(st['lock'] and '구역 4 도착 시 합류' in st['foot'] and '★' not in st['foot'] and st2['ch'] == 'mech' and '구역 4에 도착하면' in st2['info'],
+              '선택창: 잠긴 합성괴인 — "구역 4 도착 시 합류", 아직이면 안 바뀌고 안내', str([st, st2]))
+    g.js("(await import('/js/engine_v2/stages_v2.js')).CHAPTERS.slice(0, 3).flatMap(ch => ch.stages).forEach(s => progress.stages[s.id] = { stars: [true,true,true], cleared: true, bestTime: 60 });")
+    g.js("window.madOverlordGameV2.selectController.render();")
 
-    # 합성괴인 (파츠 무료·보유) → 별 9개로 해금하고 바로 그 캐릭터 파츠로
+    # 합성괴인 (파츠 무료·보유) → 3-B까지 깨서 합류(별 안 씀), 바로 그 캐릭터 파츠로
+    stars0 = g.js("return progress.availableStars();")
     g.page.click('.v2-charcard[data-char="chimera"]')
     g.wait(300)
     st = g.js("return { ch: progress.character, eq: gameState.equippedParts, ready: progress.isReady(), stars: progress.availableStars() };")
-    ctx.check(st['ch'] == 'chimera' and st['eq']['body'] == 'body_chimera' and st['eq']['arm'] == 'arm_chimera' and st['ready'] and st['stars'] == 33 - 9,
-              '선택창: 합성괴인 → 별 9개로 해금, 가진 합성괴인 파츠로 장착', str(st))
+    ctx.check(st['ch'] == 'chimera' and st['eq']['body'] == 'body_chimera' and st['eq']['arm'] == 'arm_chimera' and st['ready'] and st['stars'] == stars0 == 99,
+              '선택창: 3-B까지 깨면 합성괴인 합류(별 99개 그대로) → 가진 합성괴인 파츠로 장착', str(st))
 
     # 타락 히어로 (파츠 없음) → 빈 장착, 흐린 모습, 출격 막힘
     g.page.click('.v2-charcard[data-char="hero"]')

@@ -39,6 +39,8 @@ FILES = ['index.html', 'index.css', 'ui_v2.css', 'ui_v2_mobile.css',
 DIRS = ['js', 'assets']
 SKIP_DIRS = {'src', 'png', '_sets_tmp', '__pycache__'}
 SKIP_SUFFIX = ('_raw.png', '_gemini.png', '.psd', '.md')
+# 게임이 읽지 않는 폴더 (앱 묶음에서 뺌) — 배경음 후보 곡(11-06 추가, 약 97MB): 게임은 bgm/menu·battle·boss.ogg만 씀 (sound_v2.js BGM, 2026-11-10 빌드 24)
+SKIP_PATHS = {'assets/audio/bgm/main', 'assets/audio/bgm/stage'}
 
 MODE_STYLE = '<style>#screen-mode-selector{display:none!important}</style>'
 APP_HEAD = MODE_STYLE + '<script>window.madOverlordApp = true;</script>'
@@ -172,8 +174,8 @@ def copy_files(out, webp):
         shutil.copy2(os.path.join(ROOT, f), os.path.join(out, f))
     for d in DIRS:
         for dirpath, dirnames, filenames in os.walk(os.path.join(ROOT, d)):
-            dirnames[:] = [x for x in dirnames if x not in SKIP_DIRS]
             rel = os.path.relpath(dirpath, ROOT)
+            dirnames[:] = [x for x in dirnames if x not in SKIP_DIRS and os.path.join(rel, x).replace(os.sep, '/') not in SKIP_PATHS]
             is_rig = (rel.replace(os.sep, '/') + '/').startswith('assets/sprites/rig/')
             for name in filenames:
                 if not keep(name):

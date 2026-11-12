@@ -11,7 +11,7 @@ import { sound } from '../audio/sound_v2.js';
 import { aimAt as aimOf } from '../bases_v2.js';
 import { characterOfPart } from '../roster_v2.js';
 import { difficultyOf, difficultyOfStage } from '../difficulty_v2.js';
-import { MODULES, MODULE_MAX_LEVEL, MUTATORS, SKILL_LEVEL, CORES } from '../growth_v2.js';
+import { MODULES, MODULE_MAX_LEVEL, SKILL_LEVEL, CORES, combineMutators } from '../growth_v2.js';
 import { setCounts } from '../sets_v2.js';
 import { SET_VFX } from '../vfx/vfxDefs.js';
 import { FOOT_B } from './tuning.js';
@@ -123,9 +123,19 @@ export const GrowthBattleMethods = {
         this.gear = progress.gearTotals(equippedObjs);
         this.setCount = setCounts(equippedObjs);   // 세트 효과 (Q-008): 세트 id → 끼운 부위 수
         this.growthCharacter = characterOfPart(equippedObjs.body) || progress.character;   // 드랍은 출전 캐릭터 파츠
+        // 특성 트리 (D-125): 출전 캐릭터가 고른 특성 — 장비 옵션과 같은 키는 gear에 더하고, 나머지는 treeMods
+        // (dmg → traits.js sigTargetMul · taken → sigIncomingMul · ult → kit.js kitUltRate · hp → 여기서 최대 내구도)
+        const tree = progress.traitEffects(this.growthCharacter);
+        for (const [k, v] of Object.entries(tree.gear)) this.gear[k] = (this.gear[k] || 0) + v;
+        this.treeMods = tree.mods;
+        if (tree.mods.hp) {
+            this.maxPlayerHp = Math.round(this.maxPlayerHp * (1 + tree.mods.hp));
+            this.playerHp = this.maxPlayerHp;
+        }
         this.ccImmuneT = 0;
         this.loot = { cores: 0 };
-        this.mutator = this.stage.mutator ? { id: this.stage.mutator, ...MUTATORS[this.stage.mutator] } : null;
+        // 전장 변이: 나이트메어 하나(stage.mutator) · 오버로드의 탑 여러 개(stage.mutators, D-126) — 하나로 묶음
+        this.mutator = combineMutators(this.stage.mutators && this.stage.mutators.length ? this.stage.mutators : this.stage.mutator ? [this.stage.mutator] : []);
         this.skillLevels = {};
         for (const slot of ['arm', 'body', 'head']) {
             const sk = this.skills[slot];

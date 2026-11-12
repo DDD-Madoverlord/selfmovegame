@@ -8,12 +8,21 @@
 
 // ---- 2-1 파츠 등급 ----
 // upCost: 강화(Lv) 비용 배율 — 높은 등급일수록 단계마다 더 비쌈 (2026-11-03 Trello '등급별 강화 비용 차등', 임시 값 Q-018)
+// maxLevel: 그 등급의 강화 한도 (D-124 파츠 성장 안 C, Q-041 임시) — 계정 한도(열린 난이도 + 숨김 그룹, progress.maxLevel)와 작은 쪽
 export const GRADES = [
-    { id: 'common', name: '커먼', color: '170, 176, 190', mul: 1.0, options: 0, upCost: 1.0 },
-    { id: 'rare', name: '레어', color: '80, 160, 255', mul: 1.1, options: 1, upCost: 1.3 },
-    { id: 'unique', name: '유니크', color: '186, 104, 255', mul: 1.2, options: 2, upCost: 1.7 },
-    { id: 'legendary', name: '레전더리', color: '255, 150, 40', mul: 1.35, options: 2, upCost: 2.2 }
+    { id: 'common', name: '커먼', color: '170, 176, 190', mul: 1.0, options: 0, upCost: 1.0, maxLevel: 5 },
+    { id: 'rare', name: '레어', color: '80, 160, 255', mul: 1.1, options: 1, upCost: 1.3, maxLevel: 7 },
+    { id: 'unique', name: '유니크', color: '186, 104, 255', mul: 1.2, options: 2, upCost: 1.7, maxLevel: 9 },
+    { id: 'legendary', name: '레전더리', color: '255, 150, 40', mul: 1.35, options: 2, upCost: 2.2, maxLevel: 14 }
 ];
+// 강화비 곡선 (D-124): 기준값 × 0.6 × 레벨^UP_EXP × 등급 배율 — 예전 레벨^1 (DM이 남아돌아 성장 속도를 조각만 정하던 것, tools/tests/growth_model.py)
+export const UP_EXP = 1.6;
+// 등급 올리기 (D-124): 지금 등급의 강화 한도까지 키운 뒤 조각 + DM + 승급석(스페셜맵 보스 러시) — 예전엔 조각만 (DROP.shardCost)
+export const PROMO = {
+    rare: { shards: 15, dm: 20000, stones: 6 },
+    unique: { shards: 35, dm: 80000, stones: 20 },
+    legendary: { shards: 80, dm: 200000, stones: 40 }
+};
 export const gradeOf = id => GRADES.find(g => g.id === id) || GRADES[0];
 /** 등급 단계 열기 (2026-11-03 Trello '파츠 잠금 해제 방식'): 그 캐릭터의 from 등급 파츠를 need개 가져야 그 등급 파츠를 DM으로 사거나 조각으로 만들 수 있음.
  *  드랍으로 받는 파츠·이미 가진 파츠는 막지 않음. 개수 = 캐릭터별, 무료 기본 파츠 포함 (임시 규칙 Q-018) */
@@ -48,8 +57,7 @@ export const DROP = {
     },
     // 같거나 높은 등급을 이미 가졌을 때: DM 환급 + 파츠 조각
     refund: { common: { dm: 150, shards: 1 }, rare: { dm: 400, shards: 3 }, unique: { dm: 800, shards: 6 }, legendary: { dm: 1500, shards: 12 } },
-    // 조각으로 등급 한 칸 올리기 (천장) — 그 등급으로 올리는 비용
-    shardCost: { rare: 15, unique: 35, legendary: 80 },
+    // (등급 올리기 비용은 위 PROMO로 옮김 — D-124. 예전 shardCost: 레어 15 · 유니크 35 · 레전더리 80, 조각만)
     // 드랍 묶음 가중 (Q-008 · 새캐릭터 기획안 3장): 어느 묶음에서 뽑을지 → 그 안에서 같은 확률. 그 캐릭터에 없는 묶음은 빼고 다시 나눔
     //   base = 기본·강화, rare = 레어 세트 ①~④, unique = 유니크 세트 ①~③, legendary = 레전더리 세트 ①·② (sets_v2.js, D-071)
     poolWeights: {
@@ -112,8 +120,11 @@ export const DISPATCH = {
 };
 
 // ---- 2-7 별 사용처 ----
-// 캐릭터 해금 (브레인스토밍 1, D-044): 기본 캐릭터(거대로봇) 외 7종. 예전에 몸통을 산 캐릭터는 이미 열린 것으로 봄
-export const CHARACTER_STARS = { kaiju: 6, hero: 6, chimera: 9, diver: 12, saint: 12, frost: 15, doll: 15, architect: 18, broadcaster: 18 };   // 새 캐릭터 5·6 (D-079)
+// 캐릭터 합류 (D-119 10번 — 별로 사던 것(D-044)을 바꿈): 구역 n의 첫 판 n-1이 열리면(= 앞 구역 보스전 노말 첫 클리어) 그 구역 캐릭터가 저절로 합류.
+// 스테이지 1~10 = 캐릭터 스토리 순서 (MD/기획_스테이지설계.md). 기본 캐릭터 거대로봇은 처음부터
+export const CHARACTER_ZONE = { kaiju: 2, hero: 3, chimera: 4, diver: 5, saint: 6, doll: 7, frost: 8, architect: 9, broadcaster: 10 };
+// 예전 별 해금 값 — 그때 별로 연 캐릭터의 별을 한 번 돌려줄 때만 씀 (progressGrowth_v2.js loadGrowth)
+export const LEGACY_CHARACTER_STARS = { kaiju: 6, hero: 6, chimera: 9, diver: 12, saint: 12, frost: 15, doll: 15, architect: 18, broadcaster: 18 };
 // 계정 연구: 레벨마다 별 비용 (작은 영구 보너스)
 export const RESEARCH = {
     dropRate: { name: '드랍 감지기', desc: '파츠 드랍 확률 +1%p', per: 0.01, max: 3, stars: [5, 8, 12] },
@@ -125,6 +136,31 @@ export const RESEARCH = {
     supportCooldown: { name: '협력 호출 최적화', desc: '협력 첫 충전·재충전 -3초 (40→37→34→31초)', per: 3, max: 3, stars: [5, 8, 10] }
 };
 
+// 캐릭터 외형 (D-119 11번, Q-046 임시): 캐릭터마다 색을 바꿔 입는 외형 2종, 하나에 별 25개 — 리그 그림 전체에 색 필터(hue)를 씌움.
+// 새 그림 없이 시작. 헬·나이트메어 별의 쓰임 (11번 배분표 500개)
+export const SKIN_STARS = 25;
+export const SKINS = {
+    mech: [{ id: 'mech_crimson', name: '진홍 장갑', filter: 'hue-rotate(150deg) saturate(1.2)' }, { id: 'mech_phantom', name: '팬텀 블랙', filter: 'saturate(0.35) brightness(0.8) contrast(1.15)' }],
+    kaiju: [{ id: 'kaiju_magma', name: '용암 비늘', filter: 'hue-rotate(-75deg) saturate(1.3)' }, { id: 'kaiju_glacier', name: '빙하 비늘', filter: 'hue-rotate(110deg) saturate(0.9) brightness(1.1)' }],
+    hero: [{ id: 'hero_gilded', name: '황금 타락', filter: 'hue-rotate(-120deg) saturate(1.2) brightness(1.08)' }, { id: 'hero_ash', name: '잿빛 기사', filter: 'grayscale(0.7) brightness(0.95)' }],
+    chimera: [{ id: 'chimera_toxic', name: '맹독 변이', filter: 'hue-rotate(80deg) saturate(1.3)' }, { id: 'chimera_void', name: '공허 변이', filter: 'hue-rotate(200deg) saturate(1.1)' }],
+    diver: [{ id: 'diver_abyss', name: '심해 검은 잠수복', filter: 'saturate(0.5) brightness(0.75) contrast(1.2)' }, { id: 'diver_coral', name: '산호 잠수복', filter: 'hue-rotate(160deg) saturate(1.2)' }],
+    saint: [{ id: 'saint_snow', name: '순백 성의', filter: 'saturate(0.3) brightness(1.2)' }, { id: 'saint_night', name: '밤의 성녀', filter: 'hue-rotate(230deg) saturate(1.1)' }],
+    doll: [{ id: 'doll_rose', name: '장미 인형극', filter: 'hue-rotate(150deg) saturate(1.2)' }, { id: 'doll_sepia', name: '빛바랜 인형극', filter: 'sepia(0.7) saturate(1.1)' }],
+    frost: [{ id: 'frost_aurora', name: '오로라', filter: 'hue-rotate(90deg) saturate(1.3)' }, { id: 'frost_crimson', name: '붉은 서리', filter: 'hue-rotate(160deg) saturate(1.2)' }],
+    architect: [{ id: 'architect_steel', name: '강철 현장', filter: 'saturate(0.3) brightness(1.05)' }, { id: 'architect_neon', name: '네온 철거', filter: 'hue-rotate(190deg) saturate(1.3)' }],
+    broadcaster: [{ id: 'broadcaster_cyan', name: '청색 주파수', filter: 'hue-rotate(160deg) saturate(1.2)' }, { id: 'broadcaster_mono', name: '흑백 방송', filter: 'grayscale(0.85) contrast(1.1)' }]
+};
+export const skinById = id => Object.values(SKINS).flat().find(s => s.id === id) || null;
+export const skinCharacterOf = id => Object.keys(SKINS).find(c => SKINS[c].some(s => s.id === id)) || null;
+
+/**
+ * 별 용도별 배분 (D-119 11번, Q-046 임시). 별은 판 첫 기록으로만 얻어 총량이 정해짐: 110판 × 3개 × 난이도 4 = 1,320개
+ * (그룹 1만 열리면 792). 용도별 몫 + 남겨 둘 몫(reserve, 다음 그룹·이벤트·1인 컨텐츠) = 총량.
+ * 실제 값(MODULES·RESEARCH·SKINS 합)은 그 용도 몫을 넘지 않게, traits는 3번 '캐릭터 특성'이 들어오면 채움 (tools/tests/test_groups.py가 확인)
+ */
+export const STAR_BUDGET = { reserve: 326, planned: { modules: 54, research: 200, traits: 240, skins: 500 } };
+
 // ---- 2-5 나이트메어 전장 변이 (주마다 바뀜) ----
 export const MUTATORS = {
     icefloor: { name: '얼음 바닥', desc: '진격 속도 -15%', icon: 'snow', moveMul: 0.85, counter: '신속 진격 옵션' },
@@ -135,6 +171,21 @@ export const MUTATORS = {
     venom: { name: '맹독', desc: '엘리트 독 구름이 2배 오래·1.5배 넓게', icon: 'acid', toxicMul: 2, toxicWidth: 1.5, counter: '방벽 발생기·신속 진격' }
 };
 export const MUTATOR_ORDER = ['icefloor', 'bloodmoon', 'ironwall', 'reinforce', 'overload', 'venom'];
+
+/** 전장 변이 여러 개를 하나로 묶음 (오버로드의 탑 D-126 — 나이트메어는 하나): 배율은 곱하고, 거점 피해 감소는 겹쳐 곱하고, 폭발은 더함 */
+export function combineMutators(ids) {
+    const list = (ids || []).filter(id => MUTATORS[id]);
+    if (!list.length) return null;
+    const out = { ...MUTATORS[list[0]], id: list[0], ids: list, name: list.map(id => MUTATORS[id].name).join(' · ') };
+    for (const k of ['moveMul', 'cdMul', 'spawnMul', 'toxicMul', 'toxicWidth', 'siegeCut', 'deathBlast']) delete out[k];
+    for (const id of list) {
+        const m = MUTATORS[id];
+        for (const k of ['moveMul', 'cdMul', 'spawnMul', 'toxicMul', 'toxicWidth']) if (m[k]) out[k] = (out[k] || 1) * m[k];
+        if (m.siegeCut) out.siegeCut = 1 - (1 - (out.siegeCut || 0)) * (1 - m.siegeCut);
+        if (m.deathBlast) out.deathBlast = (out.deathBlast || 0) + m.deathBlast;
+    }
+    return out;
+}
 
 /** 이번 주 전장 변이 (서버 없이: 1970-01-05 월요일부터 센 주 번호) */
 export function weeklyMutator(now = Date.now()) {

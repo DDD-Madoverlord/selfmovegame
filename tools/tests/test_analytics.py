@@ -10,7 +10,7 @@ def events(g):
 
 def run(ctx):
     g = ctx.game(fresh=True)
-    g.page.goto(f'{g.base}/index.html?utm_source=tiktok&utm_campaign=launch',
+    g.page.goto(f'{g.base}/index.html?skipTitle=1&utm_source=tiktok&utm_campaign=launch',
                 referer='https://ads.example/landing?private=omitted')
     g.enter_v2()
     log = events(g)
@@ -31,7 +31,7 @@ def run(ctx):
               and start['firstTouch']['landedAt'] > 0
               and start['firstTouch'] == start['lastTouch'], '첫 광고 출처·참조 호스트 기록')
 
-    g.page.goto(f'{g.base}/index.html?utm_source=google&utm_campaign=return')
+    g.page.goto(f'{g.base}/index.html?skipTitle=1&utm_source=google&utm_campaign=return')
     g.enter_v2()
     log = events(g)
     again = [e for e in log if e['name'] == 'session_start'][-1]

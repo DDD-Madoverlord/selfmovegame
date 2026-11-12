@@ -177,7 +177,7 @@ def run(ctx):
               '실제 옛 저장 진입: 펫 소급 지급의 즉시 저장 전에 savedAt으로 정산')
 
     # 명시적인 가짜 공급자는 일반 저장과 격리된 새 실행에서만 쓴다.
-    g.page.goto(g.base + '/index.html?mockCommerce=1')
+    g.page.goto(g.base + '/index.html?skipTitle=1&mockCommerce=1')
     g.enter_v2()
     g.js("window.__offlineNow=Date.now();Date.now=()=>window.__offlineNow;")
     st = g.js(API + """

@@ -18,7 +18,7 @@ def battle_at(g, stage):
     g.js(f"progress.selectStage('{stage}');")
     g.battle('mech', wait_ms=2900)
     g.wait(2900)
-    g.js(CLEAN)
+    g.js(CLEAN + "b.roleTaken = 1; b.sigChar = null;")   # 원거리/근거리 받는 피해·고유 특성(D-121)은 빼고 적 기능만 봄
 
 
 def place(g, typ, dx, extra=''):

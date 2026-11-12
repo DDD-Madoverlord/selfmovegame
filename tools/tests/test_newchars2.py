@@ -32,7 +32,7 @@ def run(ctx):
     st = g.js("""const { PARTS_DB } = await import('/js/data/parts.js');
         const { skillsForParts, legPassiveOf } = await import('/js/engine_v2/skills_v2.js');
         const { characterOfPart, ROSTER } = await import('/js/engine_v2/roster_v2.js');
-        const { CHARACTER_STARS } = await import('/js/engine_v2/growth_v2.js');
+        const { CHARACTER_ZONE } = await import('/js/engine_v2/growth_v2.js');
         const get = id => Object.values(PARTS_DB).flat().find(p => p.id === id);
         const out = {};
         for (const c of ['architect', 'broadcaster']) {
@@ -40,7 +40,7 @@ def run(ctx):
             const sk = skillsForParts({ head: get(`head_${c}`), body: get(`body_${c}`), arm: get(`arm_${c}`) });
             out[c] = { base: all.filter(p => !p.rigVariant).length, sets: all.filter(p => p.rigVariant).length,
                 skills: [sk.arm?.name, sk.body?.name, sk.head?.name], leg: legPassiveOf(get(`leg_${c}`))?.name,
-                atk: get(`arm_${c}`).attackType, up: !!get(`arm_${c}_up`).rigUpgrade, stars: CHARACTER_STARS[c],
+                atk: get(`arm_${c}`).attackType, up: !!get(`arm_${c}_up`).rigUpgrade, zone: CHARACTER_ZONE[c],
                 roster: !!ROSTER.find(r => r.id === c) };
         }
         return out;""")
@@ -51,7 +51,7 @@ def run(ctx):
               '설계자: 기초 파쇄 · 강제 재건 · 철거 명령 · 안전화, 기본 공격 부품 공격(공압 드릴)', str(a))
     ctx.check(c['skills'] == ['공명 파열', '정적의 장막', '긴급 방송'] and c['leg'] == '잡음 차단' and c['atk'] == 'kit' and c['up'],
               '방송자: 공명 파열 · 정적의 장막 · 긴급 방송 · 잡음 차단, 기본 공격 부품 공격(공명 음파)', str(c))
-    ctx.check(a['stars'] == 18 and c['stars'] == 18 and a['roster'] and c['roster'], '선택창 10명, 해금 별 18개', str(st))
+    ctx.check(a['zone'] == 9 and c['zone'] == 10 and a['roster'] and c['roster'], '선택창 10명, 설계자는 구역 9 · 방송자는 구역 10에서 합류 (D-119)', str(st))
 
     # 연구소: 강화 몸통·다리만 강화 그림
     for cid, base, up, name in (('architect', ARCH, ARCH_UP, '철거의 설계자'), ('broadcaster', CAST, CAST_UP, '침묵의 방송자')):

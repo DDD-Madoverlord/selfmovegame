@@ -135,7 +135,7 @@ def run(ctx):
             reset: reset.top < parts.top + 40 && reset.right > parts.right - 40,
             confirm: ok.top >= upg.top - 2 && ok.bottom <= upg.bottom + 2 && ok.right > upg.right - 60,
             cart: getComputedStyle(document.querySelector('#screen-lab-v2 .v2-lab__cart')).display };""")
-    ctx.check(st['vertical'] and st['totals'] == 4 and st['compact'], '연구소: 부위 탭 세로 · 고른 파츠 카드에 개조 후 능력치 4칸 · 나머지 파츠는 한 줄 (11-04 디자인 제안)', str(st))
+    ctx.check(st['vertical'] and st['totals'] == 5 and st['compact'], '연구소: 부위 탭 세로 · 고른 파츠 카드에 개조 후 능력치 5칸(방어력 % 포함, D-121) · 나머지 파츠는 한 줄 (11-04 디자인 제안)', str(st))
     ctx.check(st['reset'] and st['confirm'] and st['cart'] == 'none', '연구소: [초기화]는 파츠 칸 오른쪽 위, [확정]은 강화 줄 오른쪽, 아래 비용 줄 없음', str(st))
     # [확정] 자리 = 목록과 안 겹침 (부위 탭·세트 탭 모두 — 세트 탭은 강화 줄이 없어 단추가 목록을 덮던 것, 피드백 7) · 단추에 드는 DM (피드백 9)
     OVERLAP = """const ok = document.getElementById('btn-equip-confirm-v2').getBoundingClientRect(), grid = document.getElementById('parts-grid-v2').getBoundingClientRect();
@@ -195,7 +195,7 @@ def run(ctx):
     g.page.click('#select-grid-v2 .v2-charcard.is-locked')
     g.wait(200)
     toast = g.js("const t = document.getElementById('select-toast-v2'); return t.hidden ? '' : t.textContent;")
-    ctx.check('별' in toast, '선택창: 잠긴 캐릭터를 누르면 잠깐 뜨는 알림 (별이 모자람)', toast)
+    ctx.check('합류' in toast, '선택창: 잠긴 캐릭터를 누르면 잠깐 뜨는 알림 (언제 합류하는지 — 자동 합류 D-120)', toast)
     g.page.click('#select-grid-v2 .v2-charcard.is-selected')
     g.wait(500)
     ctx.check(g.js("return window.madOverlordGameV2.currentScreen;") == 'menu', '선택창: 카드를 누르면 [결정] 없이 바로 메인으로')

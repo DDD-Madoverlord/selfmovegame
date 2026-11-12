@@ -58,7 +58,7 @@ def run(ctx):
 
     # 메모리 격리 전 일반 진행을 보관한다.
     normal = g.js("progress.save(); return localStorage.getItem('mo_v2_save');")
-    g.page.goto(g.base + '/index.html?mockCommerce=1')
+    g.page.goto(g.base + '/index.html?skipTitle=1&mockCommerce=1')
     g.enter_v2()
     st = g.js(API + """
         const initial = gameState.darkMatter;
@@ -215,7 +215,7 @@ def run(ctx):
     g.reload_v2()
     st = g.js(API + "return [dev.isMockCommerce(),progress.commerce.orders.length===0,progress.commerce.mockSession,JSON.parse(localStorage.getItem('mo_v2_save')).dm===gameState.darkMatter];")
     ctx.check(all(st), '시험 주소 그대로 새로고침해도 시험분 소멸·일반 진행 재복사', str(st))
-    g.page.goto(g.base + '/index.html')
+    g.page.goto(g.base + '/index.html?skipTitle=1')
     g.enter_v2()
     ctx.check(g.js('return localStorage.getItem("mo_v2_save");') != '', '일반 진행으로 복귀')
     st = g.js(API + "return [!dev.isMockCommerce(),progress.commerce.orders.length===0,progress.commerce.mockSession===false];")

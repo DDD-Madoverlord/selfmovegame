@@ -58,4 +58,5 @@ def run(ctx):
     g.battle(('head_hero', 'body_hero', 'arm_hero_wave', 'leg_hero_hover'), wait_ms=600)
     g.js('b.shieldHp = 0; b.playerHp = 1000; b.damagePlayer(100, 0.016);')
     hp = g.js('return b.playerHp;')
-    ctx.check(abs(hp - 930) < 0.01, '다리 패시브 반중력 부양: 피해 30% 감소', str(hp))
+    taken = g.js('return b.roleTaken * b.sigIncomingMul();')   # 원거리 파동 팔: 받는 피해 ×1.2 (D-119)
+    ctx.check(abs(hp - (1000 - 70 * taken)) < 0.01, '다리 패시브 반중력 부양: 피해 30% 감소 (원거리 배율과 곱함)', f'{hp} (원거리 배율 {taken})')

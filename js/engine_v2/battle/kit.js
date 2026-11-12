@@ -16,7 +16,7 @@ import { ENEMY_ART } from '../enemyArt_v2.js';
 import { ensureEnemyStyles } from '../enemies_v2.js';
 import { SETS } from '../sets_v2.js';
 import { KIT_PASSIVES, runKitStep, spr, fxOf } from '../skillKit_v2.js';
-import { FOOT_B, SET, SAINT, DOLL } from './tuning.js';
+import { FOOT_B, SET, SAINT, DOLL, PIERCE2 } from './tuning.js';
 import { playImageField } from '../vfx/imageEffects.js';
 
 const ART_FOOT_B = 58;
@@ -157,7 +157,7 @@ export const KitMethods = {
         return 1 + this.kitMod('cdRate');
     },
     kitUltRate() {
-        return 1 + this.kitMod('ult');
+        return 1 + this.kitMod('ult') + (this.treeMods?.ult || 0);   // 특성 트리 '필살기 충전' (D-125)
     },
     kitCcMul() {
         if (this.kitFlag('ccImmune')) return 0;
@@ -487,7 +487,9 @@ export const KitMethods = {
     scrollKit(dt) {
         const d = this.groundSpeed() * dt;
         this.kitZones.forEach(z => { if (!z.follow) z.x -= d; });
-        this.kitWaves.forEach(w => { w.x -= d; w.start -= d; });
+        // 움직이는 판정(파동·투사체)은 바닥에 끌려가지 않음 — 쏜 캐릭터의 진격 속도를 물려받은 셈. 예전엔 바닥(약 427px/초)과 같이
+        // 뒤로 밀려 걸으면서 쏘면 앞으로 못 나가고 제자리(느린 것은 뒤로) — 11-08 QA. 바닥을 타는 판정만 ground: true
+        this.kitWaves.forEach(w => { if (w.ground) { w.x -= d; w.start -= d; } });
     },
 
     // ---- 움직이는 판정 ----
@@ -662,7 +664,7 @@ export const KitMethods = {
                 const range = this.playerRange + (def.extra || 0);
                 if (def.vfx) this.fx.play(def.vfx, muzzle.x, muzzle.bottom, { to: [this.frontX() + range, aimOf(target).b] });
                 let mul = 1;
-                this.enemiesInRange(range).slice(0, def.n || 3).forEach((e, i) => { hit(e, dmg * mul, isCrit && i === 0); mul *= def.decay ?? 0.7; });
+                this.enemiesInRange(range).slice(0, def.n || 3).forEach((e, i) => { hit(e, dmg * mul, isCrit && i === 0); mul *= (def.decay ?? 0.7) * PIERCE2.kitDecay; });   // 관통 2차 (D-119)
                 break;
             }
             case 'chain': {

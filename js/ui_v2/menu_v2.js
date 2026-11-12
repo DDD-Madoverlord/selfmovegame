@@ -16,12 +16,13 @@ import { skillsForParts, legPassiveOf } from '../engine_v2/skills_v2.js';
 import { progress } from '../engine_v2/progress_v2.js';
 import { rosterOf } from '../engine_v2/roster_v2.js';
 import { STAGES, CHAPTERS, stageById, isUnlocked, defaultStage, chapterOf, chapterUnlocked, defaultStageIn, unlockAllStagesTemp, allStagesUnlocked } from '../engine_v2/stages_v2.js';
-import { isZoneReleased, isCharacterReleased, releaseDateOf } from '../engine_v2/contentSchedule_v2.js';
+import { isZoneReleased, isCharacterReleased, releaseDateOf, releaseLabelOf } from '../engine_v2/contentSchedule_v2.js';
 import { DIFFICULTIES, difficultyOf, difficultyUnlocked, stageFor, FINAL_STAGE_ID } from '../engine_v2/difficulty_v2.js';
 import { ENEMY_TYPES } from '../engine_v2/enemies_v2.js';
 import { sound } from '../engine_v2/audio/sound_v2.js';
 import { icon, fillIcons } from './icons.js';
 import { openSettings } from './settingsPanel_v2.js';
+import { liveTune } from '../engine_v2/liveTune_v2.js';
 import { TacticalRadar } from './radar_v2.js';
 import { StageMap, stageNpcs, plainName } from './stageMap_v2.js';
 import { openGrowthPanel } from './growthUi_v2.js';
@@ -103,10 +104,11 @@ export class MenuController {
             taps = 0;
             if (!allStagesUnlocked()) {
                 unlockAllStagesTemp();
+                liveTune.enable(true);   // 왼쪽 가장자리 '⚖ 밸런스' 탭 (시험용 밸런스 조절, D-127 — 이 기기에 남음, 패널에서 숨김)
                 emblem.classList.add('is-dev-unlocked');
                 sound.play('ui_equip');
                 this.renderStages();
-                this.say('<b>시험 모드</b> — 모든 스테이지 잠금 해제 (게임을 다시 켜면 원래대로 · 원래 잠긴 판은 기록 안 됨) · 5번 더 누르면 캐릭터·파츠도 해제');
+                this.say('<b>시험 모드</b> — 모든 스테이지 잠금 해제 (게임을 다시 켜면 원래대로 · 원래 잠긴 판은 기록 안 됨) · 왼쪽 가장자리 ⚖ 탭 = 밸런스 조절 · 5번 더 누르면 캐릭터·파츠도 해제');
                 return;
             }
             if (!progress.unlockEverythingTemp()) return;
@@ -264,7 +266,7 @@ export class MenuController {
 
     /** 잠긴 구역 안내 (지도 안개 · 안내 줄): 공개 전이면 날짜, 아니면 앞 구역 보스 */
     zoneLockText(ch) {
-        if (!zoneOpen(ch.zone)) return `${releaseDateOf('zones', ch.zone)} 공개 예정`;
+        if (!zoneOpen(ch.zone)) return releaseDateOf('zones', ch.zone) ? `${releaseDateOf('zones', ch.zone)} 공개 예정` : releaseLabelOf('zones', ch.zone);
         const prev = CHAPTERS[CHAPTERS.indexOf(ch) - 1];
         const last = prev && prev.stages[prev.stages.length - 1];
         if (!last) return '';

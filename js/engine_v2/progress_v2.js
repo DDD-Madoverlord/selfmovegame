@@ -28,12 +28,16 @@ import { PetMethods } from './progressPets_v2.js';
 import { OfflineMethods, emptyOffline } from './offlineReward_v2.js';
 import { TutorialMethods, emptyTutorial } from './tutorial_v2.js';
 import { track } from './analytics_v2.js';
-import { gradeOf, TIER_UNLOCK } from './growth_v2.js';
+import { gradeOf, TIER_UNLOCK, UP_EXP } from './growth_v2.js';
 import { isDropOnly, dropGroupOf } from './sets_v2.js';
-import { allStagesUnlocked, isUnlockedNormally } from './stages_v2.js';
+import { allStagesUnlocked, isUnlockedNormally, GROUP_FIRST } from './stages_v2.js';
+import { revealAllTemp } from './contentSchedule_v2.js';
+import { roleOfArm, roleMods, armorOf } from './role_v2.js';
+import { liveTune } from './liveTune_v2.js';
 import * as saveStore from './saveStore_v2.js';
 import { settings } from './settings_v2.js';
 import { SupportProgressMethods } from './support_v2.js';
+import { SpecialMethods, emptySpecial } from './progressSpecial_v2.js';
 
 const KEY = 'mo_v2_save';
 export const MAX_LEVEL = 5;           // 노말 강화 한도 — 높은 난이도를 열면 올라감 (progress.maxLevel(), D-063)
@@ -64,6 +68,7 @@ class Progress {
         this.supportRandom = false;
         this.supportHelpSeen = false;
         Object.assign(this, emptyGrowth());   // 파츠 등급·조각·코어·스킬 레벨·모듈·연구·별 사용·파견 (저장)
+        this.special = emptySpecial();        // 스페셜맵 하루 횟수·기록 (progressSpecial_v2.js, D-123)
         this.commerce = emptyCommerce();
         this.offline = emptyOffline();
         this.tutorial = emptyTutorial();
@@ -109,6 +114,7 @@ class Progress {
         this.loadCommerce(data);
         this.loadPets(data);
         this.loadOffline(data);   // 펫 지급 등의 즉시 저장보다 먼저, 원래 savedAt으로 정산
+        this.loadSpecial(data);
         SLOTS.forEach(slot => this.owned.add(gameState.equippedParts[slot]));   // 장착 중인 파츠는 보유
         // 고른 캐릭터: 저장에 있으면 그것, v1 저장이면 몸통 캐릭터
         const saved = data && rosterOf(data.character) ? data.character : null;
@@ -163,6 +169,7 @@ class Progress {
             commerce: this.commerce,
             offline: this.offline,
             tutorial: this.tutorial,
+            special: this.specialData(),
             supportCharacter: this.supportCharacter,
             supportAuto: this.supportAuto,
             supportRandom: this.supportRandom,
@@ -265,6 +272,7 @@ class Progress {
         if (this.everythingUnlocked) return false;
         saveStore.isolateSaveInMemory();
         this.everythingUnlocked = true;
+        revealAllTemp();   // 숨김 그룹(구역 7~10·캐릭터 4명)도 이번 실행 동안만 공개 (D-119)
         ROSTER.forEach(c => { if (!this.unlockedChars.includes(c.id)) this.unlockedChars.push(c.id); });
         SLOTS.forEach(slot => (PARTS_DB[slot] || []).forEach(p => { if (p.id !== 'none') this.owned.add(p.id); }));
         this.save();
@@ -338,9 +346,18 @@ class Progress {
         return this.levels[id] || 1;
     }
 
-    /** 강화 한도: 열린 난이도 중 가장 높은 난이도의 한도 (노말 Lv5 → 하드 Lv7 → 헬 Lv9 → 나이트메어 Lv10) */
+    /** 강화 한도: 열린 난이도 중 가장 높은 난이도의 한도 (노말 Lv5 → 하드 Lv7 → 헬 Lv9 → 나이트메어 Lv10)
+     *  + 숨김 그룹 첫 판(7-1 · 9-1)이 노말에서 열릴 때마다 +2 (D-119 8번, Q-043 임시 — 그룹 노말이 이미 헬 수준) */
     maxLevel() {
-        return highestDifficulty(this).maxLevel;
+        const groups = [2, 3].filter(g => this.groupReached(g)).length;
+        return highestDifficulty(this).maxLevel + 2 * groups;
+    }
+
+    /** 숨김 그룹 첫 판이 노말에서 열렸는지 (고른 난이도와 상관없이) */
+    groupReached(group) {
+        const diff = this.difficulty;
+        this.difficulty = DEFAULT_DIFFICULTY;
+        try { return isUnlockedNormally(GROUP_FIRST[group], this); } finally { this.difficulty = diff; }
     }
 
     /** 장착한 파츠 중 지금 DM으로 강화할 수 있는 것이 있는지 (연구소 강화 안내 — main_v2.js) */
@@ -348,15 +365,20 @@ class Progress {
         return SLOTS.some(slot => { const c = this.upgradeCost(gameState.equippedParts[slot]); return c != null && c <= gameState.darkMatter; });
     }
 
-    /** 다음 레벨 강화 비용 (최대면 null) */
+    /** 이 파츠의 강화 한도: 계정 한도(열린 난이도 + 숨김 그룹)와 등급 한도 중 작은 쪽 (D-124) */
+    partMaxLevel(id) {
+        return Math.min(this.maxLevel(), gradeOf(this.gradeOf(id)).maxLevel);
+    }
+
+    /** 다음 레벨 강화 비용 (한도면 null) */
     upgradeCost(id) {
         const lv = this.levelOf(id);
-        if (lv >= this.maxLevel() || id === 'none') return null;
+        if (lv >= this.partMaxLevel(id) || id === 'none') return null;
         const p = partOf(slotOf(id), id);
         // 강화 기준값 = 가격 (가격 없는 유니크 세트는 1200 — 레어 세트 부위 값보다 조금 위, 레전더리 세트는 1600)
         const base = Math.max(p ? p.cost || ({ unique: 1200, legendary: 1600 }[dropGroupOf(p)] || 0) : 0, 200);
         const grade = gradeOf(this.gradeOf(id)).upCost;   // 등급 배율 (growth_v2.js GRADES upCost, 11-03)
-        return Math.round((base * 0.6 * lv * grade) / 10) * 10;
+        return Math.round((base * 0.6 * Math.pow(lv, UP_EXP) * grade) / 10) * 10;   // 레벨^1.6 (D-124)
     }
 
     upgrade(id) {
@@ -390,7 +412,10 @@ class Progress {
             else range += s.range;
             speed += s.speed;
         }
-        return { hp, dps, range: Math.max(80, range), speed: Math.max(30, speed) };
+        // 원거리·근거리 (D-119): 팔 공격 종류로 공격력·진격 속도 배율, 방어력(%) = 받는 피해 감소율 — 전투(battle_v2.js)와 연구소 표시가 같은 값
+        const role = roleOfArm(partsObj.arm), mod = roleMods(role);
+        dps *= liveTune.attackMul(characterOfPart(partsObj.body) || this.character);   // 밸런스 조절 (시험용, D-127) — 기본값이면 ×1
+        return { hp, dps: Math.round(dps * mod.dps), range: Math.max(80, range), speed: Math.max(30, Math.round(speed * mod.move)), role, armor: armorOf(role) };
     }
 
     equippedStats() {
@@ -454,7 +479,10 @@ class Progress {
         if (bonus) gameState.darkMatter += bonus;
         gameState.notify();
         const pets = this.checkPetRewards();
-        return { newStars, bonus, pets };
+        const chars = this.syncCharacterUnlocks();   // 구역 n-1이 열리면 그 구역 캐릭터 합류 (D-119 10번)
+        chars.forEach(id => track('character_unlock', { character: id, zone: this.characterZone(id) }));
+        if (chars.length) this.saveSoon();
+        return { newStars, bonus, pets, chars };
     }
 }
 
@@ -464,6 +492,7 @@ Object.assign(Progress.prototype, PetMethods);
 Object.assign(Progress.prototype, OfflineMethods);
 Object.assign(Progress.prototype, TutorialMethods);
 Object.assign(Progress.prototype, SupportProgressMethods);
+Object.assign(Progress.prototype, SpecialMethods);
 
 export const progress = new Progress();
 

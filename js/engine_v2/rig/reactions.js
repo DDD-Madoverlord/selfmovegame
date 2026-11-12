@@ -81,7 +81,7 @@ export const REACTIONS = {
  * 바람 (Q6): 걸음이 빠를수록 망토·머리카락이 더 뒤로 날림 (캐릭터 데이터 wind: [{ bone, rot }] — rot = 가장 빠를 때 더하는 각도,
  * 뒤로 날리는 쪽 부호는 리그마다 다름). 걷기 동작 배율(walkScale) 1이면 0, 1.45면 rot, 0.75면 반대로 조금 (덜 날림)
  */
-export const WIND = { fullAt: 1.45, ease: 4 };   // ease: 초당 따라가는 빠르기 (멈추면 천천히 가라앉음)
+export const WIND = { fullAt: 1.45, ease: 4, minK: -0.3 };   // minK: 느린 걸음에서 반대로 날리는 한계 (D-121 원거리 ×0.5)   // ease: 초당 따라가는 빠르기 (멈추면 천천히 가라앉음)
 
 /** 다리 뼈 (스킬 동작을 걸으며 쓸 때 걷기 동작을 그대로 두는 뼈 — rigAvatar 다리 층) */
 export const LOWER_BONE = /^(leg|thigh|shin)/;
