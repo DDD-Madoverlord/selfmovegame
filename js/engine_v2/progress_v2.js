@@ -38,6 +38,8 @@ import * as saveStore from './saveStore_v2.js';
 import { settings } from './settings_v2.js';
 import { SupportProgressMethods } from './support_v2.js';
 import { SpecialMethods, emptySpecial } from './progressSpecial_v2.js';
+import { StaminaMethods } from './progressStamina_v2.js';
+import { emptyStamina } from './stamina_v2.js';
 
 const KEY = 'mo_v2_save';
 export const MAX_LEVEL = 5;           // 노말 강화 한도 — 높은 난이도를 열면 올라감 (progress.maxLevel(), D-063)
@@ -69,6 +71,8 @@ class Progress {
         this.supportHelpSeen = false;
         Object.assign(this, emptyGrowth());   // 파츠 등급·조각·코어·스킬 레벨·모듈·연구·별 사용·파견 (저장)
         this.special = emptySpecial();        // 스페셜맵 하루 횟수·기록 (progressSpecial_v2.js, D-123)
+        this.stamina = emptyStamina();        // 피로도 (progressStamina_v2.js, Q-049)
+        this.staminaTestOff = false;          // 조절 패널 '피로도 끄기' (시험용, 저장 안 함)
         this.commerce = emptyCommerce();
         this.offline = emptyOffline();
         this.tutorial = emptyTutorial();
@@ -115,6 +119,7 @@ class Progress {
         this.loadPets(data);
         this.loadOffline(data);   // 펫 지급 등의 즉시 저장보다 먼저, 원래 savedAt으로 정산
         this.loadSpecial(data);
+        this.loadStamina(data);   // 맡긴 판이 남아 있으면(전투 중 꺼짐) 진 것으로 정리 · 노말 1-B를 깼으면 켬
         SLOTS.forEach(slot => this.owned.add(gameState.equippedParts[slot]));   // 장착 중인 파츠는 보유
         // 고른 캐릭터: 저장에 있으면 그것, v1 저장이면 몸통 캐릭터
         const saved = data && rosterOf(data.character) ? data.character : null;
@@ -170,6 +175,7 @@ class Progress {
             offline: this.offline,
             tutorial: this.tutorial,
             special: this.specialData(),
+            stamina: this.stamina,
             supportCharacter: this.supportCharacter,
             supportAuto: this.supportAuto,
             supportRandom: this.supportRandom,
@@ -480,6 +486,7 @@ class Progress {
         gameState.notify();
         const pets = this.checkPetRewards();
         const chars = this.syncCharacterUnlocks();   // 구역 n-1이 열리면 그 구역 캐릭터 합류 (D-119 10번)
+        if (this.syncStamina()) this.saveSoon();     // 노말 1-B를 처음 깨면 피로도가 켜짐 (가득, Q-049)
         chars.forEach(id => track('character_unlock', { character: id, zone: this.characterZone(id) }));
         if (chars.length) this.saveSoon();
         return { newStars, bonus, pets, chars };
@@ -493,6 +500,7 @@ Object.assign(Progress.prototype, OfflineMethods);
 Object.assign(Progress.prototype, TutorialMethods);
 Object.assign(Progress.prototype, SupportProgressMethods);
 Object.assign(Progress.prototype, SpecialMethods);
+Object.assign(Progress.prototype, StaminaMethods);
 
 export const progress = new Progress();
 

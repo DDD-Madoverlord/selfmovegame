@@ -5,6 +5,7 @@ import { kstDayKey, kstWeekKey } from './kstTime_v2.js';
 import { validatePets } from './pets_v2.js';
 import { validateOffline } from './offlineReward_v2.js';
 import { validateTutorial } from './tutorial_v2.js';
+import { validateStamina } from './stamina_v2.js';
 
 const memory = new Map();
 const listeners = new Set();
@@ -144,12 +145,13 @@ export function validateCommerce(c, allowMock = isMockCommerce()) {
                 && ((o.productId === 'pet_clockwork_keeper' && v.source === o.orderId && v.duplicateShards === 0)
                     || (o.productId === 'weekly_pass_7d' && v.source === `pass:${o.orderId}:7` && c.rewardClaims[v.source] && v.duplicateShards === 1)))) fail();
     }
-    for (const [field, dateField, allowed, max] of [['dailyAds', 'dayKey', Object.keys(AD_LIMITS), 2],
-        ['weeklyPurchases', 'weekKey', ['supply_small', 'supply_medium'], 1]]) {
+    // 하루 광고 횟수 한도는 자리마다 다름 (AD_LIMITS — idle_double 2 · stamina_ad 3)
+    for (const [field, dateField, allowed, max] of [['dailyAds', 'dayKey', Object.keys(AD_LIMITS), k => AD_LIMITS[k]],
+        ['weeklyPurchases', 'weekKey', ['supply_small', 'supply_medium'], () => 1]]) {
         const v = c[field];
         if (!shape(v, [dateField, 'counts']) || !object(v.counts) || !(v[dateField] === null || day(v[dateField]))
             || (v[dateField] === null && Object.keys(v.counts).length)
-            || Object.entries(v.counts).some(([k, n]) => !allowed.includes(k) || !uint(n) || n > max)) fail();
+            || Object.entries(v.counts).some(([k, n]) => !allowed.includes(k) || !uint(n) || n > max(k))) fail();
         if (field === 'weeklyPurchases' && v.weekKey && kstWeekKey(Date.parse(v.weekKey)) !== v.weekKey) fail();
     }
     if (c.dailyAds.dayKey && kstDayKey(c.lastSeenAt) < c.dailyAds.dayKey) fail();
@@ -179,6 +181,7 @@ function validate(entries) {
     if (data.pets !== undefined) validatePets(data.pets);
     if (data.offline !== undefined) validateOffline(data.offline);
     if (data.tutorial !== undefined) validateTutorial(data.tutorial);
+    if (data.stamina !== undefined) validateStamina(data.stamina);
     if (data.savedAt !== undefined && !Number.isFinite(data.savedAt)) throw new Error('저장 시간이 올바르지 않습니다.');
     if (data.saveId !== undefined && (typeof data.saveId !== 'string' || !data.saveId)) throw new Error('저장 식별자가 올바르지 않습니다.');
     for (const key of ['shards', 'cores', 'spentStars', 'charStarRefund', 'stones']) {

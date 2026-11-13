@@ -2,7 +2,7 @@
 export const CATALOG_VERSION = 1;
 export const PASS_HOURS = 168;
 export const PASS_DAILY = { dm: 1500, shards: 3 };
-export const AD_LIMITS = { idle_double: 2 };
+export const AD_LIMITS = { idle_double: 2, stamina_ad: 3 };   // 자리별 하루 횟수 (한국 0시 초기화) — stamina_ad: 피로도 +30 (stamina_v2.js)
 export const PRODUCTS = [
     { id: 'remove_ads_forever', name: '영구 광고 제거', type: 'permanent', priceKRW: 9900,
         desc: '보상형 광고 없이 보너스 받기 · 직접 받기와 하루 한도 유지 · 영구 복원', grant: {} },
