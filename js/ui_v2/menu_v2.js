@@ -32,6 +32,7 @@ import { openShop } from './shop_v2.js';
 import { createOfflineRewardButton, updateOfflineRewardButton } from './offlineRewardUi_v2.js';
 import { updateSupportMenu } from './supportUi_v2.js';
 import { shouldPlayIntro, playStoryIntro, introZoneOf, hasIntro } from './storyIntro_v2.js';
+import { staminaGate } from './staminaUi_v2.js';
 
 const $ = id => document.getElementById(id);
 const SLOTS = [
@@ -140,12 +141,15 @@ export class MenuController {
                 this.say(isMobile() ? '<b>출격 불가</b> — 연구소에서 몸통 파츠를 사세요' : '<b>출격 불가</b> — 몸통 파츠가 없습니다. MUTATION LAB에서 파츠를 구매하세요');
                 return;
             }
-            // 구역의 첫 스테이지(N-1)를 처음 출격: 스토리 인트로(모션 코믹) 뒤 전투 (storyIntro_v2.js, D-100)
-            if (shouldPlayIntro(progress.selectedStage)) {
-                playStoryIntro(introZoneOf(progress.selectedStage)).then(() => this.switchScreen('battle'));
-                return;
-            }
-            this.switchScreen('battle');
+            // 피로도 확인 (Q-049) — 모자라면 부족 창, 충전해서 채우면 그대로 출격. 인트로보다 먼저 (다 보고 나서 막히지 않게)
+            staminaGate(() => {
+                // 구역의 첫 스테이지(N-1)를 처음 출격: 스토리 인트로(모션 코믹) 뒤 전투 (storyIntro_v2.js, D-100)
+                if (shouldPlayIntro(progress.selectedStage)) {
+                    playStoryIntro(introZoneOf(progress.selectedStage)).then(() => this.switchScreen('battle'));
+                    return;
+                }
+                this.switchScreen('battle');
+            });
         });
         // 스토리 다시 보기: 고른 구역의 인트로 (끝나면 메인 화면 그대로)
         $('btn-story-intro-v2')?.addEventListener('click', () => {

@@ -3289,6 +3289,26 @@ body.v2-mobile .v2-story__title-text { zoom: 1.2; }
 .v2-account__err { display: flex; gap: 10px; align-items: flex-start; padding: 10px 14px; border: 1px solid rgba(255, 51, 85, 0.5); background: rgba(255, 51, 85, 0.08); font-size: 13px; line-height: 1.55; }
 .v2-account__err b { color: var(--v2-red); }
 
+/* 피로도 부족 창 (Q-049, ui_v2/staminaUi_v2.js) — 계정 연동 창과 같은 결 · 결과 화면 '돌려받음' 줄 */
+.v2-stamina { position: fixed; inset: 0; z-index: 9100; background: rgba(3, 4, 7, 0.72); display: grid; place-items: center; font-family: "Noto Sans KR", sans-serif; }
+.v2-stamina__panel { width: min(460px, 92vw); max-height: 92vh; overflow: auto; padding: 20px 24px; display: grid; gap: 12px; color: var(--v2-text); }
+.v2-stamina__kicker { font: 600 11px var(--v2-font-num); letter-spacing: 0.3em; color: var(--v2-amber); }
+.v2-stamina__panel h2 { margin: 0; font-size: 21px; font-weight: 900; }
+.v2-stamina__need { display: flex; gap: 22px; padding: 10px 14px; background: rgba(0, 0, 0, 0.3); border: 1px solid rgba(255, 255, 255, 0.1); font-size: 13px; color: var(--v2-dim); }
+.v2-stamina__need b { margin-left: 6px; font: 800 18px var(--v2-font-num); color: #ffd84a; }
+.v2-stamina__need span:last-child b { color: var(--v2-red); }
+.v2-stamina__wait { margin: 0; font-size: 13px; color: var(--v2-dim); line-height: 1.6; }
+.v2-stamina__wait b { color: var(--v2-text); }
+.v2-stamina__row { display: flex; flex-wrap: wrap; gap: 8px; }
+.v2-stamina__row .v2-btn { flex: 1 1 180px; min-height: 44px; display: inline-flex; align-items: center; justify-content: center; gap: 6px; }
+.v2-stamina__row .v2-btn small { font-size: 11px; opacity: 0.75; font-weight: 600; }
+.v2-stamina__row .v2-btn:disabled { opacity: 0.4; filter: grayscale(0.6); cursor: not-allowed; }
+.v2-stamina__row--end { justify-content: flex-end; }
+.v2-stamina__row--end .v2-btn { flex: 0 0 auto; min-width: 110px; }
+.v2-stamina__msg { margin: 0; font-size: 13px; color: var(--v2-amber); }
+.v2-result__stamina { margin: 4px 0 0; font-size: 13px; color: #ffd84a; }
+.v2-result__stamina small { margin-left: 6px; color: var(--v2-dim); font-size: 11px; }
+
 /* 스페셜맵 (D-123): 작전 지원 '스페셜' 탭 카드 · 결과 화면 보상 줄 */
 .v2-special { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 10px; }
 .v2-special__card { display: grid; gap: 6px; padding: 12px 14px; border: 1px solid rgba(255, 255, 255, 0.12); border-left: 3px solid var(--v2-amber);

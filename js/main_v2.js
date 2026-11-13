@@ -26,6 +26,7 @@ import { settings } from './engine_v2/settings_v2.js';
 import { initAnalytics, track } from './engine_v2/analytics_v2.js';
 import { initCommerceDev } from './engine_v2/commerceDev_v2.js';
 import { TutorialUi } from './ui_v2/tutorialUi_v2.js';
+import { staminaGate, staminaReady } from './ui_v2/staminaUi_v2.js';
 import { getSupabaseClient, checkSupabaseHealth } from './engine_v2/supabase_v2.js';
 
 class GameRouterV2 {
@@ -81,9 +82,16 @@ class GameRouterV2 {
 
         // 결과 화면 버튼 (다음 / 다시 출격 / 연구소 / 메인 메뉴) → 화면 전환
         // '다음 N-1'로 새 구역 첫 판에 가도 지도에서 고른 때처럼 스토리 인트로를 먼저 (처음 한 번, D-100 · 11-07 QA)
+        // 피로도 (Q-049): '다음'·'재도전'·'다시 출격'도 먼저 확인 — 모자라면 결과 화면 위에 부족 창 (스페셜·탑은 안 씀)
         battleEngineV2.onNavigate = name => {
-            if (name === 'battle' && !battleEngineV2.pendingSpecial && shouldPlayIntro(progress.selectedStage)) {
-                playStoryIntro(introZoneOf(progress.selectedStage)).then(() => this.switchScreen('battle'));
+            if (name === 'battle' && !battleEngineV2.pendingSpecial) {
+                staminaGate(() => {
+                    if (shouldPlayIntro(progress.selectedStage)) {
+                        playStoryIntro(introZoneOf(progress.selectedStage)).then(() => this.switchScreen('battle'));
+                        return;
+                    }
+                    this.switchScreen('battle');
+                });
                 return;
             }
             this.switchScreen(name);
@@ -159,6 +167,8 @@ class GameRouterV2 {
     }
 
     switchScreen(screenName) {
+        // 피로도 안전망 (Q-049): 출격 단추·결과 화면이 이미 확인했으면 그대로 통과. 다른 길로 모자란 채 들어오면 부족 창
+        if (screenName === 'battle' && !battleEngineV2.pendingSpecial && !staminaReady(() => this.switchScreen('battle'))) return;
         if (this.currentScreen === 'battle' && screenName !== 'battle') {
             battleEngineV2.stopBattle();
         }

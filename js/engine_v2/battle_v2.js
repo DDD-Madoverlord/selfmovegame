@@ -174,6 +174,8 @@ export class BattleEngine {
             this.stage = this.growthStage(assistStage(stageFor(stageById(sid), this.difficulty), this.assist));   // + 계정 연구 DM (growth.js)
         }
         this.stage = this.tunedStage(this.stage, true);   // 밸런스 조절 (시험용, D-127): 적 체력·공격력 배율 — 기본값이면 그대로
+        // 피로도 (Q-049): 보통 판이면 비용을 맡김 — 확인은 출격 단추·결과 화면에서 먼저 함(ui_v2/staminaUi_v2.js), 스페셜·탑은 안 씀
+        this.staminaRes = progress.reserveStamina(this.stage, this.difficulty);
         predecodeStageArt(this.stage);   // 이 스테이지 적 그림을 미리 풂 (enemies_v2.js — 처음 나올 때 멈칫하지 않게)
         // 구역 배경 (ui_v2.css .v2-zone-1 ~ 4 · 6), 보스전은 경보 조명·불길 판 (.v2-stage-boss)
         // .v2-boss-rage(구역 4 보스 2페이즈)·.v2-crimson(구역 3 악마기사 소환 점멸)은 전투 중에 붙음
@@ -327,6 +329,8 @@ export class BattleEngine {
 
     // 전투 정지 및 퇴각
     stopBattle() {
+        // 피로도: 맡긴 채 끝나기 전에 나감(작전 포기·메인으로) → 시작 10초 안이면 전부 돌려받고, 그 뒤면 진 것과 같음 (Q-049)
+        if (progress.stamina?.pending) progress.settleStamina('quit');
         this.isActive = false;
         this.domEnemies?.querySelectorAll('.v2-kit-art').forEach(el => el.remove());
         this.clearPet();
@@ -517,6 +521,7 @@ export class BattleEngine {
         const prevStars = [...progress.stage(this.stage.id, diff).stars];
         const firstClear = victory && !progress.stage(this.stage.id, diff).cleared;
         const record = progress.recordStage(this.stage.id, { stars: this.starFlags, cleared: victory, time: this.stats.time }, diff);
+        const stamina = progress.settleStamina(victory ? 'win' : 'lose');   // 피로도: 이기면 확정, 지거나 시간 초과면 1만 쓰고 돌려받음 (Q-049)
         const next = victory ? nextStageOf(this.stage.id) : null;
         // 고른 판을 깨면 '진행해야 할 판'(아직 안 깬 가장 앞 판, 다 깼으면 바로 다음 판)을 골라 둠 — 결과에서 [메인 메뉴]·[연구소]로 나와도 (11-05 피드백 13번).
         // [다시 출격]은 깬 판을 다시 고름, [다음]은 바로 다음 판
@@ -556,6 +561,7 @@ export class BattleEngine {
             kills: this.stats.kills,
             time: this.stats.time,
             dm: Math.max(0, gameState.darkMatter - this.stats.startDm),
+            stamina,                                   // { used, refund } — 진 판 '피로도 N 돌려받음'
             report: victory ? null : this.runReport()   // 패배 원인·할 일 (runReport.js)
         };
         this.stopBattle();

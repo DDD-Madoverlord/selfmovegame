@@ -5,13 +5,17 @@
 - DM 충전 하루 3회(방치 보상 2·4·8시간치), 한국 0시에 다시 채움, 시계를 되돌려도 어제로 안 감
 - 노말 1-B를 깨면 켜짐(가득) · 스페셜맵·시험 모드 2단계는 안 씀 · 전투 중 새로 고침 → 다음 실행 때 진 것으로 정리
 - 저장 검사: 모양이 틀린 피로도 백업은 거절 · 백업 왕복 · 광고 하루 한도는 자리마다(idle_double 2 · stamina_ad 3)
-출격 길 연결(메인 출격 · 결과 화면 단추 · 전투 시작·결과 · 작전 포기)은 2단계에서 검사를 더한다."""
+2단계 출격 길: 메인 출격 → 맡김 → 이김 확정 · 결과 화면 '다시 출격' → 짐 → '피로도 5 돌려받음' · 퇴각 10초 안 전부 / 그 뒤 1 ·
+  모자라면 부족 창(광고·DM, 충전하면 바로 출격) · 결과 화면 '다음'도 확인 · 스페셜맵은 안 씀 · 하드 8
+다른 검사는 common.enter_v2가 window.madOverlordNoStamina로 피로도를 끄고, 이 검사만 다시 켠다."""
 import json
 
 ST = "const ST = await import('/js/engine_v2/stamina_v2.js');"
 T0 = "const T0 = Date.parse('2026-11-12T03:00:00Z'), MIN = 60000, HOUR = 3600000;"   # 한국 11-12 낮 12시
 S = "const S = await import('/js/engine_v2/stages_v2.js');"
 CLEAR_TO_10 = S + """for (const s of S.STAGES) { if (s.id === '1-B') break; progress.stages[s.id] = { stars: [true, true, true], cleared: true, bestTime: 60 }; }"""
+ON = "window.madOverlordNoStamina = false;"
+MENU = "const go = n => window.madOverlordGameV2.switchScreen(n);"
 API = "const backup = await import('/js/engine_v2/progress_v2.js'); const store = await import('/js/engine_v2/saveStore_v2.js');"
 PACK = """const pack = value => {
     const payload = btoa(unescape(encodeURIComponent(JSON.stringify(value))));
@@ -24,6 +28,7 @@ PACK = """const pack = value => {
 def run(ctx):
     g = ctx.game(fresh=True)
     g.enter_v2()
+    g.js(ON)   # common.enter_v2가 끈 피로도를 다시 켬
 
     # ===== 규칙: 회복 =====
     st = g.js(ST + T0 + """const s = ST.emptyStamina(), M = 80;
@@ -164,6 +169,7 @@ def run(ctx):
               '보통 판 출격: 6을 맡기고 맡긴 판을 바로 저장', str(st))
     ctx.check(st['sp'] == {'ok': True, 'cost': 0} and st['spr']['cost'] == 0 and st['hard'] == 8, '스페셜맵·탑은 피로도를 안 씀', str(st))
     g.reload_v2()
+    g.js(ON)
     st = g.js("return { v: progress.stamina.v, pending: progress.stamina.pending, stale: progress.staminaStale };")
     ctx.check(st['v'] == 79 and st['pending'] is None and st['stale'] and st['stale']['refund'] == 5 and st['stale']['used'] == 1,
               '전투 중 꺼지면 다음 실행 때 진 것으로 정리 (1만 쓰고 5 돌려받음)', str(st))
@@ -206,8 +212,90 @@ def run(ctx):
     with g.page.expect_navigation():
         g.js(API + f'backup.importSave({json.dumps(st["code"])});')
     g.enter_v2()
+    g.js(ON)
     st = g.js("return { v: progress.stamina.v, on: progress.stamina.on };")
     ctx.check(st['v'] == 123 and st['on'], '백업을 불러오면 피로도도 돌아옴', str(st))
+
+    # ===== 2단계: 출격 길 — 메인 출격 단추 → 맡김 → 이김 확정 =====
+    g.js(MENU + "progress.stamina.v = 80; progress.selectStage('1-5'); progress.selectDifficulty('normal'); progress.save(); go('menu');")
+    g.page.click('#btn-to-battle-v2')
+    g.wait(2500)
+    st = g.js("return { active: b.isActive, id: b.stage.id, v: progress.stamina.v, p: progress.stamina.pending };")
+    ctx.check(st['active'] and st['id'] == '1-5' and st['v'] == 74 and st['p'] and st['p']['cost'] == 6 and st['p']['stage'] == '1-5',
+              '메인 출격: 노말 1-5에 6을 맡기고 출격', str(st))
+    g.js("b.finishBattle(true);")
+    g.wait(2500)
+    st = g.js("return { v: progress.stamina.v, p: progress.stamina.pending, line: !!document.querySelector('.v2-result__stamina') };")
+    ctx.check(st['v'] == 74 and st['p'] is None and not st['line'], '이기면 6 확정 · 결과 화면에 돌려받음 줄 없음', str(st))
+
+    # ===== 결과 화면 '다시 출격' → 짐 → 돌려받음 줄 =====
+    g.page.click('.v2-result [data-act=retry]')
+    g.wait(2500)
+    st = g.js("return { active: b.isActive, v: progress.stamina.v };")
+    ctx.check(st['active'] and st['v'] == 68, "결과 화면 '다시 출격'도 6을 맡김", str(st))
+    g.js("b.finishBattle(false);")
+    g.wait(2500)
+    st = g.js("return { v: progress.stamina.v, line: document.querySelector('.v2-result__stamina')?.textContent || '' };")
+    ctx.check(st['v'] == 73 and '5 돌려받음' in st['line'], "지면 1만 쓰고 5를 돌려받음 · 결과 화면 '피로도 5 돌려받음'", str(st))
+    g.shot('stamina_result_lose', '#screen-battle-v2')
+
+    # ===== 작전 포기: 10초 안이면 전부, 그 뒤면 진 것과 같음 =====
+    g.page.click('.v2-result [data-act=retry]')
+    g.wait(1500)
+    v0 = g.js("return progress.stamina.v;")
+    g.js("document.getElementById('btn-battle-leave-v2').click();")
+    g.wait(800)
+    st = g.js("return { v: progress.stamina.v, p: progress.stamina.pending, screen: document.querySelector('.screen-v2.active')?.id };")
+    ctx.check(v0 == 67 and st['v'] == 73 and st['p'] is None and st['screen'] == 'screen-menu-v2', '시작 10초 안에 퇴각하면 전부 돌려받음', str((v0, st)))
+    g.page.click('#btn-to-battle-v2')
+    g.wait(1500)
+    g.js("progress.stamina.pending.t -= 11000; document.getElementById('btn-battle-leave-v2').click();")
+    g.wait(800)
+    st = g.js("return { v: progress.stamina.v, p: progress.stamina.pending };")
+    ctx.check(st['v'] == 72 and st['p'] is None, '10초가 지나 퇴각하면 진 것과 같음 (1 사용)', str(st))
+
+    # ===== 모자라면 출격 안 됨 → 부족 창 → DM 충전하면 바로 출격 =====
+    g.js("progress.stamina.v = 2; progress.stamina.buy = { day: null, n: 0 }; gameState.darkMatter = 1000000; progress.save();")
+    g.page.click('#btn-to-battle-v2')
+    g.wait(600)
+    st = g.js("""const el = document.querySelector('.v2-stamina'), t = q => (el?.querySelector(q)?.textContent || '').replace(/\s+/g, ' ');
+        return { open: !!el, screen: document.querySelector('.screen-v2.active')?.id, active: b.isActive,
+            need: t('.v2-stamina__need'), wait: t('.v2-stamina__wait'), buy: t('[data-act=buy]'), ad: t('[data-act=ad]') };""")
+    ctx.check(st['open'] and st['screen'] == 'screen-menu-v2' and not st['active'] and '6' in st['need'] and '2' in st['need'] and '분' in st['wait'],
+              '모자라면 출격 안 됨 → 부족 창 (필요 6 · 지금 2 · 기다릴 시간)', str(st))
+    ctx.check('+40' in st['buy'] and '0/3' in st['buy'] and '+30' in st['ad'] and '0/3' in st['ad'], '부족 창: DM +40 · 광고 +30 · 오늘 횟수', str(st))
+    g.shot('stamina_short', 'body')
+    g.page.click('.v2-stamina [data-act=ad]')
+    g.wait(500)
+    st = g.js("return { v: progress.stamina.v, msg: document.querySelector('.v2-stamina__msg')?.textContent || '', open: !!document.querySelector('.v2-stamina') };")
+    ctx.check(st['v'] == 2 and st['open'] and bool(st['msg']), '광고를 못 받으면 이유를 보여 주고 값 그대로 (검사 환경은 광고 준비 중)', str(st))
+    g.page.click('.v2-stamina [data-act=buy]')
+    g.wait(2500)
+    st = g.js("return { open: !!document.querySelector('.v2-stamina'), active: b.isActive, v: progress.stamina.v, buy: progress.stamina.buy.n };")
+    ctx.check(not st['open'] and st['active'] and st['v'] == 36 and st['buy'] == 1, 'DM으로 +40 → 창이 닫히고 바로 출격 (42 − 6 = 36)', str(st))
+
+    # ===== 결과 화면 '다음'도 확인 — 모자라면 결과 화면 위에 부족 창 =====
+    g.js("b.finishBattle(true);")
+    g.wait(2500)
+    g.js("progress.stamina.v = 3; progress.save();")
+    g.page.click('.v2-result [data-act=next]')
+    g.wait(600)
+    st = g.js("return { open: !!document.querySelector('.v2-stamina'), result: !!document.querySelector('.v2-result'), active: b.isActive, v: progress.stamina.v };")
+    ctx.check(st['open'] and st['result'] and not st['active'] and st['v'] == 3, "결과 화면 '다음'도 모자라면 부족 창 (결과 화면은 그대로)", str(st))
+    g.page.click('.v2-stamina [data-act=close]')
+    g.wait(300)
+    ctx.check(not g.js("return !!document.querySelector('.v2-stamina');"), "부족 창 '닫기'", '')
+
+    # ===== 스페셜맵 · 하드 비용 =====
+    st = g.js("""const r = progress.startSpecial('boss'); window.madOverlordGameV2.startSpecial(r.stage);
+        return { ok: r.success, sp: b.stage.special, v: progress.stamina.v, p: progress.stamina.pending };""")
+    ctx.check(st['ok'] and st['sp'] == 'boss' and st['v'] == 3 and st['p'] is None, '스페셜맵 출격은 피로도를 안 씀 (모자라도 들어감)', str(st))
+    g.js(MENU + "b.stopBattle(); go('menu'); progress.stamina.v = 20; progress.selectDifficulty('hard'); progress.selectStage('1-1'); progress.save();")
+    g.page.click('#btn-to-battle-v2')
+    g.wait(1500)
+    st = g.js("return { active: b.isActive, diff: b.difficulty, v: progress.stamina.v, cost: progress.stamina.pending?.cost };")
+    ctx.check(st['active'] and st['diff'] == 'hard' and st['v'] == 12 and st['cost'] == 8, '하드 출격은 8 (하드 1-1)', str(st))
+    g.js(MENU + "b.stopBattle(); go('menu'); progress.selectDifficulty('normal');")
 
     # ===== 시험 모드 2단계: 피로도 안 씀 =====
     st = g.js(S + """const s = S.stageById('1-5'); const v0 = progress.stamina.v;

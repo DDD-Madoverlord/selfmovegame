@@ -96,6 +96,8 @@ class Game:
         self.page.wait_for_selector('.v2-loading', state='detached', timeout=30000)
         # 스토리 인트로(1-1·2-1·3-1 첫 출격, D-100)는 출격 단추를 누르는 검사마다 끼어들므로 끔 — test_story_intro.py만 다시 켬
         self.page.evaluate('() => { window.madOverlordNoIntro = true; }')
+        # 피로도(Q-049)도 끔 — 출격을 여러 번 하는 검사가 피로도에 막히지 않게. test_stamina.py만 다시 켬
+        self.page.evaluate('() => { window.madOverlordNoStamina = true; }')
         self.wait(300)
 
     def reload_v2(self):

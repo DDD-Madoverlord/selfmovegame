@@ -533,6 +533,7 @@ export class BattleDirector {
                 ${(r.pets || []).map(id => `<p class="v2-result__pet">펫 획득 · ${petOf(id).name} — 작전 지원에서 장착할 수 있어요</p>`).join('')}
                 ${r.unlocked ? `<p class="v2-result__unlock" style="--diff:${r.unlocked.color}">${icon('star', 16)} <b>${r.unlocked.name}</b> 난이도가 열렸습니다 · 파츠 강화 한도 Lv${r.maxLevel || r.unlocked.maxLevel}</p>` : ''}
                 ${(r.chars || []).map(id => `<p class="v2-result__unlock v2-result__join" style="--diff:${rosterOf(id)?.color ? hexRgb(rosterOf(id).color) : '62, 230, 255'}">${icon('star', 16)} <b>${rosterOf(id)?.faction || id}</b> 합류! 캐릭터 선택에서 고를 수 있습니다</p>`).join('')}
+                ${r.stamina && r.stamina.refund ? `<p class="v2-result__stamina">⚡ 피로도 ${r.stamina.refund} 돌려받음 <small>진 판은 1만 씁니다</small></p>` : ''}
                 ${r.victory ? '' : reportHtml(r.report)}
                 </div>
                 <div class="v2-result__actions">
