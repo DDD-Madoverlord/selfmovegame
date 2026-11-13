@@ -3306,6 +3306,34 @@ body.v2-mobile .v2-story__title-text { zoom: 1.2; }
 .v2-stamina__row--end { justify-content: flex-end; }
 .v2-stamina__row--end .v2-btn { flex: 0 0 auto; min-width: 110px; }
 .v2-stamina__msg { margin: 0; font-size: 13px; color: var(--v2-amber); }
+.v2-stamina__row--end .v2-btn--primary { min-width: 130px; }
+.v2-stamina__need .is-ok b { color: #3dff8a; }
+.v2-stamina__now { display: inline-flex; align-items: baseline; gap: 4px; margin-left: 6px; font: 900 24px var(--v2-font-num); color: #ffd84a; }
+.v2-stamina__now .v2-icon { align-self: center; }
+.v2-stamina__now small { font-size: 14px; color: var(--v2-dim); font-weight: 700; }
+.v2-stamina__costs { margin: 0; font-size: 12px; color: var(--v2-dim); line-height: 1.6; }
+/* ⚡ 피로도 칩 (위 재화 줄 맨 앞 — currencyBar_v2.js): 노랑, 노말 한 판도 못 하면 빨강, 넘치면 주황 테 */
+.v2-chip--stamina { cursor: pointer; border-color: rgba(255, 216, 74, 0.55); color: #ffd84a; font: inherit; font-family: var(--v2-font-num); }
+.v2-chip--stamina[hidden] { display: none; }
+.v2-chip--stamina em { display: inline-flex; font-style: normal; }
+.v2-chip--stamina b { color: #fff; font-size: 15px; }
+.v2-chip--stamina small { color: var(--v2-dim); font-size: 11px; }
+.v2-chip--stamina:hover { filter: brightness(1.2); }
+.v2-chip--stamina.is-low { border-color: rgba(255, 70, 90, 0.7); }
+.v2-chip--stamina.is-low b { color: #ff6b7d; }
+.v2-chip--stamina.is-over { border-color: #ff9a2a; box-shadow: inset 0 0 0 1px rgba(255, 154, 42, 0.5); }
+/* 출격 단추 ⚡ 비용 (menu_v2.js updateSortieCost) · 결과 화면 '다음'·'재도전' 단추 비용 */
+.v2-sortie__cost { position: absolute; top: 10px; right: 84px; display: inline-flex; align-items: center; gap: 2px; padding: 2px 9px 2px 6px; border-radius: 10px;
+    font: 800 14px var(--v2-font-num); font-style: normal; color: #ffd84a; background: rgba(18, 12, 6, 0.86); }
+.v2-sortie__cost[hidden] { display: none; }
+.v2-sortie__cost.is-short { color: #fff; background: rgba(200, 30, 50, 0.92); }
+.v2-btn__cost { display: inline-flex; align-items: center; gap: 1px; margin-left: 8px; padding: 1px 7px 1px 4px; border-radius: 9px; font: 800 12px var(--v2-font-num); font-style: normal;
+    color: #ffd84a; background: rgba(0, 0, 0, 0.55); vertical-align: middle; }
+.v2-btn__cost.is-short { color: #fff; background: rgba(200, 30, 50, 0.9); }
+/* 결과 화면 단추는 폭이 좁아 비용을 글자 아래 줄에 (네 단추가 한 줄이라 옆에 두면 '다시 출격'이 세로로 꺾임) */
+.v2-result__actions .v2-btn.has-cost { flex-direction: column; gap: 3px; }
+.v2-result__actions .v2-btn__label { display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; }
+.v2-result__actions .v2-btn__cost { margin-left: 0; }
 .v2-result__stamina { margin: 4px 0 0; font-size: 13px; color: #ffd84a; }
 .v2-result__stamina small { margin-left: 6px; color: var(--v2-dim); font-size: 11px; }
 

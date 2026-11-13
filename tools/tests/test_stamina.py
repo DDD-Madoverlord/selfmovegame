@@ -7,6 +7,8 @@
 - 저장 검사: 모양이 틀린 피로도 백업은 거절 · 백업 왕복 · 광고 하루 한도는 자리마다(idle_double 2 · stamina_ad 3)
 2단계 출격 길: 메인 출격 → 맡김 → 이김 확정 · 결과 화면 '다시 출격' → 짐 → '피로도 5 돌려받음' · 퇴각 10초 안 전부 / 그 뒤 1 ·
   모자라면 부족 창(광고·DM, 충전하면 바로 출격) · 결과 화면 '다음'도 확인 · 스페셜맵은 안 씀 · 하드 8
+3단계 화면: 위 재화 줄 ⚡ 칩(맨 앞) · 칩을 누르면 피로도 창(다음 1까지·가득까지 1초마다 · 비용) · 모자라면 빨강 · 시간으로 차면 저절로 바뀜 ·
+  출격 단추·결과 화면 단추 ⚡ 비용 · 처음 켜진 뒤 안내 말풍선 · 안 쓰는 때 숨김 · 휴대폰 배치(칩·비용·창·결과 단추가 화면·단추 안에)
 다른 검사는 common.enter_v2가 window.madOverlordNoStamina로 피로도를 끄고, 이 검사만 다시 켠다."""
 import json
 
@@ -297,6 +299,68 @@ def run(ctx):
     ctx.check(st['active'] and st['diff'] == 'hard' and st['v'] == 12 and st['cost'] == 8, '하드 출격은 8 (하드 1-1)', str(st))
     g.js(MENU + "b.stopBattle(); go('menu'); progress.selectDifficulty('normal');")
 
+    # ===== 3단계 화면: ⚡ 칩 (위 재화 줄 맨 앞) · 출격 단추 비용 =====
+    st = g.js(MENU + """progress.stamina.v = 52; progress.stamina.at = Date.now() - 108000; progress.selectStage('1-5'); progress.save(); go('menu'); gameState.notify();
+        const chips = [...document.querySelectorAll('.v2-chip--stamina')];
+        const top = document.querySelector('#screen-menu-v2 .v2-topbar .v2-chip--stamina');
+        const cost = document.getElementById('menu-sortie-cost-v2');
+        return { n: chips.length, top: (top?.textContent || '').replace(/\s+/g, ''), shown: !!top && !top.hidden && top.getClientRects().length > 0,
+            beforeRes: !!top?.nextElementSibling?.classList.contains('v2-chip--res'),
+            cost: cost && !cost.hidden ? cost.textContent.trim() : null, short: !!cost?.classList.contains('is-short') };""")
+    ctx.check(st['n'] >= 4 and st['shown'] and st['top'] == '52/80' and st['beforeRes'], '위 재화 줄 맨 앞에 ⚡ 52/80 칩 (메인·선택·연구소·휴대폰 지도 창 자리마다)', str(st))
+    ctx.check(st['cost'] == '6' and not st['short'], "출격 단추에 '⚡ 6'", str(st))
+    g.shot('stamina_menu', '#screen-menu-v2')
+
+    # ===== ⚡ 칩을 누르면 피로도 창: 다음 1까지 · 가득까지 · 비용 =====
+    g.page.click('#screen-menu-v2 .v2-topbar .v2-chip--stamina')
+    g.wait(400)
+    st = g.js("""const el = document.querySelector('.v2-stamina'), t = q => (el?.querySelector(q)?.textContent || '').replace(/\s+/g, ' ');
+        return { mode: el?.dataset.mode, h: t('h2'), timer: t('[data-stamina-timer]'), costs: t('.v2-stamina__costs') };""")
+    ctx.check(st['mode'] == 'info' and '52' in st['h'] and '다음 1까지 4:1' in st['timer'] and '가득까지 2:46:1' in st['timer'],
+              '칩을 누르면 피로도 창: 지금 52 · 다음 1까지 4:1x · 가득까지 2:46:1x', str(st))
+    ctx.check('하드 8' in st['costs'] and '나이트메어 12' in st['costs'] and '1만' in st['costs'], '피로도 창에 난이도별 비용 · 진 판 1', str(st))
+    g.wait(1100)
+    t2 = g.js("return document.querySelector('[data-stamina-timer]')?.textContent || '';")
+    ctx.check(t2 != st['timer'] and '다음 1까지' in t2, '피로도 창 시간은 1초마다 바뀜', f"{st['timer']} → {t2}")
+    g.shot('stamina_info', 'body')
+    g.page.click('.v2-stamina [data-act=close]')
+
+    # ===== 모자라면 칩·출격 단추 빨강 =====
+    st = g.js("""progress.stamina.v = 3; progress.save(); gameState.notify();
+        const top = document.querySelector('#screen-menu-v2 .v2-topbar .v2-chip--stamina'), cost = document.getElementById('menu-sortie-cost-v2');
+        return { low: top.classList.contains('is-low'), short: cost.classList.contains('is-short') };""")
+    ctx.check(st['low'] and st['short'], '노말 한 판도 못 하면 ⚡ 칩·출격 단추 비용이 빨강', str(st))
+
+    # ===== 시간으로 1이 차면 1초 안에 칩이 바뀜 =====
+    g.js("progress.stamina.v = 40; progress.stamina.at = Date.now() - 359500; progress.save(); gameState.notify();")
+    g.wait(1600)
+    st = g.js("return (document.querySelector('#screen-menu-v2 .v2-topbar .v2-chip--stamina')?.textContent || '').replace(/\\s+/g, '');")
+    ctx.check(st == '41/80', '시간으로 1이 차면 칩이 저절로 41/80', st)
+
+    # ===== 결과 화면 '다음'·'다시 출격' 단추에 비용 =====
+    g.js("progress.stamina.v = 80; progress.save(); gameState.notify();")
+    g.page.click('#btn-to-battle-v2')
+    g.wait(2000)
+    g.js("b.finishBattle(true);")
+    g.wait(2500)
+    st = g.js("""const c = a => document.querySelector(`.v2-result [data-act=${a}] .v2-btn__cost`)?.textContent.trim() || null;
+        return { next: c('next'), retry: c('retry') };""")
+    ctx.check(st['next'] == '6' and st['retry'] == '6', "결과 화면 '다음'·'다시 출격' 단추에 ⚡ 6", str(st))
+    g.shot('stamina_result_win', '#screen-battle-v2')
+    g.js(MENU + "go('menu');")
+
+    # ===== 처음 켜진 뒤 메인 화면: 안내 말풍선 한 번 (⚡ 칩 아래) =====
+    st = g.js("const seen = progress.hasTip('stamina_intro'); progress.tips.delete('stamina_intro'); document.querySelectorAll('.v2-coach').forEach(n => n.remove()); return seen;")
+    g.wait(800)
+    st2 = g.js("return { text: document.querySelector('#screen-menu-v2 .v2-coach')?.textContent || '', seen: progress.hasTip('stamina_intro') };")
+    ctx.check(st and '피로도' in st2['text'] and '6분' in st2['text'] and st2['seen'], '피로도가 켜진 뒤 메인 화면에 안내 말풍선 한 번 (본 것 저장)', str((st, st2)))
+
+    # ===== 자동 검사·시험 끄기면 칩·비용 숨김 =====
+    st = g.js("""window.madOverlordNoStamina = true; gameState.notify();
+        const top = document.querySelector('#screen-menu-v2 .v2-topbar .v2-chip--stamina'), cost = document.getElementById('menu-sortie-cost-v2');
+        const r = { chip: top.hidden, cost: cost.hidden }; window.madOverlordNoStamina = false; gameState.notify(); return r;""")
+    ctx.check(st['chip'] and st['cost'], '피로도를 안 쓰는 때(자동 검사·시험)는 칩·출격 비용 숨김', str(st))
+
     # ===== 시험 모드 2단계: 피로도 안 씀 =====
     st = g.js(S + """const s = S.stageById('1-5'); const v0 = progress.stamina.v;
         progress.unlockEverythingTemp();
@@ -305,3 +369,33 @@ def run(ctx):
             check: progress.staminaCheck(s, 'nightmare') };""")
     ctx.check(st['exempt'] and st['cost'] == 0 and st['same'] and st['pending'] is None and st['check']['cost'] == 0,
               '시험 모드 2단계(저장이 남지 않는 시험)에서는 피로도를 안 씀', str(st))
+
+    # ===== 휴대폰 배치: ⚡ 칩은 늘 보임 · 출격 단추 비용 =====
+    mg = ctx.game(fresh=True, viewport=(800, 360), touch=True)
+    mg.enter_v2()
+    mg.js(ON + CLEAR_TO_10 + " progress.recordStage('1-B', { stars: [true, true, true], cleared: true, time: 60 }, 'normal'); progress.tips.add('stamina_intro'); progress.selectStage('1-5'); progress.stamina.v = 52; progress.save(); gameState.notify();")
+    mg.wait(600)
+    st = mg.js("""const r = q => { const e = document.querySelector(q); if (!e || e.hidden) return null; const b = e.getBoundingClientRect(); return [b.left, b.top, b.right, b.bottom].map(Math.round); };
+        const chip = r('#screen-menu-v2 .v2-topbar .v2-chip--stamina'), res = r('#screen-menu-v2 .v2-topbar .v2-chip--res'), cost = r('#menu-sortie-cost-v2'), sortie = r('#btn-to-battle-v2');
+        return { mobile: document.body.classList.contains('v2-mobile'), chip, res, cost, sortie, vw: innerWidth,
+            text: (document.querySelector('#screen-menu-v2 .v2-topbar .v2-chip--stamina')?.textContent || '').replace(/\s+/g, '') };""")
+    ok_chip = st['chip'] and st['res'] and st['chip'][2] <= st['res'][0] + 1 and st['chip'][0] >= 0 and st['chip'][2] <= st['vw']
+    ok_cost = st['cost'] and st['sortie'] and st['sortie'][0] <= st['cost'][0] and st['cost'][2] <= st['sortie'][2] and st['sortie'][1] <= st['cost'][1] and st['cost'][3] <= st['sortie'][3]
+    ctx.check(st['mobile'] and ok_chip and st['text'] == '52/80', '휴대폰: ⚡ 칩이 화면 안 · 별·조각 칩 왼쪽에 겹치지 않게', str(st))
+    ctx.check(ok_cost, '휴대폰: 출격 단추 비용이 단추 안에', str(st))
+    mg.shot('stamina_mobile_menu', 'body')
+    mg.page.click('#screen-menu-v2 .v2-topbar .v2-chip--stamina')
+    mg.wait(400)
+    st = mg.js("""const p = document.querySelector('.v2-stamina__panel')?.getBoundingClientRect();
+        return p ? { w: Math.round(p.width), h: Math.round(p.height), vw: innerWidth, vh: innerHeight, top: Math.round(p.top) } : null;""")
+    ctx.check(st and st['w'] <= st['vw'] and st['top'] >= 0, '휴대폰: 피로도 창이 화면 안 (넘치면 안에서 밀기)', str(st))
+    mg.shot('stamina_mobile_info', 'body')
+    mg.page.click('.v2-stamina [data-act=close]')
+    mg.page.click('#btn-to-battle-v2')
+    mg.wait(2000)
+    mg.js("b.finishBattle(true);")
+    mg.wait(2500)
+    st = mg.js("""const bs = [...document.querySelectorAll('.v2-result__actions .v2-btn')];
+        return { n: bs.length, over: bs.filter(x => x.scrollWidth > x.clientWidth + 1).map(x => x.dataset.act), cost: !!document.querySelector('.v2-result [data-act=next] .v2-btn__cost') };""")
+    ctx.check(st['n'] >= 3 and not st['over'] and st['cost'], '휴대폰 결과 화면: 비용을 단 단추가 넘치지 않음', str(st))
+    mg.shot('stamina_mobile_result', 'body')

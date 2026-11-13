@@ -562,6 +562,8 @@ export class BattleEngine {
             time: this.stats.time,
             dm: Math.max(0, gameState.darkMatter - this.stats.startDm),
             stamina,                                   // { used, refund } — 진 판 '피로도 N 돌려받음'
+            staminaCost: progress.staminaApplies(this.stage) ? progress.staminaCost(diff) : 0,   // '다음'·'재도전' 단추의 ⚡ 비용
+            staminaHave: progress.stamina.v,
             report: victory ? null : this.runReport()   // 패배 원인·할 일 (runReport.js)
         };
         this.stopBattle();

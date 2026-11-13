@@ -504,6 +504,8 @@ export class BattleDirector {
             isNew: !!r.starFlags[i] && !(r.prevStars && r.prevStars[i])
         }));
         const earned = stars.filter(st => st.now).length;
+        // 피로도 (Q-049): '다음'·'재도전'·'다시 출격' 단추의 ⚡ 비용 — 모자라면 빨강 (누르면 부족 창)
+        const cost = r.staminaCost ? `<em class="v2-btn__cost${r.staminaHave < r.staminaCost ? ' is-short' : ''}">${icon('bolt', 13)}${r.staminaCost}</em>` : '';
         const el = this.layer(`v2-result ${r.victory ? 'is-win' : 'is-lose'}`, `
             <div class="v2-result__panel v2-panel">
                 <div class="v2-hazard v2-result__stripe"></div>
@@ -537,10 +539,10 @@ export class BattleDirector {
                 ${r.victory ? '' : reportHtml(r.report)}
                 </div>
                 <div class="v2-result__actions">
-                    ${r.next ? `<button class="v2-btn v2-btn--primary" data-act="next">${icon('play', 16)} 다음 ${r.next.id}</button>` : ''}
+                    ${r.next ? `<button class="v2-btn v2-btn--primary${cost ? ' has-cost' : ''}" data-act="next"><span class="v2-btn__label">${icon('play', 16)} 다음 ${r.next.id}</span>${cost}</button>` : ''}
                     ${r.special && r.special.mode === 'tower' ? `<button class="v2-btn v2-btn--primary" data-act="retry">${icon('play', 16)} ${r.victory ? `다음 층 (${r.special.nextFloor}층)` : `다시 도전 (${r.special.nextFloor}층)`}</button>`
                     : r.special ? (r.special.left > 0 ? `<button class="v2-btn v2-btn--primary" data-act="retry">${icon('play', 16)} 한 번 더 (오늘 ${r.special.left}회 남음)</button>` : '<button class="v2-btn v2-btn--ghost" disabled>오늘 횟수를 다 썼어요</button>')
-                        : `<button class="v2-btn ${r.next ? 'v2-btn--ghost' : 'v2-btn--primary'}" data-act="retry">${r.next ? '' : icon('play', 16)} ${r.victory ? '다시 출격' : '재도전'}</button>`}
+                        : `<button class="v2-btn ${r.next ? 'v2-btn--ghost' : 'v2-btn--primary'}${cost ? ' has-cost' : ''}" data-act="retry"><span class="v2-btn__label">${r.next ? '' : icon('play', 16)} ${r.victory ? '다시 출격' : '재도전'}</span>${cost}</button>`}
                     <button class="v2-btn v2-btn--ghost" data-act="lab">${icon('gear', 16)} 연구소</button>
                     <button class="v2-btn v2-btn--ghost" data-act="menu">메인 메뉴</button>
                 </div>

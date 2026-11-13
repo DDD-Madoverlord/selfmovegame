@@ -32,7 +32,7 @@ import { openShop } from './shop_v2.js';
 import { createOfflineRewardButton, updateOfflineRewardButton } from './offlineRewardUi_v2.js';
 import { updateSupportMenu } from './supportUi_v2.js';
 import { shouldPlayIntro, playStoryIntro, introZoneOf, hasIntro } from './storyIntro_v2.js';
-import { staminaGate } from './staminaUi_v2.js';
+import { staminaGate, sortieTarget } from './staminaUi_v2.js';
 
 const $ = id => document.getElementById(id);
 const SLOTS = [
@@ -372,12 +372,33 @@ export class MenuController {
             + `<button class="v2-mstage__pick" data-act="stages">${icon('map', 34)}스테이지 선택</button>`;
     }
 
+    /** 출격 단추의 ⚡ 비용 (피로도 Q-049 3단계) — 쓰지 않는 때(켜지기 전·스페셜 맵 탭·시험)는 숨김, 모자라면 빨강 */
+    updateSortieCost() {
+        const btn = $('btn-to-battle-v2');
+        if (!btn) return;
+        let tag = $('menu-sortie-cost-v2');
+        if (!tag) {
+            tag = document.createElement('em');
+            tag.id = 'menu-sortie-cost-v2';
+            tag.className = 'v2-sortie__cost';
+            btn.appendChild(tag);
+        }
+        const { stage, diff } = sortieTarget();
+        const c = this.map === 'story' ? progress.staminaCheck(stage, diff) : { ok: true, cost: 0 };
+        tag.hidden = !c.cost;
+        if (!c.cost) return;
+        tag.classList.toggle('is-short', !c.ok);
+        tag.innerHTML = `${icon('bolt', 14)}${c.cost}`;
+        tag.title = c.ok ? `출격하면 피로도 ${c.cost}` : `피로도가 모자랍니다 (지금 ${c.have})`;
+    }
+
     /** 메인 화면이 보일 때마다: 장착 상태로 캐릭터/설명/능력치/상태 줄 갱신, 레이더 시작 */
     updateDisplay() {
         this.updateOfflineReward();
         window.madOverlordGameV2?.tutorialUi?.update();
         if ($('menu-shop-badge-v2')) $('menu-shop-badge-v2').textContent = progress.canClaimPass() ? '●' : '';
         refreshCurrency();   // 별·조각·코어 · DM — 모든 화면 같은 표시줄 (currencyBar_v2.js)
+        this.updateSortieCost();   // 출격 단추 ⚡ 비용 (피로도 Q-049)
         const badge = $('menu-support-badge-v2');   // 받을 파견이 있으면 빨간 점
         const dispatchDone = progress.dispatch.some(d => d.end <= Date.now());
         if (badge) badge.textContent = dispatchDone ? ' ' : '';
