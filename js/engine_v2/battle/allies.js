@@ -169,7 +169,9 @@ export const AllyMethods = {
 
     // [대세뇌] 살아 있는 적 보병을 즉시 아군으로 (보상 없이 전장에서 제거 후 세뇌 미니언 소환)
     convertEnemy(e) {
-        if (!this.enemies.includes(e) || e.isBuilding) return;
+        // 보스·바리케이드·움직이지 않는 것은 세뇌 안 됨 — 보스가 목록에서 빠지면 승리 조건이 사라짐 (11-14 버그 점검 S1)
+        if (!this.enemies.includes(e) || e.isBuilding || e.isBarricade || e.boss || (e.t && e.t.static)) return;
+        this.dropStatues(e);   // 열기 주술사를 세뇌하면 못 깨운 조각상도 부서짐 (enemyField.js)
         this.enemies = this.enemies.filter(o => o !== e);
         if (e.dom) e.dom.remove();
         this.mindOrb(e.x);

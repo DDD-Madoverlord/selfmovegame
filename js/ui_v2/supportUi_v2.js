@@ -1,5 +1,6 @@
 import { progress } from '../engine_v2/progress_v2.js';
 import { ROSTER, rosterOf } from '../engine_v2/roster_v2.js';
+import { isCharacterReleased } from '../engine_v2/contentSchedule_v2.js';
 import { SUPPORT, supportUnitOf, supportPairText } from '../engine_v2/support_v2.js';
 import { RIG_CHARACTERS } from '../engine_v2/rig/characters.js';
 import { icon } from './icons.js';
@@ -40,7 +41,8 @@ export function supportHtml() {
     const selected = progress.supportCharacter;
     const candidates = progress.supportCandidates();
     const invalid = selected && progress.supportReason(selected);
-    const cards = ROSTER.map(c => {
+    // 공개 전 캐릭터(숨김 그룹)는 목록에 안 나옴 — 선택창은 '???'로 가리는데 여기는 이름·얼굴·필살기가 그대로 보였음 (11-14 버그 점검 L3)
+    const cards = ROSTER.filter(c => isCharacterReleased(c.id)).map(c => {
         const reason = progress.supportReason(c.id);
         const def = supportUnitOf(c.id);
         const on = selected === c.id;

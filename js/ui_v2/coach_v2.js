@@ -28,6 +28,8 @@ export const COACH = {
 export function coach(id, anchor, { remember = true } = {}) {
     const c = COACH[id];
     if (!c || (remember && progress.hasTip(id))) return null;
+    // 화면을 덮는 창 뒤에서 뜨면 못 본 채 사라지고 본 것으로 남음 (11-14 버그 점검 L9) — 다음 기회에 다시 뜸
+    if ([...document.querySelectorAll('.v2-title, .v2-account')].some(n => n.getClientRects().length)) return null;
     // 선택자를 쉼표로 여럿 주면 앞에서부터 보이는 것 (PC 단추 / 휴대폰 배치 메뉴 줄 단추)
     const a = typeof anchor === 'string'
         ? anchor.split(',').map(sel => [...document.querySelectorAll(sel)].find(n => n.getClientRects().length)).find(Boolean)

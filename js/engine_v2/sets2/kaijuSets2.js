@@ -92,7 +92,7 @@ export const KAIJU_SETS2 = packOf('kaiju', [
         bonus: { 2: '포식 쿨다운 -3초', 4: '체력 50% 아래에서 판마다 한 번 재생 폭발 — 체력 30% 회복 + 둘레 적 밀쳐냄' },
         kit: {
             2: { patch: { kjDevour: { cd: -3 } } },
-            4: { on: [{ when: 'lowHp', once: 'regen', heal: 0.3, label: '재생 폭발!', step: { do: 'push', range: 300, dist: 150, dmg: 1.2, vfx: null } }] }
+            4: { on: [{ when: 'lowHp', below: 0.5, once: 'regen', heal: 0.3, label: '재생 폭발!', step: { do: 'push', range: 300, dist: 150, dmg: 1.2, vfx: null } }] }
         },
         head: { name: '원시 왕관 머리', look: '큰 뿔 왕관, 빛나는 초록 눈', skill: 'kjDoomBeam', desc: '필살기 멸망의 숨결: 등지느러미가 빛난 뒤 4초간 초록 열선 (일직선 지속 피해, 거점 2배)', stats: { hp: 1100, dps: 90, range: 30, speed: 0 } },
         body: { name: '발광 등판 외피', look: '등에 수정 같은 발광 지느러미 줄', skill: 'kjMolt', desc: '진화 탈피: 체력 25% 회복 + 해로운 효과 풀림 + 5초 진격 속도 +30%', stats: { hp: 2800, dps: 60, range: 0, speed: 0 } },

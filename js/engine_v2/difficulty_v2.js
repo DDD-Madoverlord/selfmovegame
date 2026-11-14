@@ -85,7 +85,9 @@ const roundTo = (v, step) => Math.round(v / step) * step;
 function hasteBoss(boss, haste) {
     if (!boss || typeof boss !== 'object' || haste === 1) return boss;
     const out = { ...boss };
-    for (const k of ['artillery', 'gas', 'knights', 'orbital', 'containers', 'geysers', 'donors', 'flares', 'freeze', 'blackout', 'broadcast']) {
+    // 스테이지 표(stages_v2.js)의 보스 기믹 이름과 같아야 함 — 구역 8·9·10의 altars·scrap·antennas가 빠져 있고
+    // 안 쓰는 이름(freeze·blackout·broadcast)이 들어 있어 그 세 구역만 빨라지지 않았음 (11-14 버그 점검 M8)
+    for (const k of ['artillery', 'gas', 'knights', 'orbital', 'containers', 'geysers', 'donors', 'flares', 'altars', 'scrap', 'antennas']) {
         if (boss[k]) out[k] = { ...boss[k], every: round2(boss[k].every / haste) };
     }
     return out;

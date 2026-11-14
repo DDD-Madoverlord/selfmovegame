@@ -31,6 +31,20 @@ export const SpecialBattleMethods = {
         if (!this.smashQueue.length && !this.enemies.some(e => e.smashScore)) this.endSmash(true);
     },
 
+    /**
+     * 파괴 작전 물체는 바닥에 놓인 것 — 주인공이 걷는 만큼 다가온다 (battle_v2.js tickAdvance 걷기 갈래, 성수대 scrollFonts와 같음).
+     * 예전에는 물체가 420px 앞에 서 있기만 해서 사거리 420 미만인 팔은 기본 공격이 한 번도 닿지 않았고,
+     * 진격 거리만 쌓여 물체가 한 자리에 겹쳐 섰다 (11-14 버그 점검 S4). 사거리 안에 들어오면 걷기가 멈추고 공격하므로 더 다가오지 않음
+     */
+    scrollSmash(dt) {
+        if (!this.smashQueue) return;
+        this.enemies.forEach(e => {
+            if (!e.smashScore) return;
+            e.x -= this.groundSpeed() * dt;
+            if (e.dom) e.dom.style.left = `${e.x}px`;
+        });
+    },
+
     /** 물체를 부숨 (enemyField.js onEnemyKilled 바리케이드 갈래) */
     smashOnBreak(e) {
         const S = SPECIAL.smash;
@@ -57,6 +71,7 @@ export const SpecialBattleMethods = {
         this.finalBaseDestroyed = true;   // 전투 루프 정지 (결과까지)
         this.cinematic = true;
         this.clearSupport();
+        this.lockVictory();   // 점수·보상을 지금 확정 (battle_v2.js — 끝나는 연출 중에 나가도 받음)
         this.director.alarm(allDone ? 'CLEAR' : 'TIME UP', `파괴 작전 점수 ${this.smashScore.toLocaleString()}`, 1.2);
         const run = this.runId;
         setTimeout(() => { if (this.runId === run && this.isActive) this.finishBattle(true); }, 1300);

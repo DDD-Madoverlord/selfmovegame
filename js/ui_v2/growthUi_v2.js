@@ -18,6 +18,7 @@ import { icon } from './icons.js';
 import { mountDispatch, tickDispatch, unmountDispatch, dispatchAct, showReturn } from './dispatchUi_v2.js';
 import { petsHtml, petAct } from './petsUi_v2.js';
 import { supportHtml } from './supportUi_v2.js';
+import { refreshCurrency } from './currencyBar_v2.js';
 
 const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 
@@ -157,6 +158,7 @@ function render(preserveScroll = true) {
         <nav class="v2-growth__tabs">${tabs.map(([id, label]) => `<button data-act="tab" data-tab="${id}" class="${tab === id ? 'is-on' : ''}" ${id === 'pets' && !petUnlocked ? 'disabled title="노말 1-1 클리어 후 해금"' : ''}>${label}${id === 'pets' && !petUnlocked ? ' 🔒' : ''}</button>`).join('')}</nav>
         <div class="v2-growth__body${tab === 'dispatch' ? ' is-dispatch' : ''}">${body}</div>
     </div>`;
+    refreshCurrency();   // 머리 줄을 새로 그렸으니 ⚡ 칩을 다시 붙임 (안 부르면 이 창에만 칩이 없었음 — 11-14 버그 점검 L2)
     if (tab === 'dispatch') mountDispatch(panel.querySelector('.v2-growth__body'));   // 파견 중 장면 (dispatchUi_v2.js)
     panel.querySelector('.v2-growth__body').scrollTop = scrollTop;
 }

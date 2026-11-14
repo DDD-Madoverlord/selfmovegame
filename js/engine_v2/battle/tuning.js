@@ -191,3 +191,7 @@ export const POPUP = { column: 36, stackMs: 350, stackPx: 15, dotFlushSec: 0.5 }
 export const FOOT_B = 58;   // 지면 이펙트 높이 (bottom px)
 // 거점 건물 왼쪽 끝 위치 (전장 1280px 기준): 그림 폭(약 220px)이 하단 오른쪽 스킬 도크(약 x 965부터)에 가리지 않게
 export const BASE_X = { mid: 720, final: 720 };
+// 적이 나타나는 자리 (전장 1280px 기준, 거점이 없을 때). 전장은 창 크기와 상관없이 늘 1280px 기준으로 그리고 배율만 바뀌므로(main_v2.js fitScreens)
+// 자리도 창 폭을 보지 않는다 — 예전에는 창 폭 1000px 이하(휴대폰 가로 대부분)면 적 700 · 거점 620~650 · 성수대 640으로 당겨서
+// 휴대폰에서만 적이 화면 가운데서 생기고 280px 가까이서 싸움이 시작됐다 (밸런스 측정은 PC 폭 — 11-14 버그 점검 S8)
+export const SPAWN_X = 980;

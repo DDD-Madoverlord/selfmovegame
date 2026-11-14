@@ -55,6 +55,8 @@ export const SpecialMethods = {
     /** 들어가기: 횟수 1 쓰고 전투 스테이지를 돌려줌 */
     startSpecial(mode, now = Date.now()) {
         if (!this.specialUnlocked()) return { success: false, reason: `노말 ${SPECIAL.unlockStage}를 깨면 열립니다` };
+        // 몸통을 아직 안 끼운 캐릭터(방금 합류한 캐릭터 등)는 스토리 출격처럼 막음 — 체력 0으로 들어가 횟수만 쓰던 것 (11-14 버그 점검 S7)
+        if (!this.isReady()) return { success: false, reason: '몸통 파츠가 없어 출격할 수 없습니다 — 연구소에서 몸통을 끼우세요' };
         if (this.specialLeft(mode, now) <= 0) return { success: false, reason: '오늘 횟수를 다 썼어요 (한국 시간 0시에 다시 채워짐)' };
         const key = kstDayKey(this.specialTime(now));
         if (this.special.dayKey !== key) this.special = { ...this.special, dayKey: key, used: { boss: 0, smash: 0 } };
@@ -91,6 +93,7 @@ export const SpecialMethods = {
     /** 들어가기 (횟수 없음): 다음 층 스테이지 */
     startTower(now = Date.now()) {
         if (!this.stage(TOWER.unlockStage, 'normal').cleared) return { success: false, reason: `노말 ${TOWER.unlockStage}를 깨면 열립니다` };
+        if (!this.isReady()) return { success: false, reason: '몸통 파츠가 없어 출격할 수 없습니다 — 연구소에서 몸통을 끼우세요' };
         const stage = towerStage(this.nextTowerFloor(), now);
         track('special_start', { mode: 'tower', step: stage.specialStep });
         return { success: true, stage };

@@ -63,8 +63,10 @@ export const GrowthMethods = {
             for (const id of Object.keys(CHARACTER_ZONE)) {
                 if (SLOTS.some(s => partsOfCharacter(id, s).some(p => p.cost && this.owned.has(p.id)))) this.unlockedChars.push(id);
             }
-        } else if (data && !this.charStarRefund) {
+        } else if (data && !('charStarRefund' in data)) {
             // 별로 캐릭터를 사던 때(D-044)의 저장: 그때 쓴 별을 한 번 돌려줌 (D-119 10번 — 이제 구역에 가면 저절로 합류)
+            // 그때 저장에는 이 표시(charStarRefund) 자체가 없다. 표시가 0으로 '있는' 저장은 D-119 뒤에 새로 시작해 한 번도
+            // 다시 켜지 않은 저장이라 돌려줄 것이 없음 — 값이 0인지만 보던 때는 새 저장도 둘째 실행에 별 6~12개를 돌려받았음 (11-14 버그 점검 S6)
             const refund = this.unlockedChars.reduce((n, id) => n + (LEGACY_CHARACTER_STARS[id] || 0), 0);
             this.spentStars = Math.max(0, this.spentStars - refund);
         }

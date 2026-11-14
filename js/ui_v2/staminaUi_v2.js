@@ -174,7 +174,11 @@ function afterCharge(r) {
         return;
     }
     view.msg = `피로도 +${r.added}`;
+    // 충전 직후 잠깐 단추를 막음 — 같은 자리에 다음 값(2배) 단추가 바로 그려져 두 번 누르면 두 번 샀음 (11-14 버그 점검 M7)
+    const v = view;
+    v.busy = true;
     render();
+    setTimeout(() => { if (view === v) { v.busy = false; render(); } }, 700);
 }
 
 async function onClick(e) {

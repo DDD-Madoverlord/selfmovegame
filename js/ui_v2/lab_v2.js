@@ -661,7 +661,11 @@ export class LabController {
             const need = craft ? craft.shards : owned0 && gc ? gc.shards : null;
             $('lab-grade-cost-v2').innerHTML = !valid ? '' : need != null
                 ? `${icon('shard', 12)}<b class="${(craft ? need > progress.shards : poor.sh) ? 'is-poor' : ''}">${need}</b><i>/${progress.shards}</i>`
-                    + (gc && !craft ? ` <b class="${poor.st ? 'is-poor' : ''}">◆${gc.stones}</b><i>/${progress.stones || 0}</i>` : '') : !owned0 ? '구매 후' : 'MAX';
+                    + (gc && !craft ? ` <b class="${poor.st ? 'is-poor' : ''}">◆${gc.stones}</b><i>/${progress.stones || 0}</i>` : '')
+                    // DM 값도 단추에 (11-14 버그 점검 M3 — 예전에는 마우스를 올려야 보이는 말풍선에만 있어 2만~20만 DM이 말없이 빠졌음).
+                    // 강화 레벨이 모자라 꺼져 있을 때는 그 까닭을 대신 보여 줌 (휴대폰은 말풍선이 없음)
+                    + (gc && !craft ? `<em class="${!lvOk || poor.dm ? 'is-poor' : ''}">${lvOk ? `DM ${gc.dm.toLocaleString()}` : `먼저 Lv${gc.needLevel} 강화`}</em>` : '')
+                    : !owned0 ? '구매 후' : 'MAX';
             gBtn.title = craft ? `파츠 조각 ${craft.shards}개로 만들기 — ${gradeOf(craft.grade).name} (보유 ${progress.shards})`
                 : gc ? `${gradeOf(gc.grade).name}로: Lv${gc.needLevel} 강화 뒤 · 조각 ${gc.shards} · DM ${gc.dm.toLocaleString()} · 승급석 ${gc.stones} (보유 조각 ${progress.shards} · 승급석 ${progress.stones || 0})${lvOk ? '' : ' — 먼저 강화'}` : '';
         }

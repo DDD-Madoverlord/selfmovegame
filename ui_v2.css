@@ -2559,8 +2559,10 @@ div.v2-settings__row > span { flex: 1; }
 .v2-partcard__badge.is-drop { background: rgb(186, 104, 255); color: #fff; }   /* 드랍·조각 전용 (유니크 세트, Q-008) */
 /* 해금 재화 (11-05 피드백 10번): 카드 배지 아이콘 · [만들기]·[등급 ▲] 필요/보유 · 세트 줄 남은 값 */
 .v2-partcard__badge .v2-icon { width: 11px; height: 11px; margin-right: 2px; vertical-align: -1px; }
-#lab-grade-cost-v2 { display: inline-flex; align-items: center; gap: 2px; }
-#lab-grade-cost-v2 .v2-icon { width: 12px; height: 12px; }
+#lab-grade-cost-v2 { display: block; text-align: center; white-space: nowrap; }
+#lab-grade-cost-v2 em { display: block; font-style: normal; font-weight: 700; font-size: 10px; }   /* DM 값 · 먼저 채울 조건 (셋째 줄 — 단추 폭은 그대로) */
+#lab-grade-cost-v2 em.is-poor { color: #ff5a6e; }
+#lab-grade-cost-v2 .v2-icon { width: 12px; height: 12px; vertical-align: -2px; }
 #lab-grade-cost-v2 b.is-poor { color: #ff5a6e; }
 #lab-grade-cost-v2 i { font-style: normal; font-weight: 400; opacity: 0.75; }
 .v2-setrow__head { flex-wrap: wrap; row-gap: 2px; }
@@ -3290,7 +3292,7 @@ body.v2-mobile .v2-story__title-text { zoom: 1.2; }
 .v2-account__err b { color: var(--v2-red); }
 
 /* 피로도 부족 창 (Q-049, ui_v2/staminaUi_v2.js) — 계정 연동 창과 같은 결 · 결과 화면 '돌려받음' 줄 */
-.v2-stamina { position: fixed; inset: 0; z-index: 9100; background: rgba(3, 4, 7, 0.72); display: grid; place-items: center; font-family: "Noto Sans KR", sans-serif; }
+.v2-stamina { position: fixed; inset: 0; z-index: 22002; background: rgba(3, 4, 7, 0.72); display: grid; place-items: center; font-family: "Noto Sans KR", sans-serif; }
 .v2-stamina__panel { width: min(460px, 92vw); max-height: 92vh; overflow: auto; padding: 20px 24px; display: grid; gap: 12px; color: var(--v2-text); }
 .v2-stamina__kicker { font: 600 11px var(--v2-font-num); letter-spacing: 0.3em; color: var(--v2-amber); }
 .v2-stamina__panel h2 { margin: 0; font-size: 21px; font-weight: 900; }

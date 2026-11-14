@@ -419,6 +419,8 @@ export class StageMap {
         const r = routeOf(this.pages[at.page].zone);
         const target = r.stops[at.k];
         if (walk && h.page === at.page && h.pos != null && (h.pos !== target || this.walking)) return this._walk(at.page, h.pos, target);
+        // 이미 그 정거장으로 걷는 중이면 그대로 (눌러서 고른 직후·메인 화면이 다시 그려질 때 걷기를 끊고 순간 이동하지 않게)
+        if (!walk && this.walking && this.walking.page === at.page && this.walking.to === target) return;
         if (this.walking) {   // 걷다가 순간 이동(다른 구역 등): 걷기를 멈춤 — 안 멈추면 걷기가 계속 자리를 덮어씀
             cancelAnimationFrame(this.walking.raf);
             this.walking = null;
@@ -453,7 +455,7 @@ export class StageMap {
         this.hero.y = py;
     }
 
-    /** 길(route 점 from → to)을 따라 걷기. 다 걸으면 onSelect
+    /** 길(route 점 from → to)을 따라 걷기 (고르기는 누른 순간 _tap에서 이미 함)
      *  걷는 중에 다시 누르면: 같은 곳이면 그대로 계속, 다른 곳이면 지금 서 있는 자리에서 이어 걸음
      *  (예전: 출발 정거장으로 돌아가 처음부터 다시 걸음 — 1 → 10 걷다가 10을 또 누르면 1부터, 11-07 QA) */
     _walk(page, from, to) {
@@ -467,7 +469,6 @@ export class StageMap {
         for (let i = step > 0 ? Math.floor(f) + 1 : Math.ceil(f) - 1; step > 0 ? i <= to : i >= to; i += step) idx.push(i);
         const pts = [w ? w.cur : route[from], ...idx.map(i => route[i])];
         const fs = [f, ...idx];
-        const id = this.pages[page].nodes[routeOf(this.pages[page].zone).stops.indexOf(to)]?.id;
         if (this.walking) cancelAnimationFrame(this.walking.raf);
         this.walking = null;
         const arrive = () => {
@@ -475,7 +476,6 @@ export class StageMap {
             h.pos = to;
             h.rig.setMode('idle');
             h.el.classList.remove('is-left');   // 멈추면 NPC 쪽(오른쪽)을 봄
-            if (id) this.opts.onSelect?.(id);
         };
         if (pts.length < 2) return arrive();
         const segs = pts.slice(1).map((p, i) => Math.hypot(p[0] - pts[i][0], p[1] - pts[i][1]));
@@ -542,7 +542,10 @@ export class StageMap {
             this.sel = n.id;
             this.track.children[i].querySelectorAll('.v2-smap__stop').forEach(b => b.classList.toggle('is-sel', b === btn));
             this._placeHero({ page: i, k: p.nodes.indexOf(n) }, true);
-        } else this.opts.onSelect?.(n.id);
+        }
+        // 누른 순간 고름 — 걷기는 연출일 뿐. 예전에는 다 걸은 뒤에야 골라서, 걷는 동안(먼 칸은 5초 넘게) 출격하면
+        // 예전 판으로 출격했고 전투 중에 선택이 바뀌어 '재도전'이 다른 판을 시작했다 (11-14 버그 점검 M1)
+        this.opts.onSelect?.(n.id);
     }
 
     /** 지금 구역 지도를 위아래로 끌기 (화면이 지도보다 납작할 때만 — 휴대폰 가로에서 위·아래 정거장이 잘려 못 누르던 것) */

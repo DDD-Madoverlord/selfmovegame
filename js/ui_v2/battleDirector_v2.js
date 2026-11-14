@@ -142,6 +142,13 @@ export class BattleDirector {
         return true;
     }
 
+    /** 결과 창 없이 전투에서 나감: 기다리던 연출 단계(도장·효과음·배경음 끄기)만 무효로 — 화면에 남은 것은 다음 전투 시작 때 clear가 걷음 */
+    cancel() {
+        this.token += 1;
+        this.lowHp = false;
+        sound.stopLoop('low_hp', 0.1);
+    }
+
     /** 전투 시작/재시작: 이전 전투의 연출을 모두 걷어냄 */
     clear() {
         if (!this.attach()) return;

@@ -2,6 +2,7 @@
 import { OPTIONS, DROP, GRADES, RESEARCH } from '../engine_v2/growth_v2.js';
 import { DIFFICULTIES } from '../engine_v2/difficulty_v2.js';
 import { ROSTER } from '../engine_v2/roster_v2.js';
+import { isCharacterReleased } from '../engine_v2/contentSchedule_v2.js';
 import { progress } from '../engine_v2/progress_v2.js';
 
 export const percent = n => `${Number((n * 100).toFixed(4))}%`;
@@ -75,7 +76,7 @@ export function openProbInfo() {
     if (document.querySelector('.v2-prob-info')) return;
     const dialog = commerceDialog('v2-prob-info', '확률 정보');
     dialog.panel.innerHTML = `<header><h2>확률 정보</h2><button class="v2-btn v2-btn--ghost" data-close>닫기</button></header>
-        <label>출전 캐릭터 <select data-character>${ROSTER.map(c => `<option value="${c.id}">${c.faction}</option>`).join('')}</select></label><div data-prob-body></div>`;
+        <label>출전 캐릭터 <select data-character>${ROSTER.filter(c => isCharacterReleased(c.id)).map(c => `<option value="${c.id}">${c.faction}</option>`).join('')}</select></label><div data-prob-body></div>`;
     const select = dialog.panel.querySelector('[data-character]');
     select.value = progress.character;
     const render = () => { dialog.panel.querySelector('[data-prob-body]').innerHTML = probabilityHtml(select.value); };
