@@ -18,7 +18,7 @@ def run(ctx):
         page = context.new_page()
         page.on('pageerror', lambda e: g.errors.append('pageerror: ' + str(e)))
         page.on('console', g._console)
-        page.goto(ctx.base + '/index.html?mobile=1&source=sns#entry', wait_until='domcontentloaded')
+        page.goto(ctx.base + '/index.html?skipTitle=1&mobile=1&source=sns#entry', wait_until='domcontentloaded')
         page.evaluate("async () => { await import('/js/ui_v2/mobileWeb_v2.js'); }")
         return context, page
 

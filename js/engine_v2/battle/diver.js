@@ -30,7 +30,7 @@ export const DiverMethods = {
         const hits = [];
         for (const e of this.enemiesInRange(this.playerRange)) {
             hits.push(e);
-            if (solid(e)) break;   // 벽·거점에서 물줄기가 막힘
+            if (solid(e) || hits.length >= DIVER.jetMax) break;   // 벽·거점에서 물줄기가 막힘 · 최대 DIVER.jetMax명 (D-119)
         }
         if (!hits.length) hits.push(target);
         const end = hitPoint(hits[hits.length - 1]);

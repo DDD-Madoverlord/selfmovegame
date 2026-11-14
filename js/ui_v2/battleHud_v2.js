@@ -85,7 +85,7 @@ export class BattleHud {
             const esc = s => s.replace(/[&<>]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));
             // 이름은 휴대폰 배치(Q-015 전투 시안 A)에서 숨김 — 번호만
             this.el.stage.innerHTML = (d.id === 'normal' ? '' : `<span class="v2-diffbadge" style="--diff:${d.color}">${d.name}</span>`)
-                + `${esc(st.id)}<span class="v2-progress__name"> ${esc(st.name)}</span>`;
+                + `${esc(st.special ? 'SPECIAL' : st.id)}<span class="v2-progress__name"> ${esc(st.name)}</span>`;   // 스페셜맵은 판 번호 대신 SPECIAL (D-123)
         }
         if (this.el.distMax) this.el.distMax.textContent = st.distance;
         this.last = {};

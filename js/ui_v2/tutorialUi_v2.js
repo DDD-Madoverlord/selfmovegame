@@ -63,7 +63,13 @@ export class TutorialUi {
         } else if (reward) this.row.querySelector('span').textContent = '첫 성장 완료';
         // 보이는 창만 셈 — 숨겨 둔 창(휴대폰 웹 '가로로 돌려 주세요' 등)이 있어도 안내는 뜸
         const dialogOpen = [...document.querySelectorAll('[role="dialog"]')].some(d => d.getClientRects().length);
-        if (step || this.router.currentScreen !== 'menu' || document.querySelector('.v2-coach') || dialogOpen) return;
+        if (this.router.currentScreen !== 'menu' || document.querySelector('.v2-coach') || dialogOpen) return;
+        // 피로도가 켜진 뒤 처음 메인 화면 (노말 1-B를 깬 뒤, Q-049) — 첫 성장 안내 중이어도 (1-B 뒤까지 이어질 수 있어서). 자동 검사(피로도 끔)에서는 안 뜸
+        if (progress.stamina?.on && !progress.staminaExempt() && !progress.hasTip('stamina_intro')) {
+            const el = coach('stamina_intro', '#screen-menu-v2 .v2-chip--stamina');
+            if (el) { this.intro = el; return; }
+        }
+        if (step) return;
         const id = progress.nextTutorialIntro();
         if (id) {
             const el = coach(`${id}_intro`, ANCHORS[id], { remember: false });

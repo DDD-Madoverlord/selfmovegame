@@ -1,0 +1,548 @@
+{
+ "_note": "효과음 목록 도구(tools/sound/sfx_list.html)의 한글 설명·캐릭터·출처 (cc0 무료 재료 · synth 코드 합성 · ai Stable Audio 3). 새 소리를 더하면 여기 한 줄 — 없으면 이름만 보임 (D-119 7번)",
+ "arch_crane": {
+  "ko": "철거 명령 (철구)",
+  "ch": "철거의 설계자",
+  "src": "ai"
+ },
+ "arch_drill": {
+  "ko": "기초 파쇄 (드릴)",
+  "ch": "철거의 설계자",
+  "src": "ai"
+ },
+ "arch_scaffold": {
+  "ko": "강제 재건 (철골 바리케이드)",
+  "ch": "철거의 설계자",
+  "src": "ai"
+ },
+ "base_blast": {
+  "ko": "거점 맞음",
+  "ch": "공용",
+  "src": "cc0"
+ },
+ "base_destroyed": {
+  "ko": "거점 파괴",
+  "ch": "공용",
+  "src": "cc0"
+ },
+ "bc_burst": {
+  "ko": "공명 파열 (음파 고리)",
+  "ch": "침묵의 방송자",
+  "src": "ai"
+ },
+ "bc_dome": {
+  "ko": "정적의 장막",
+  "ch": "침묵의 방송자",
+  "src": "ai"
+ },
+ "bc_emergency": {
+  "ko": "긴급 방송 (필살기)",
+  "ch": "침묵의 방송자",
+  "src": "ai"
+ },
+ "charge_up": {
+  "ko": "에너지 충전",
+  "ch": "거대로봇",
+  "src": "cc0"
+ },
+ "chimera_claw": {
+  "ko": "발톱 할퀴기",
+  "ch": "합성괴인",
+  "src": "cc0"
+ },
+ "chimera_phase2": {
+  "ko": "2페이즈 거대화",
+  "ch": "합성괴인",
+  "src": "cc0"
+ },
+ "chimera_punch": {
+  "ko": "합성괴인 주먹",
+  "ch": "합성괴인",
+  "src": "cc0"
+ },
+ "chimera_quake": {
+  "ko": "지진 걸음",
+  "ch": "합성괴인",
+  "src": "cc0"
+ },
+ "chimera_slam": {
+  "ko": "내려찍기",
+  "ch": "합성괴인",
+  "src": "cc0"
+ },
+ "chimera_summon": {
+  "ko": "졸개 소환",
+  "ch": "합성괴인",
+  "src": "cc0"
+ },
+ "diver_anchor_hit": {
+  "ko": "앵커 꽂힘",
+  "ch": "심연의 길잡이",
+  "src": "ai"
+ },
+ "diver_anchor_throw": {
+  "ko": "앵커 던지기",
+  "ch": "심연의 길잡이",
+  "src": "ai"
+ },
+ "diver_hands": {
+  "ko": "심연의 손 (필살기)",
+  "ch": "심연의 길잡이",
+  "src": "ai"
+ },
+ "diver_jet": {
+  "ko": "고압 물줄기",
+  "ch": "심연의 길잡이",
+  "src": "ai"
+ },
+ "diver_surge": {
+  "ko": "고압 분사 물결",
+  "ch": "심연의 길잡이",
+  "src": "ai"
+ },
+ "doll_burst": {
+  "ko": "인형 터짐",
+  "ch": "뒤틀린 인형사",
+  "src": "ai"
+ },
+ "doll_snip": {
+  "ko": "가위 참격",
+  "ch": "뒤틀린 인형사",
+  "src": "ai"
+ },
+ "doll_strings": {
+  "ko": "인형 실 (필살기)",
+  "ch": "뒤틀린 인형사",
+  "src": "ai"
+ },
+ "doll_summon": {
+  "ko": "토끼 인형 소환",
+  "ch": "뒤틀린 인형사",
+  "src": "ai"
+ },
+ "doll_xcut": {
+  "ko": "가위 X자 베기",
+  "ch": "뒤틀린 인형사",
+  "src": "synth"
+ },
+ "enemy_die": {
+  "ko": "적 쓰러짐",
+  "ch": "공용",
+  "src": "cc0"
+ },
+ "frost_blizzard": {
+  "ko": "눈보라 춤",
+  "ch": "서리의 무희",
+  "src": "ai"
+ },
+ "frost_crescent": {
+  "ko": "초승달 참격",
+  "ch": "서리의 무희",
+  "src": "ai"
+ },
+ "frost_eternal": {
+  "ko": "영원한 안식 (필살기)",
+  "ch": "서리의 무희",
+  "src": "ai"
+ },
+ "frost_fan": {
+  "ko": "서리 부채",
+  "ch": "서리의 무희",
+  "src": "ai"
+ },
+ "frost_freeze": {
+  "ko": "빙결",
+  "ch": "서리의 무희",
+  "src": "ai"
+ },
+ "frost_hit": {
+  "ko": "냉기 맞음",
+  "ch": "서리의 무희",
+  "src": "ai"
+ },
+ "frost_shatter": {
+  "ko": "얼음 깨짐",
+  "ch": "서리의 무희",
+  "src": "ai"
+ },
+ "generic_slash": {
+  "ko": "공용 베기",
+  "ch": "공용",
+  "src": "cc0"
+ },
+ "giant_step": {
+  "ko": "거대 발걸음",
+  "ch": "거대로봇",
+  "src": "cc0"
+ },
+ "hero_cast": {
+  "ko": "흑마법 시전",
+  "ch": "타락 히어로",
+  "src": "cc0"
+ },
+ "hero_curse_nova": {
+  "ko": "저주 폭발",
+  "ch": "타락 히어로",
+  "src": "cc0"
+ },
+ "hero_curse_tick": {
+  "ko": "저주 장판 틱",
+  "ch": "타락 히어로",
+  "src": "cc0"
+ },
+ "hero_mind_convert": {
+  "ko": "세뇌 (아군으로)",
+  "ch": "타락 히어로",
+  "src": "cc0"
+ },
+ "hero_orb": {
+  "ko": "암흑 구체",
+  "ch": "타락 히어로",
+  "src": "cc0"
+ },
+ "hero_slash_hit": {
+  "ko": "대검 베기 맞음",
+  "ch": "타락 히어로",
+  "src": "cc0"
+ },
+ "hero_wave": {
+  "ko": "어둠 파동 발사",
+  "ch": "타락 히어로",
+  "src": "cc0"
+ },
+ "hero_wave_hit": {
+  "ko": "어둠 파동 맞음",
+  "ch": "타락 히어로",
+  "src": "cc0"
+ },
+ "intro_sortie": {
+  "ko": "출격 (SORTIE!)",
+  "ch": "공용",
+  "src": "cc0"
+ },
+ "intro_whoosh": {
+  "ko": "출격 휙",
+  "ch": "공용",
+  "src": "synth"
+ },
+ "kaiju_bite": {
+  "ko": "물어뜯기",
+  "ch": "거대괴수",
+  "src": "cc0"
+ },
+ "kaiju_breath": {
+  "ko": "불 뿜기 (멸망의 숨결)",
+  "ch": "거대괴수",
+  "src": "ai"
+ },
+ "kaiju_egg_hatch": {
+  "ko": "알 부화",
+  "ch": "거대괴수",
+  "src": "cc0"
+ },
+ "kaiju_egg_lay": {
+  "ko": "알 낳기",
+  "ch": "거대괴수",
+  "src": "cc0"
+ },
+ "kaiju_regen": {
+  "ko": "재생",
+  "ch": "거대괴수",
+  "src": "cc0"
+ },
+ "kaiju_roar": {
+  "ko": "대지 포효",
+  "ch": "거대괴수",
+  "src": "cc0"
+ },
+ "kaiju_spore": {
+  "ko": "포자 퍼짐",
+  "ch": "거대괴수",
+  "src": "cc0"
+ },
+ "low_hp": {
+  "ko": "저체력 심장 박동",
+  "ch": "공용",
+  "src": "synth"
+ },
+ "mech_drone_blast": {
+  "ko": "드론 자폭",
+  "ch": "거대로봇",
+  "src": "cc0"
+ },
+ "mech_drone_launch": {
+  "ko": "드론 출격",
+  "ch": "거대로봇",
+  "src": "cc0"
+ },
+ "mech_fist_hit": {
+  "ko": "주먹 타격",
+  "ch": "거대로봇",
+  "src": "cc0"
+ },
+ "mech_land": {
+  "ko": "출격 착지",
+  "ch": "거대로봇",
+  "src": "cc0"
+ },
+ "mech_laser": {
+  "ko": "레이저 팔 발사",
+  "ch": "거대로봇",
+  "src": "cc0"
+ },
+ "mech_laser_big": {
+  "ko": "충전 레이저 큰 발사",
+  "ch": "거대로봇",
+  "src": "cc0"
+ },
+ "mech_laser_hit": {
+  "ko": "레이저 맞음",
+  "ch": "거대로봇",
+  "src": "cc0"
+ },
+ "mech_missile_blast": {
+  "ko": "미사일 폭발",
+  "ch": "거대로봇",
+  "src": "cc0"
+ },
+ "mech_missile_launch": {
+  "ko": "미사일 발사",
+  "ch": "거대로봇",
+  "src": "cc0"
+ },
+ "mech_thrust": {
+  "ko": "로켓 분사",
+  "ch": "거대로봇",
+  "src": "cc0"
+ },
+ "mission_complete": {
+  "ko": "임무 성공",
+  "ch": "공용",
+  "src": "cc0"
+ },
+ "mission_failed": {
+  "ko": "임무 실패",
+  "ch": "공용",
+  "src": "cc0"
+ },
+ "player_down": {
+  "ko": "주인공 쓰러짐",
+  "ch": "공용",
+  "src": "cc0"
+ },
+ "player_hit": {
+  "ko": "주인공 맞음",
+  "ch": "공용",
+  "src": "cc0"
+ },
+ "rampage_roar": {
+  "ko": "변신 포효",
+  "ch": "공용",
+  "src": "ai"
+ },
+ "result_lose": {
+  "ko": "패배 결과",
+  "ch": "공용",
+  "src": "ai"
+ },
+ "result_star": {
+  "ko": "결과 별 하나씩",
+  "ch": "공용",
+  "src": "cc0"
+ },
+ "result_win": {
+  "ko": "승리 결과",
+  "ch": "공용",
+  "src": "cc0"
+ },
+ "reward_done": {
+  "ko": "보상 받음",
+  "ch": "공용",
+  "src": "cc0"
+ },
+ "saint_needle": {
+  "ko": "봉합 바늘 발사",
+  "ch": "봉합 성녀",
+  "src": "ai"
+ },
+ "saint_revive": {
+  "ko": "억지 부활 (필살기)",
+  "ch": "봉합 성녀",
+  "src": "ai"
+ },
+ "saint_seal": {
+  "ko": "생명 봉인",
+  "ch": "봉합 성녀",
+  "src": "ai"
+ },
+ "saint_stitch": {
+  "ko": "실 꿰맴",
+  "ch": "봉합 성녀",
+  "src": "ai"
+ },
+ "shield_break": {
+  "ko": "실드 깨짐",
+  "ch": "공용",
+  "src": "cc0"
+ },
+ "shield_hit": {
+  "ko": "실드 맞음",
+  "ch": "공용",
+  "src": "cc0"
+ },
+ "shield_on": {
+  "ko": "실드 켜짐",
+  "ch": "공용",
+  "src": "cc0"
+ },
+ "skill_ready": {
+  "ko": "스킬 준비됨",
+  "ch": "공용",
+  "src": "cc0"
+ },
+ "skill_use": {
+  "ko": "스킬 사용",
+  "ch": "공용",
+  "src": "ai"
+ },
+ "star_get": {
+  "ko": "별 획득",
+  "ch": "공용",
+  "src": "cc0"
+ },
+ "ui_click": {
+  "ko": "단추 누름",
+  "ch": "공용",
+  "src": "cc0"
+ },
+ "ui_equip": {
+  "ko": "파츠 장착",
+  "ch": "공용",
+  "src": "cc0"
+ },
+ "ui_error": {
+  "ko": "안 됨 (오류)",
+  "ch": "공용",
+  "src": "cc0"
+ },
+ "ui_pause": {
+  "ko": "일시정지",
+  "ch": "공용",
+  "src": "cc0"
+ },
+ "ui_tab": {
+  "ko": "탭 바꿈",
+  "ch": "공용",
+  "src": "cc0"
+ },
+ "ui_tick": {
+  "ko": "숫자 올라감",
+  "ch": "공용",
+  "src": "cc0"
+ },
+ "ui_toggle": {
+  "ko": "켜기/끄기",
+  "ch": "공용",
+  "src": "cc0"
+ },
+ "ult_cutin": {
+  "ko": "필살기 컷인",
+  "ch": "공용",
+  "src": "ai"
+ },
+ "ult_ready": {
+  "ko": "필살기 준비됨",
+  "ch": "공용",
+  "src": "cc0"
+ },
+ "warning": {
+  "ko": "경보",
+  "ch": "공용",
+  "src": "synth"
+ },
+ "warning_danger": {
+  "ko": "위험 경보",
+  "ch": "공용",
+  "src": "synth"
+ },
+ "zone_arrow": {
+  "ko": "화살",
+  "ch": "공용",
+  "src": "synth"
+ },
+ "zone_axe": {
+  "ko": "도끼 휘두르기",
+  "ch": "공용",
+  "src": "synth"
+ },
+ "zone_charge": {
+  "ko": "돌진",
+  "ch": "공용",
+  "src": "synth"
+ },
+ "zone_gas": {
+  "ko": "유독 가스 (구역 기믹)",
+  "ch": "공용",
+  "src": "synth"
+ },
+ "zone_goo": {
+  "ko": "점액",
+  "ch": "공용",
+  "src": "synth"
+ },
+ "zone_heal_holy": {
+  "ko": "성스러운 치유",
+  "ch": "공용",
+  "src": "synth"
+ },
+ "zone_hellgate": {
+  "ko": "지옥문",
+  "ch": "공용",
+  "src": "synth"
+ },
+ "zone_judgment": {
+  "ko": "심판 (구역 3 보스)",
+  "ch": "공용",
+  "src": "synth"
+ },
+ "zone_knight": {
+  "ko": "악마기사 등장",
+  "ch": "공용",
+  "src": "synth"
+ },
+ "zone_mutation": {
+  "ko": "변이",
+  "ch": "공용",
+  "src": "synth"
+ },
+ "zone_spell_bolt": {
+  "ko": "마법사 번개",
+  "ch": "공용",
+  "src": "synth"
+ },
+ "zone_spell_fire": {
+  "ko": "마법사 불",
+  "ch": "공용",
+  "src": "synth"
+ },
+ "zone_spell_ice": {
+  "ko": "마법사 얼음",
+  "ch": "공용",
+  "src": "synth"
+ },
+ "zone_split": {
+  "ko": "분열",
+  "ch": "공용",
+  "src": "synth"
+ },
+ "zone_spore": {
+  "ko": "포자 적",
+  "ch": "공용",
+  "src": "synth"
+ },
+ "zone_venom": {
+  "ko": "독 뱉기",
+  "ch": "공용",
+  "src": "synth"
+ }
+}

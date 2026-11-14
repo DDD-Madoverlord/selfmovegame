@@ -10,7 +10,7 @@ import { gameState } from '../engine/state.js';
 import { progress } from '../engine_v2/progress_v2.js';
 import { rosterOf, ROSTER, SLOTS, partsOfCharacter } from '../engine_v2/roster_v2.js';
 import { CHAPTERS } from '../engine_v2/stages_v2.js';
-import { isZoneReleased, releaseDateOf } from '../engine_v2/contentSchedule_v2.js';
+import { isZoneReleased, releaseLabelOf } from '../engine_v2/contentSchedule_v2.js';
 import { DISPATCH, gradeOf } from '../engine_v2/growth_v2.js';
 import { ENEMY_TYPES } from '../engine_v2/enemies_v2.js';
 import { ENEMY_ART } from '../engine_v2/enemyArt_v2.js';
@@ -452,7 +452,7 @@ function newHtml() {
         const soon = !isZoneReleased(ch.zone);
         // 썸네일: 전투 먼 배경(색조) 위에 파견 일러스트 (일러스트가 없으면 아래 것이 보임)
         return `<button class="v2-dsp-zone${open ? '' : ' is-lock'}${soon ? ' is-coming-soon' : ''}${ch.zone === pickedZone ? ' is-pick' : ''}" data-act="dspZone" data-zone="${ch.zone}" aria-pressed="${ch.zone === pickedZone}" ${open ? '' : 'disabled'}>
-            <i style="background-image:url('${z.far[0]}');filter:${z.far[1]}"></i>${z.trek ? `<i style="background-image:url('${z.trek}')"></i>` : ''}<b>구역 ${ch.zone}</b><small>${soon ? `곧 공개 · ${releaseDateOf('zones', ch.zone)}` : open ? esc(shortZone(ch.zone)) : '보스전(노말)을 깨면 열림'}</small><span class="v2-dsp-choice" aria-hidden="true">✓ 선택</span></button>`;
+            <i style="background-image:url('${z.far[0]}');filter:${z.far[1]}"></i>${z.trek ? `<i style="background-image:url('${z.trek}')"></i>` : ''}<b>구역 ${ch.zone}</b><small>${soon ? releaseLabelOf('zones', ch.zone) : open ? esc(shortZone(ch.zone)) : '보스전(노말)을 깨면 열림'}</small><span class="v2-dsp-choice" aria-hidden="true">✓ 선택</span></button>`;
     }).join('');
     const chars = !cands.length ? '<p class="v2-growth__hint">보낼 캐릭터가 없어요 — 해금하고 파츠 4부위를 보유한 캐릭터 중 출전·파견 중이 아닌 캐릭터만 보낼 수 있어요.</p>'
         : cands.map(c => `<button class="v2-dsp-char${c.id === pickedChar ? ' is-pick' : ''}" data-act="dspChar" data-char="${c.id}" aria-pressed="${c.id === pickedChar}" style="--sk:${c.color}">

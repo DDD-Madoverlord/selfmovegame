@@ -16,7 +16,7 @@ import { ENEMY_ART } from '../enemyArt_v2.js';
 import { ensureEnemyStyles } from '../enemies_v2.js';
 import { SETS } from '../sets_v2.js';
 import { KIT_PASSIVES, runKitStep, spr, fxOf } from '../skillKit_v2.js';
-import { FOOT_B, SET, SAINT, DOLL } from './tuning.js';
+import { FOOT_B, SET, SAINT, DOLL, PIERCE2 } from './tuning.js';
 import { playImageField } from '../vfx/imageEffects.js';
 
 const ART_FOOT_B = 58;
@@ -45,6 +45,7 @@ export const KIT_STATUS_TINT = {
 
 const sum = (list, key) => list.reduce((a, m) => a + (m[key] || 0), 0);
 const isUnit = e => !e.isBuilding && !e.isBarricade;
+const LOW_HP = 0.3;   // 'lowHp' 계기의 기본 체력 기준 (계기에 below가 있으면 그 값)
 
 export const KitMethods = {
     /** 전투 시작 (setupGrowth 뒤): 패시브·세트 효과 정리 */
@@ -123,10 +124,15 @@ export const KitMethods = {
     kitMod(key) {
         return sum(this.kitModList(), key);
     },
+    /** 걷는 중인가: 공격 중이 아니고 사거리 안에 적도 없음 (kitStillT는 서서 싸우는 동안만 쌓임 — tickKit).
+        groundSpeed() > 0으로 보면 안 됨 — 바닥 흐름 배율은 늘 양수라 서 있어도 참이었다 (11-14 버그 점검 M4) */
+    kitWalking() {
+        return this.isWalking === true || (!this.isAttacking && this.kitStillT <= 0);
+    },
     /** 나에 대한 조건: walking · still · hpBelow · allies · enemiesNear · frozenNear */
     kitSelfCond(c) {
         switch (c.when) {
-            case 'walking': return this.isWalking === true || (!this.isAttacking && this.kitStillT <= 0);
+            case 'walking': return this.kitWalking();
             case 'still': return this.kitStillT >= (c.after ?? 0);
             case 'hpBelow': return this.playerHp < this.maxPlayerHp * c.ratio;
             case 'allies': return this.allies.length >= (c.n || 1);
@@ -157,7 +163,7 @@ export const KitMethods = {
         return 1 + this.kitMod('cdRate');
     },
     kitUltRate() {
-        return 1 + this.kitMod('ult');
+        return 1 + this.kitMod('ult') + (this.treeMods?.ult || 0);   // 특성 트리 '필살기 충전' (D-125)
     },
     kitCcMul() {
         if (this.kitFlag('ccImmune')) return 0;
@@ -506,7 +512,9 @@ export const KitMethods = {
     scrollKit(dt) {
         const d = this.groundSpeed() * dt;
         this.kitZones.forEach(z => { if (!z.follow) z.x -= d; });
-        this.kitWaves.forEach(w => { w.x -= d; w.start -= d; });
+        // 움직이는 판정(파동·투사체)은 바닥에 끌려가지 않음 — 쏜 캐릭터의 진격 속도를 물려받은 셈. 예전엔 바닥(약 427px/초)과 같이
+        // 뒤로 밀려 걸으면서 쏘면 앞으로 못 나가고 제자리(느린 것은 뒤로) — 11-08 QA. 바닥을 타는 판정만 ground: true
+        this.kitWaves.forEach(w => { if (w.ground) { w.x -= d; w.start -= d; } });
     },
 
     // ---- 움직이는 판정 ----
@@ -694,7 +702,7 @@ export const KitMethods = {
                 const range = this.playerRange + (def.extra || 0);
                 if (def.vfx) this.fx.play(def.vfx, muzzle.x, muzzle.bottom, { to: [this.frontX() + range, aimOf(target).b] });
                 let mul = 1;
-                this.enemiesInRange(range).slice(0, def.n || 3).forEach((e, i) => { hit(e, dmg * mul, isCrit && i === 0); mul *= def.decay ?? 0.7; });
+                this.enemiesInRange(range).slice(0, def.n || 3).forEach((e, i) => { hit(e, dmg * mul, isCrit && i === 0); mul *= (def.decay ?? 0.7) * PIERCE2.kitDecay; });   // 관통 2차 (D-119)
                 break;
             }
             case 'chain': {
@@ -726,6 +734,10 @@ export const KitMethods = {
         return true;
     },
 
+    /** 'lowHp' 계기 가운데 가장 높은 체력 기준 (없으면 30%) */
+    kitLowHpAt() {
+        return Math.max(LOW_HP, ...(this.kitTriggers || []).filter(t => t.when === 'lowHp').map(t => t.below ?? LOW_HP));
+    },
     // ---- 계기 (패시브·세트 효과 on: [{ when, ... }]) ----
     /** when: 'ult' | 'skill' | 'kill' | 'allyDown' | 'lowHp' | 'attack' — 맞으면 실행: buff · step · resetCd · gauge · heal · summon */
     kitFire(when, info = {}) {
@@ -736,6 +748,8 @@ export const KitMethods = {
             if (t.chance != null && Math.random() >= t.chance) continue;
             if (t.status && info.enemy && !this.kitHasStatus(info.enemy, t.status)) continue;
             if (t.flag && !this.kitFlag(t.flag)) continue;
+            // 체력 기준은 계기마다 (below — 없으면 30%). 예전에는 모두 30% 고정이라 설명이 40%·50%인 세트가 늦게 발동했음 (11-14 버그 점검 M5)
+            if (when === 'lowHp' && !(this.playerHp < this.maxPlayerHp * (t.below ?? LOW_HP))) continue;
             if (t.inZone && info.enemy && !this.kitZones.some(z => z.tag === t.inZone && aimOf(info.enemy).x >= z.x && aimOf(info.enemy).x <= z.x + z.w)) continue;
             if (t.once) {
                 const key = `${t.set || 'p'}_${when}_${t.once}`;
@@ -912,7 +926,7 @@ export const KitMethods = {
             if (this.kitEveryT >= ev.every) { this.kitEveryT = 0; this.addKitBuff('p_periodic', ev.sec, ev.mods); }
         }
         const ch = this.kitPassive?.charge;   // 보행 충전: 걷는 동안 sec초 쌓이면 다음 기본 공격 mul배 + step
-        if (ch && !this.kitCharged && this.groundSpeed() > 0 && !this.playerStunned()) {
+        if (ch && !this.kitCharged && this.kitWalking() && !this.playerStunned()) {
             this.kitChargeT += dt;
             this.kitChargeFxT -= dt;
             if (ch.fx && this.kitChargeFxT <= 0) { this.kitChargeFxT = 0.8; this.fx.play(ch.fx, this.monsterX + 40 + Math.random() * 40, FOOT_B + 10); }
@@ -931,7 +945,7 @@ export const KitMethods = {
         }
         const fh = this.kitPassive?.firstHit;   // 돌격 자세: 걷다가 멈춘 뒤 첫 기본 공격 배수
         if (fh) {
-            const walking = this.groundSpeed() > 0;
+            const walking = this.kitWalking();
             if (this.kitWasWalking && !walking) this.kitNextMul = Math.max(this.kitNextMul, fh);
             this.kitWasWalking = walking;
         }
@@ -941,7 +955,7 @@ export const KitMethods = {
             this.addKitBuff('p_lastStand', ls.sec, ls.mods || { flags: ['invuln'] }, KIT_FX.awaken);
             this.createDamagePopup(this.monsterX + 40, 220, ls.label || '버팀!', false);
         }
-        if (this.playerHp > 0 && this.playerHp < this.maxPlayerHp * 0.3) this.kitFire('lowHp');
+        if (this.playerHp > 0 && this.playerHp < this.maxPlayerHp * this.kitLowHpAt()) this.kitFire('lowHp');
         // 적 상태 (화상·독·취약·약화·잠)
         [...this.enemies].forEach(e => {
             if (e.kitVulnT > 0) { e.kitVulnT -= dt; if (e.kitVulnT <= 0) this.updateEnemyFilter(e); }

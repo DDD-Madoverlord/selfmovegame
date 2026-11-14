@@ -1,0 +1,133 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>매드 오버로드 효과음 목록</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;600;700&family=Noto+Sans+KR:wght@400;500;700&family=Orbitron:wght@600;800&display=swap">
+<!--
+  효과음 목록 도구 (D-119 7번, 시안 https://claude.ai/artifact/Xjf9JxAjYV3sgowDKApbTu 07 탭)
+  여는 법: 프로젝트 폴더에서 `python serve.py` → http://localhost:8099/tools/sound/sfx_list.html
+  목록은 게임의 js/engine_v2/audio/sound_v2.js SFX 표를 그대로 읽음 → 소리를 더하거나 바꿔도 이 페이지는 안 고침.
+  한글 설명·캐릭터·출처만 tools/sound/sfx_meta.json (없는 소리는 이름만 보임).
+  재생 파일은 게임과 같은 규칙: ext 값이 있고 sfx_ext/(Sonniss 묶음, 저장소에 없음)에 파일이 있으면 그것, 아니면 sfx/
+-->
+<style>
+:root { --bg: #07080c; --panel: #12151c; --steel: #232833; --steel-hi: #3a404d; --line: #2a303c; --amber: #ffb020; --cyan: #3ee6ff; --text: #eef2f8; --dim: #8b95a8; color-scheme: dark; }
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--text); font-family: 'Noto Sans KR', 'Chakra Petch', system-ui, sans-serif; padding: 20px max(16px, env(safe-area-inset-left, 0px)) 40px; }
+.wrap { max-width: 1080px; margin: 0 auto; display: grid; gap: 14px; }
+h1 { margin: 0; font: 800 22px Orbitron, 'Chakra Petch', sans-serif; letter-spacing: 0.04em; } h1 span { color: var(--amber); }
+p.lead { margin: 0; color: var(--dim); font-size: 13px; line-height: 1.6; }
+.bar { display: grid; gap: 10px; background: var(--panel); border: 1px solid var(--line); padding: 12px; }
+.r { display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: center; }
+input[type=search], select { font: 14px 'Noto Sans KR', sans-serif; color: var(--text); background: var(--bg); border: 1px solid var(--line); padding: 7px 10px; min-width: 0; }
+input[type=search] { flex: 1 1 220px; }
+.lbl { font-size: 12px; color: var(--dim); }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chips button { font: 13px 'Noto Sans KR', sans-serif; color: var(--dim); background: var(--bg); border: 1px solid var(--line); padding: 5px 10px; cursor: pointer; }
+.chips button small { font: 10px Orbitron, sans-serif; margin-left: 4px; opacity: 0.8; }
+.chips button[aria-pressed=true] { color: var(--text); border-color: var(--amber); background: rgba(255, 176, 32, 0.12); }
+.check { display: inline-flex; gap: 6px; align-items: center; font-size: 13px; cursor: pointer; } .check input { accent-color: var(--amber); }
+.vol { display: inline-flex; gap: 8px; align-items: center; font-size: 13px; color: var(--dim); } .vol input { accent-color: var(--amber); width: 120px; }
+.list { border: 1px solid var(--line); }
+.item { display: grid; grid-template-columns: 40px minmax(140px, 1fr) minmax(0, 1.4fr) 110px 58px 72px 60px 52px; align-items: center; gap: 10px; padding: 7px 12px; border-top: 1px solid var(--line); font-size: 13px; }
+.item:first-child { border-top: 0; }
+.item.head { background: var(--panel); color: var(--dim); font-size: 11px; letter-spacing: 0.06em; }
+.play { width: 32px; height: 32px; display: grid; place-items: center; background: var(--steel); border: 1px solid var(--steel-hi); color: var(--amber); cursor: pointer; }
+.play svg { width: 14px; height: 14px; fill: currentColor; }
+.item.is-playing { background: rgba(255, 176, 32, 0.07); } .item.is-playing .play { background: var(--amber); color: #120b00; }
+code { font-family: 'Chakra Petch', ui-monospace, monospace; color: var(--cyan); overflow-wrap: anywhere; }
+.ko { min-width: 0; } .ch { color: var(--dim); font-size: 12px; }
+.badge { justify-self: start; font-size: 11px; padding: 2px 7px; border: 1px solid var(--line); color: var(--dim); white-space: nowrap; }
+.badge.ai { color: #d9b8ff; border-color: rgba(180, 120, 255, 0.5); } .badge.synth { color: var(--cyan); border-color: rgba(62, 230, 255, 0.45); }
+.badge.cc0 { color: #b9f5cf; border-color: rgba(61, 255, 138, 0.4); } .badge.ext { color: #ffd59a; border-color: rgba(255, 176, 32, 0.45); }
+.num { font: 12px Orbitron, sans-serif; color: var(--dim); text-align: right; font-variant-numeric: tabular-nums; }
+.empty { padding: 28px; text-align: center; color: var(--dim); }
+.foot { font-size: 12px; color: var(--dim); }
+button:focus-visible, input:focus-visible, select:focus-visible { outline: 2px solid var(--cyan); outline-offset: 2px; }
+@media (max-width: 760px) {
+  .item { grid-template-columns: 40px minmax(0, 1fr) auto; grid-template-areas: "p n d" "p k k" "p m m"; row-gap: 3px; }
+  .item.head { display: none; } .play { grid-area: p; } code { grid-area: n; } .ko { grid-area: k; } .meta { grid-area: m; display: flex; flex-wrap: wrap; gap: 6px 10px; align-items: center; } .dur { grid-area: d; } .volc { display: none; }
+}
+@media (min-width: 761px) { .meta { display: contents; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>MAD <span>OVERLORD</span> 효과음 목록</h1>
+  <p class="lead">게임 효과음 표(<code>js/engine_v2/audio/sound_v2.js</code>)를 그대로 읽은 목록입니다. ▶로 들어 보고, '게임 음량으로'를 켜면 게임 안 크기(<code>vol</code> × 묶음 음량)로 들립니다. 소리가 나는 장면과 함께 듣고 새 파일을 끼워 보려면 <a href="/tools/sound/scene.html" style="color:var(--amber)">사운드 장면 점검실</a>.</p>
+  <div class="bar">
+    <div class="r">
+      <input type="search" id="q" placeholder="이름이나 설명으로 찾기 (예: 레이저, frost)" aria-label="효과음 찾기">
+      <select id="ch" aria-label="캐릭터"></select>
+      <label class="check"><input type="checkbox" id="gameVol" checked> 게임 음량으로</label>
+      <label class="vol" for="master">전체 음량 <input type="range" id="master" min="0" max="100" value="80"></label>
+    </div>
+    <div class="r"><span class="lbl">묶음</span><div class="chips" id="catChips"></div><span class="lbl">출처</span><div class="chips" id="srcChips"></div></div>
+  </div>
+  <div class="list" id="list" role="list"></div>
+  <p class="foot" id="count"></p>
+</div>
+<script type="module">
+import { SFX, CAT_VOL, catOf } from '/js/engine_v2/audio/sound_v2.js';
+
+const meta = await fetch('/tools/sound/sfx_meta.json').then(r => r.json()).catch(() => ({}));
+const $ = s => document.querySelector(s), $$ = s => [...document.querySelectorAll(s)];
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+const CAT = { skill: '스킬', enemy: '적', player: '주인공', cue: '연출', ui: 'UI' };
+const SRC = { cc0: '무료 재료 CC0', synth: '코드 합성', ai: 'AI', ext: 'Sonniss 묶음' };
+const CHARS = ['거대로봇', '거대괴수', '타락 히어로', '합성괴인', '심연의 길잡이', '봉합 성녀', '뒤틀린 인형사', '서리의 무희', '철거의 설계자', '침묵의 방송자', '공용'];
+
+// sfx_ext(저장소에 없음) 파일이 있으면 게임처럼 그것을 틀고 출처를 'Sonniss 묶음'으로
+async function exists(url) { try { const r = await fetch(url, { method: 'HEAD' }); return r.ok; } catch (e) { return false; } }
+const rows = await Promise.all(Object.entries(SFX).map(async ([n, def]) => {
+  const m = meta[n] || {};
+  const ext = def.ext != null && await exists(`/assets/audio/sfx_ext/${n}.ogg`);
+  return { n, ko: m.ko || n, ch: m.ch || '공용', src: ext ? 'ext' : (m.src || 'cc0'), cat: catOf(n), vol: ext ? def.ext : def.vol,
+    file: `/assets/audio/${ext ? 'sfx_ext' : 'sfx'}/${n}.ogg`, d: null };
+}));
+const st = { q: '', ch: '', cat: '', src: '' };
+$('#ch').innerHTML = '<option value="">캐릭터 전체</option>' + CHARS.map(c => `<option value="${esc(c)}">${esc(c)} (${rows.filter(r => r.ch === c).length})</option>`).join('');
+const chips = (map, key) => `<button data-k="" aria-pressed="true">전체<small>${rows.length}</small></button>` + Object.entries(map).filter(([k]) => rows.some(r => r[key] === k))
+  .map(([k, v]) => `<button data-k="${k}" aria-pressed="false">${v}<small>${rows.filter(r => r[key] === k).length}</small></button>`).join('');
+$('#catChips').innerHTML = chips(CAT, 'cat'); $('#srcChips').innerHTML = chips(SRC, 'src');
+for (const [sel, key] of [['#catChips', 'cat'], ['#srcChips', 'src']]) $(sel).addEventListener('click', e => {
+  const b = e.target.closest('button'); if (!b) return;
+  $$(`${sel} button`).forEach(x => x.setAttribute('aria-pressed', String(x === b))); st[key] = b.dataset.k; draw();
+});
+$('#q').addEventListener('input', e => { st.q = e.target.value.trim().toLowerCase(); draw(); });
+$('#ch').addEventListener('change', e => { st.ch = e.target.value; draw(); });
+
+const PLAY = '<svg viewBox="0 0 16 16"><path d="M4 2l10 6-10 6z"/></svg>', STOP = '<svg viewBox="0 0 16 16"><path d="M3 3h10v10H3z"/></svg>';
+let playing = null;
+function draw() {
+  const list = rows.filter(r => (!st.cat || r.cat === st.cat) && (!st.src || r.src === st.src) && (!st.ch || r.ch === st.ch)
+    && (!st.q || r.n.toLowerCase().includes(st.q) || r.ko.toLowerCase().includes(st.q)));
+  $('#list').innerHTML = '<div class="item head"><span></span><span>소리 이름</span><span>설명</span><span>캐릭터</span><span>묶음</span><span>출처</span><span class="num">길이</span><span class="num">음량</span></div>'
+    + (list.length ? list.map(r => `<div class="item${playing && playing.n === r.n ? ' is-playing' : ''}" data-n="${r.n}" role="listitem">
+      <button class="play" aria-label="${esc(r.ko)} 재생">${playing && playing.n === r.n ? STOP : PLAY}</button><code>${r.n}</code><span class="ko">${esc(r.ko)}</span>
+      <span class="meta"><span class="ch">${esc(r.ch)}</span><span class="badge">${CAT[r.cat]}</span><span class="badge ${r.src}">${SRC[r.src]}</span></span>
+      <span class="num dur">${r.d == null ? '—' : r.d.toFixed(2) + '초'}</span><span class="num volc">${r.vol}</span></div>`).join('')
+      : '<div class="empty">맞는 소리가 없어요. 거름을 줄이거나 다른 말로 찾아보세요.</div>');
+  $('#count').textContent = `${list.length}개 보임 / 모두 ${rows.length}개`;
+}
+function stop() { if (playing) { playing.a.pause(); playing = null; } }
+$('#list').addEventListener('click', e => {
+  const b = e.target.closest('.play'); if (!b) return;
+  const r = rows.find(x => x.n === b.closest('.item').dataset.n), again = playing && playing.n === r.n;
+  stop(); if (again) return draw();
+  const a = new Audio(r.file), master = Number($('#master').value) / 100;
+  a.volume = Math.min(1, master * ($('#gameVol').checked ? Math.min(1, r.vol * CAT_VOL[r.cat]) : 1));
+  playing = { n: r.n, a };
+  a.addEventListener('ended', () => { if (playing && playing.a === a) { playing = null; draw(); } });
+  a.play().catch(() => { playing = null; draw(); });
+  draw();
+});
+// 길이: 파일 머리만 읽어서 채움
+rows.forEach(r => { const a = new Audio(); a.preload = 'metadata'; a.src = r.file; a.addEventListener('loadedmetadata', () => { r.d = a.duration; scheduleDraw(); }); });
+let t = 0; function scheduleDraw() { clearTimeout(t); t = setTimeout(draw, 150); }
+draw();
+</script>
+</body>
+</html>

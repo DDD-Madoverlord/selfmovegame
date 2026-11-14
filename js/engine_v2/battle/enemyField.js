@@ -19,10 +19,10 @@ import { coach } from '../../ui_v2/coach_v2.js';
 import { icon } from '../../ui_v2/icons.js';
 import { KIT_STATUS_ICON, KIT_STATUS_TINT } from './kit.js';
 import { BASE_STATE, baseArt, baseArtName, baseSize, aimAt as aimOf, dressBase, setBaseState } from '../bases_v2.js';
-import { HERO, HIT_REACT, ACID, POPUP, FOOT_B, BASE_X, ENEMY_REACT } from './tuning.js';
+import { HERO, HIT_REACT, ACID, POPUP, FOOT_B, BASE_X, SPAWN_X, ENEMY_REACT } from './tuning.js';
 
 // 축복 성수대 (구역 6): 체력 hp × 스테이지 적 체력 배율, 성수대에서 range px 안 적은 받는 피해 cut 감소 (헌금 기사 오라와 겹치면 곱함)
-export const FONT = { hp: 1000, range: 400, cut: 0.25, x: 900, xNarrow: 640, every: 0.2 };
+export const FONT = { hp: 1000, range: 400, cut: 0.25, x: 900, every: 0.2 };
 
 // 적 상태 외형 (우선순위: 기절 > 감속 > 저주) + 체력바 옆 상태 아이콘
 const ENEMY_TINT = {
@@ -44,7 +44,7 @@ export const EnemyMethods = {
     spawnMinion(typeId = null, opts = {}) {
         if (!this.domEnemies) return null;
         const building = this.enemies.find(e => e.isBuilding);
-        const x = opts.x ?? (building ? building.x - 30 : (window.innerWidth > 1000 ? 980 : 700));
+        const x = opts.x ?? (building ? building.x - 30 : SPAWN_X);
         const type = typeId || pickType(this.stage.enemy.mix);
         const elite = opts.elite ?? Math.random() < (this.stage.elite || 0);
         const first = spawnEnemy(this, type, { x, elite });
@@ -61,6 +61,7 @@ export const EnemyMethods = {
             return;
         }
         this.spawnTimer += dt;
+        if (this.finalBaseDestroyed) return;   // 이 프레임에 승리가 정해졌으면 새 적을 내지 않음 (승리 연출 동안 혼자 서 있던 적 — L4)
         if (this.spawnTimer >= this.spawnInterval && this.enemies.filter(e => !e.isBuilding && !e.isBarricade).length < this.stage.enemy.max) {
             this.spawnTimer = 0;
             this.spawnMinion();
@@ -122,7 +123,7 @@ export const EnemyMethods = {
         const list = this.stage.fonts;
         if (!list || this.fontsSpawned >= list.length || this.distanceTraveled < list[this.fontsSpawned]) return;
         this.fontsSpawned += 1;
-        this.spawnFont(window.innerWidth > 1000 ? FONT.x : FONT.xNarrow);
+        this.spawnFont(FONT.x);
     },
 
     spawnFont(x) {
@@ -191,6 +192,8 @@ export const EnemyMethods = {
     // react.dot: 지속 피해 — 피격 반응 없이 합산해 0.5초마다 숫자 표시
     dealDamageToEnemy(enemy, damage, isCrit, react = null) {
         if (!enemy || !this.enemies.includes(enemy) || enemy.hp <= 0) return;
+        // 패배가 정해진 뒤(시간 초과·목숨 소진 연출 중)에는 피해 없음 — 날아가던 탄·장판이 기지를 부숴 승패가 겹치지 않게 (11-14 버그 점검 M2)
+        if (this.timeUp || this.livesOut) return;
         const supportSource = react?.source === 'support';
         const modified = this.supportModifyDamage(enemy, damage, react);
         damage = modified.damage;
@@ -200,6 +203,7 @@ export const EnemyMethods = {
             const gear = supportSource ? react.supportGear : this.gear;
             damage *= this.gearDamageMul(enemy, gear);    // 파츠 옵션(엘리트·보스·공성) · 철벽 변이 (growth.js)
             damage *= this.kitTargetMul(enemy);     // 2차: 취약 상태 · 패시브 조건 (battle/kit.js)
+            if (!supportSource) damage *= this.sigTargetMul(enemy);   // 캐릭터 고유 특성 (battle/traits.js, D-119)
             if (react && !react.dot) this.kitWake(enemy);   // 잠든 적은 맞으면 깸
             if (gear?.healBlock) enemy.healBlockUntil = this.stats.time + gear.healBlock;   // 치유 방해 옵션
         }
@@ -302,6 +306,7 @@ export const EnemyMethods = {
             this.enemies = [];
             this.cinematic = true;
             monsterControllerV2.setState('victory');
+            this.lockVictory();   // 기록·보상·피로도를 지금 확정 (battle_v2.js — 연출 중에 나가도 이긴 판)
 
             // 연쇄 폭발 → 대폭발 → MISSION COMPLETE → 결과 화면
             const run = this.runId;
@@ -361,6 +366,7 @@ export const EnemyMethods = {
         this.enemies = [];
         this.cinematic = true;
         monsterControllerV2.setState('victory');
+        this.lockVictory();   // 기록·보상·피로도를 지금 확정 (battle_v2.js)
         const run = this.runId;
         this.director.baseDestroyed({ x: boss.x - 20, size: { w: 120, h: 200 } }, true, { stamp: ['MISSION COMPLETE', `${boss.t.name} 격파`] }).then(() => {
             if (this.runId === run && this.isActive) this.finishBattle(true);
@@ -397,9 +403,25 @@ export const EnemyMethods = {
         this.crimsonTimer = setTimeout(() => screen.classList.remove('v2-crimson'), sec * 1000);
     },
 
+    /**
+     * 열기 주술사(구역 8)가 조각상을 깨우기 전에 쓰러지거나 세뇌되면 조각상도 부서진다.
+     * 조각상은 주술사만 없앨 수 있고 움직이지 않아서, 그대로 두면 판 끝까지 남아 적 수 상한(stage.enemy.max)을 차지해
+     * 두 번쯤 생기면 그 판에 적이 더 나오지 않았다 (11-14 버그 점검 M6)
+     */
+    dropStatues(e) {
+        if (!e || !e.statues || e.thawed) return;
+        e.thawed = true;
+        e.statues.filter(s => this.enemies.includes(s)).forEach(s => {
+            this.fx.play(ZONE_VFX.steamBurst, s.x + 38, FOOT_B + 30, { scale: 0.6 });
+            if (s.dom) s.dom.remove();
+        });
+        this.enemies = this.enemies.filter(o => !e.statues.includes(o));
+    },
+
     /** 적 처치: 처치 수·보상, 보스 격파 연출, 타락 히어로 머리면 확률로 세뇌 징집 */
     onEnemyKilled(enemy) {
         if (enemy.isBarricade) {   // 바리케이드: 터지며 사라짐 (처치 수·징집 없음)
+            if (enemy.smashScore) this.smashOnBreak(enemy);   // 스페셜맵 파괴 작전 물체 (battle/special.js)
             const a = aimOf(enemy);
             if (enemy.isFont) {   // 축복 성수대: 축복이 꺼짐 (금빛 물보라)
                 this.fx.play(ZONE_VFX.fontBreak, a.x, FOOT_B + 20);
@@ -414,10 +436,12 @@ export const EnemyMethods = {
         }
         this.stats.kills += 1;
         sound.play('enemy_die', { x: this.fx.panX(aimOf(enemy).x) });
+        this.dropStatues(enemy);    // 열기 주술사: 못 깨운 조각상은 함께 부서짐
         this.onGrowthKill(enemy);   // 스킬 코어 · 핏빛 달 변이 (growth.js)
         this.onSetKill(enemy);      // 레어 세트 4부위 효과 (sets.js — 독안개 산성 옮기기)
         this.kitOnKill(enemy);      // 2차 패시브·세트 효과 (kit.js)
         const purified = this.isPurified(enemy);   // 정화된 채 쓰러지면 독 구름·폭발 없음
+        this.sigOnKill(enemy);   // 고유 특성: 성녀 봉합 회수 (battle/traits.js, D-119)
         if (enemy.stitchT > 0) this.addCorpse(enemy);   // 봉합 성녀: 봉합된 채 쓰러지면 시체 (battle/saint.js)
         gameState.addDarkMatter(killReward(this, enemy));
         if (enemy.affixes?.includes('toxic') && !purified) {
@@ -652,7 +676,7 @@ export const EnemyMethods = {
     /** 거점 건물 (kind: 'mid' 요새 | 'final' 최종 기지). 그림은 bases_v2.js — 체력에 따라 온전 → 파손 → 붕괴 */
     spawnBase(kind) {
         const final = kind === 'final';
-        const x = window.innerWidth > 1000 ? BASE_X[kind] : (final ? 620 : 650);
+        const x = BASE_X[kind];
         const maxHp = this.stage.base[kind];
         const art = baseArtName(this.stage, kind);   // 구역별 그림 (bases_v2.js)
         this.currentTargetHp = maxHp;
@@ -951,7 +975,10 @@ export const EnemyMethods = {
         this.schedule(d.warn, () => {
             if (!this.isActive || !this.boss) return;
             for (let i = 0; i < d.n; i++) {
-                const x = this.frontX() + 40 + i * 60;
+                // 주인공 앞에서 나오되 보스를 넘어서지는 않음 — 보스가 가까이 와 있으면 주인공 쪽(보스 60px 앞)에서 나와
+                // 기본 공격이 실험체부터 닿게 (보스 뒤에 생기면 못 막음, 11-14 버그 점검 S5)
+                const front = this.frontX();
+                const x = Math.max(front - 30 - i * 14, Math.min(front + 40 + i * 60, this.boss.x - 60 - i * 14));
                 this.fx.play(ZONE_VFX.bloodPulse, x + 38, FOOT_B + 30, { scale: 0.4 });
                 this.spawnMinion('pauper', { x, elite: false });
             }
@@ -1038,6 +1065,7 @@ export const EnemyMethods = {
             live.forEach(e => { e.dom.remove(); this.fx.play(ZONE_VFX.rocketBlast, e.x + e.size.w / 2, FOOT_B + 20); });
             this.enemies = this.enemies.filter(e => !e.isBossShield);
             this.boss.invulnerable = false;
+            this.boss.dom?.classList.remove('is-invulnerable');   // 폭발로 끝나도 무적 표시를 뗌 (제때 부순 갈래만 떼던 것 — 11-14 버그 점검 L6)
             this.updateEnemyFilter(this.boss);
             this.director.flash(key === 'scrap' ? '#ffa030' : '#ff40c0', 500, 0.6);
             this.director.shake(16, 800);

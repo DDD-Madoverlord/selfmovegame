@@ -9,10 +9,16 @@ import { LabController } from './ui_v2/lab_v2.js';
 import { SelectController } from './ui_v2/select_v2.js';
 import { sound } from './engine_v2/audio/sound_v2.js';
 import { progress } from './engine_v2/progress_v2.js';
+import { setSkinResolver } from './engine_v2/rig/rigAvatar.js';
 import { coach } from './ui_v2/coach_v2.js';
 import { registerV2Parts } from './engine_v2/partsExtra_v2.js';
 import { registerAllSets2 } from './engine_v2/sets2/index.js';
 import { runLoading } from './ui_v2/loading_v2.js';
+import { showTitle, skipTitle } from './ui_v2/title_v2.js';
+import { playLogoIntro } from './ui_v2/logoIntro_v2.js';
+import { maybePromptAccount } from './ui_v2/account_v2.js';
+import { mountTuneTab } from './ui_v2/tunePanel_v2.js';
+import { shouldPlayIntro, playStoryIntro, introZoneOf } from './ui_v2/storyIntro_v2.js';
 import { isApp, checkForUpdate } from './ui_v2/appUpdate_v2.js';
 import { applyVfxChoices, readVfxChoices, readVfxStyle } from './engine_v2/vfx/vfxVariants.js';
 import { preloadVfxSheets } from './engine_v2/vfx/vfxPlayer.js';
@@ -21,6 +27,7 @@ import { settings } from './engine_v2/settings_v2.js';
 import { initAnalytics, track } from './engine_v2/analytics_v2.js';
 import { initCommerceDev } from './engine_v2/commerceDev_v2.js';
 import { TutorialUi } from './ui_v2/tutorialUi_v2.js';
+import { staminaGate, staminaReady } from './ui_v2/staminaUi_v2.js';
 import { getSupabaseClient, checkSupabaseHealth } from './engine_v2/supabase_v2.js';
 
 class GameRouterV2 {
@@ -31,6 +38,7 @@ class GameRouterV2 {
         registerV2Parts();
         initCommerceDev();
         progress.init();
+        setSkinResolver(character => progress.skinFilterOf(character));   // 캐릭터 외형 색 (D-119)
         
         // 라우터 바인딩된 화면 전환 함수 (v2)
         const switchFn = (name) => this.switchScreen(name);
@@ -73,8 +81,22 @@ class GameRouterV2 {
             });
         }
 
-        // 결과 화면 버튼 (다시 출격 / 연구소 / 메인 메뉴) → 화면 전환
-        battleEngineV2.onNavigate = name => this.switchScreen(name);
+        // 결과 화면 버튼 (다음 / 다시 출격 / 연구소 / 메인 메뉴) → 화면 전환
+        // '다음 N-1'로 새 구역 첫 판에 가도 지도에서 고른 때처럼 스토리 인트로를 먼저 (처음 한 번, D-100 · 11-07 QA)
+        // 피로도 (Q-049): '다음'·'재도전'·'다시 출격'도 먼저 확인 — 모자라면 결과 화면 위에 부족 창 (스페셜·탑은 안 씀)
+        battleEngineV2.onNavigate = name => {
+            if (name === 'battle' && !battleEngineV2.pendingSpecial) {
+                staminaGate(() => {
+                    if (shouldPlayIntro(progress.selectedStage)) {
+                        playStoryIntro(introZoneOf(progress.selectedStage)).then(() => this.switchScreen('battle'));
+                        return;
+                    }
+                    this.switchScreen('battle');
+                });
+                return;
+            }
+            this.switchScreen(name);
+        };
 
         // 특수 스킬 강제 발동 버튼 이벤트 (v2)
         const btnSpecial = document.getElementById('btn-trigger-special-v2');
@@ -139,7 +161,15 @@ class GameRouterV2 {
         console.log('🔥 PROJECT: MAD OVERLORD ENGINE V2 ONLINE 🔥');
     }
 
+    /** 스페셜맵 판으로 출격 (D-123 — 작전 지원 › 스페셜) */
+    startSpecial(stage) {
+        battleEngineV2.pendingSpecial = stage;
+        this.switchScreen('battle');
+    }
+
     switchScreen(screenName) {
+        // 피로도 안전망 (Q-049): 출격 단추·결과 화면이 이미 확인했으면 그대로 통과. 다른 길로 모자란 채 들어오면 부족 창
+        if (screenName === 'battle' && !battleEngineV2.pendingSpecial && !staminaReady(() => this.switchScreen('battle'))) return;
         if (this.currentScreen === 'battle' && screenName !== 'battle') {
             battleEngineV2.stopBattle();
         }
@@ -172,6 +202,8 @@ class GameRouterV2 {
             this.menuController.updateDisplay();
             // 처음 한 번: 전투를 한 판 해 본 뒤 연구소 안내 (coach_v2.js)
             if (Object.keys(progress.stages).length) setTimeout(() => coach('menu_lab', '#btn-to-lab-v2, #btn-rail-lab-v2'), 700);
+            // 노말 1-5를 처음 깨고 돌아오면 계정 연동 안내 한 번 (D-106 · D-119 2번) — 자동 검사(?skipTitle=1)는 끔
+            if (!skipTitle()) setTimeout(() => { if (this.currentScreen === 'menu') maybePromptAccount(); }, 400);
         } else if (screenName === 'select') {
             this.selectController.render();
         } else if (screenName === 'lab') {
@@ -226,6 +258,15 @@ export function initGameRouterV2() {
     window.addEventListener('resize', fitScreens);
     TOUCH_FIRST.addEventListener?.('change', fitScreens);   // 태블릿 겸용 노트북에서 키보드를 떼고 붙일 때
     settings.subscribe(key => { if (key === 'layout') fitScreens(); });
-    runLoading().then(() => { if (isApp()) checkForUpdate({ silent: true }); });   // 캐릭터·사운드 미리 받기 (메인 화면은 뒤에서 바로 준비) → 앱이면 새 버전 확인 (D-074)
+    // 캐릭터·사운드 미리 받기 (메인 화면은 뒤에서 바로 준비) → 시작 화면(D-119 1번, 자동 검사는 ?skipTitle=1로 건너뜀) → 앱이면 새 버전 확인 (D-074)
+    // 제작팀 로고 영상은 로딩과 같이 재생 — 둘 다 끝나면 시작 화면을 깔고 로고 덮개를 걷음
+    const logo = skipTitle() ? null : playLogoIntro();
+    runLoading().then(() => logo).then(dismissLogo => {
+        if (skipTitle()) return null;
+        const title = showTitle();
+        if (dismissLogo) dismissLogo();
+        return title;
+    }).then(() => { if (isApp()) checkForUpdate({ silent: true }); });
     window.madOverlordGameV2 = new GameRouterV2();
+    mountTuneTab();   // 밸런스 조절 탭 (시험용, D-127 — 시험 모드·?tune=1·값이 바뀌어 있을 때만 보임)
 }

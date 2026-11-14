@@ -42,6 +42,10 @@ import { EnemyMethods } from './battle/enemyField.js';
 import { AllyMethods } from './battle/allies.js';
 import { SetMethods } from './battle/sets.js';
 import { KitMethods } from './battle/kit.js';
+import { TraitMethods } from './battle/traits.js';
+import { SpecialBattleMethods } from './battle/special.js';
+import { roleMods } from './role_v2.js';
+import { liveTune } from './liveTune_v2.js';
 import { DiverMethods } from './battle/diver.js';
 import { SaintMethods } from './battle/saint.js';
 import { FrostMethods } from './battle/frost.js';
@@ -92,6 +96,7 @@ export class BattleEngine {
         this.midBaseDestroyed = false;
         this.finalBaseSpawned = false;
         this.finalBaseDestroyed = false;
+        this.pendingResult = null;   // 승리가 정해진 순간 미리 정리해 둔 결과 (lockVictory)
         this.ruins = [];
         this.ruinHoldT = 0;
 
@@ -157,10 +162,21 @@ export class BattleEngine {
         this.isActive = true;
         this.distanceTraveled = 0;
         // 난이도(D-063): 고른 난이도의 배율을 곱한 스테이지 복사본 — 전투 코드는 b.stage만 읽음
-        this.difficulty = difficultyUnlocked(progress.difficulty, progress) ? progress.difficulty : DEFAULT_DIFFICULTY;
-        const sid = progress.selectedStage || defaultStage(progress).id;
-        this.assist = progress.assist(sid, this.difficulty);   // 연패 보정: 못 깬 판에서 진 만큼 적·거점 약하게 (difficulty_v2.js ASSIST)
-        this.stage = this.growthStage(assistStage(stageFor(stageById(sid), this.difficulty), this.assist));   // + 계정 연구 DM (growth.js)
+        const special = this.pendingSpecial;   // 스페셜맵 (D-123): 작전 지원 › 스페셜에서 고른 판 — 보통 판 기록·연패 보정과 따로
+        this.pendingSpecial = null;
+        if (special) {
+            this.difficulty = special.difficulty || DEFAULT_DIFFICULTY;
+            this.assist = 0;
+            this.stage = this.growthStage(special);
+        } else {
+            this.difficulty = difficultyUnlocked(progress.difficulty, progress) ? progress.difficulty : DEFAULT_DIFFICULTY;
+            const sid = progress.selectedStage || defaultStage(progress).id;
+            this.assist = progress.assist(sid, this.difficulty);   // 연패 보정: 못 깬 판에서 진 만큼 적·거점 약하게 (difficulty_v2.js ASSIST)
+            this.stage = this.growthStage(assistStage(stageFor(stageById(sid), this.difficulty), this.assist));   // + 계정 연구 DM (growth.js)
+        }
+        this.stage = this.tunedStage(this.stage, true);   // 밸런스 조절 (시험용, D-127): 적 체력·공격력 배율 — 기본값이면 그대로
+        // 피로도 (Q-049): 보통 판이면 비용을 맡김 — 확인은 출격 단추·결과 화면에서 먼저 함(ui_v2/staminaUi_v2.js), 스페셜·탑은 안 씀
+        this.staminaRes = progress.reserveStamina(this.stage, this.difficulty);
         predecodeStageArt(this.stage);   // 이 스테이지 적 그림을 미리 풂 (enemies_v2.js — 처음 나올 때 멈칫하지 않게)
         // 구역 배경 (ui_v2.css .v2-zone-1 ~ 4 · 6), 보스전은 경보 조명·불길 판 (.v2-stage-boss)
         // .v2-boss-rage(구역 4 보스 2페이즈)·.v2-crimson(구역 3 악마기사 소환 점멸)은 전투 중에 붙음
@@ -215,6 +231,7 @@ export class BattleEngine {
         this.midBaseDestroyed = false;
         this.finalBaseSpawned = false;
         this.finalBaseDestroyed = false;
+        this.pendingResult = null;   // 승리가 정해진 순간 미리 정리해 둔 결과 (lockVictory)
         this.enemies = [];
         this.allies = [];
         this.projectiles = [];
@@ -232,6 +249,7 @@ export class BattleEngine {
         this.timers = [];
         this.skillCd = { arm: 0, body: 0 };
         this.ultGauge = 0;
+        this.hurtReactAt = undefined;   // 피격 움찔 간격 기준(전투 시간) — 앞 판 값이 남으면 그 시각이 지날 때까지 반응이 안 나왔음 (11-14 버그 점검 L5)
         this.resetSetState();     // A·B 세트 버프·구역·포탑·분신 (battle/sets.js)
         this.runId += 1;
         this.cinematic = false;
@@ -253,9 +271,13 @@ export class BattleEngine {
         this.playerHp = stats.hp;
         this.healTaken = 0;       // 이번 전투에서 회복한 양 (player.js healPlayer — 구역 6 보스 '생명의 저울')
         this.playerDps = stats.dps;
+        this.statDps = stats.dps;   // 밸런스 조절로 전투 중 다시 계산할 때 기준 (applyLiveTune — 합성괴인 2페이즈 같은 배율은 비율로 유지)
         this.playerRange = stats.range;
         this.playerSpeed = stats.speed;
         this.attackType = equippedObjs.arm ? (equippedObjs.arm.attackType || 'melee') : 'melee';
+        this.roleTaken = roleMods(stats.role).taken;   // 원거리·근거리 받는 피해 배율 (D-119, sets.js incomingMul)
+        this.setupTraits(equippedObjs);                  // 캐릭터 고유 특성 (battle/traits.js)
+        this.setupSpecial();                             // 스페셜맵 파괴 작전 물체 (battle/special.js)
         this.armShotFx = equippedObjs.arm?.shotFx || null;   // 총구 섬광 + 날아가는 탄 (D-118, attacks.js fireShotFx)
         this.skills = skillsForParts(equippedObjs);
         this.setupGrowth(equippedObjs);   // 옵션·스킬 레벨·전술 모듈·전장 변이 (battle/growth.js, Q-006)
@@ -271,7 +293,7 @@ export class BattleEngine {
         // 몬스터 비주얼 렌더링 및 위치 리셋
         monsterControllerV2.renderVisuals(equippedObjs);
         track('stage_start', { stageId: this.stage.id, zone: this.stage.zone, difficulty: this.difficulty, character: monsterControllerV2.getCharacterId() });
-        progress.tutorialBattleStart(this.stage.id, this.difficulty);
+        if (!this.stage.special) progress.tutorialBattleStart(this.stage.id, this.difficulty);   // 스페셜맵 판 번호는 튜토리얼 기록에 넣지 않음 (저장 검사가 거절)
         if (this.autoSkills) progress.tutorialDone('combat');
         monsterControllerV2.updateHpBar(this.playerHp, this.maxPlayerHp);
         monsterControllerV2.setMonsterPosition(this.monsterX);
@@ -309,8 +331,16 @@ export class BattleEngine {
     }
 
     // 전투 정지 및 퇴각
-    stopBattle() {
+    /** keepDirector: 결과 화면으로 이어질 때(finishBattle·finishSpecial) — 남은 연출을 그대로 둠 */
+    stopBattle(keepDirector = false) {
+        // 피로도: 맡긴 채 끝나기 전에 나감(작전 포기·메인으로) → 시작 10초 안이면 전부 돌려받고, 그 뒤면 진 것과 같음 (Q-049)
+        // (승리가 정해진 뒤에 나가면 lockVictory가 이미 '이김'으로 정리해서 맡긴 것이 없음)
+        if (progress.stamina?.pending) progress.settleStamina('quit');
         this.isActive = false;
+        this.pendingResult = null;
+        // 결과 창 없이 나가면 남은 연출(도장·효과음·배경음 끄기)이 메뉴에서 이어지지 않게 끊음 (11-14 버그 점검 L7)
+        if (!keepDirector && this.director) this.director.cancel();
+        clearTimeout(this.menuBgmTimer);   // 앞 판 결과 화면이 걸어 둔 '1.2초 뒤 메뉴 배경음'
         this.domEnemies?.querySelectorAll('.v2-kit-art').forEach(el => el.remove());
         this.clearPet();
         this.clearSupport();
@@ -416,6 +446,7 @@ export class BattleEngine {
             this.director.alarm('TIME 30', '제한 시간 30초 — 최종 기지를 서둘러 부숴라', 2);
         }
         if (left > 0 || this.timeUp) return false;
+        if (this.stage.special === 'smash') { this.endSmash(false); return true; }   // 파괴 작전: 시간 끝 = 점수로 끝 (진 판 없음)
         this.timeUp = true;
         this.cinematic = true;
         this.clearSupport();
@@ -438,8 +469,93 @@ export class BattleEngine {
         });
     }
 
+    /** 밸런스 조절 (시험용, D-127): 적 체력(거점 포함)·공격력 배율을 곱한 스테이지 복사본. first = 출격 때(기준값 저장) */
+    tunedStage(stage, first = false) {
+        if (first) this.tuneBase = { hp: stage.enemy.hp, dps: stage.enemy.dps, mid: stage.base.mid, final: stage.base.final };
+        const t = liveTune.get(), base = this.tuneBase;
+        if (!base || (t.enemyHp === 1 && t.enemyDps === 1 && first)) return stage;
+        return { ...stage, enemy: { ...stage.enemy, hp: base.hp * t.enemyHp, dps: base.dps * t.enemyDps },
+            base: { ...stage.base, mid: Math.round(base.mid * t.enemyHp), final: Math.round(base.final * t.enemyHp) } };
+    }
+
+    /** 밸런스 조절 값이 바뀌면 (전투 중): 주인공 공격력·이동·받는 피해 다시 계산, 적은 새로 나오는 적·다음 공격부터 */
+    applyLiveTune() {
+        if (!this.isActive || !this.stage) return;
+        const stats = progress.statsFor(gameState.getEquippedObjects());
+        const ratio = this.statDps ? this.playerDps / this.statDps : 1;
+        this.playerDps = stats.dps * ratio;
+        this.statDps = stats.dps;
+        if (this.playerSpeed > 0) this.playerSpeed = stats.speed;
+        this.roleTaken = roleMods(stats.role).taken;
+        this.stage = this.tunedStage(this.stage);
+    }
+
+    /** 스페셜맵 끝 정리 (D-123): 보스 러시 = 단계 기록·승급석, 파괴 작전 = 점수·등급 (보통 판 기록·별·드랍 없음)
+        → 결과 화면에 넘길 값 (화면은 finishSpecial). 한 판에 한 번만 부름 */
+    settleSpecial(victory) {
+        const sp = this.stage;
+        const mode = sp.special;
+        const special = mode === 'boss' ? { mode, ...progress.finishSpecialBoss(sp.specialStep, victory) }
+            : mode === 'tower' ? { mode, ...progress.finishTower(sp.specialStep, victory) }   // 오버로드의 탑 (D-126)
+            : { mode, ...progress.finishSpecialSmash(this.smashScore || 0), broken: this.smashBroken || 0 };
+        special.left = mode === 'tower' ? Infinity : progress.specialLeft(mode);   // 탑은 횟수 제한 없음
+        if (mode === 'tower') special.nextFloor = progress.nextTowerFloor();
+        const win = mode === 'smash' ? true : victory;
+        const result = {
+            victory: win, stage: sp, special, loot: null, difficulty: difficultyOf(this.difficulty), unlocked: null,
+            starFlags: [false, false, false], bestStars: [false, false, false], prevStars: [false, false, false], newStars: 0, bonus: 0, pets: [], chars: [],
+            next: null, timeUp: !win && this.timeUp, livesOut: !win && this.livesOut, assist: 0, nextAssist: 0, bossPhase: !win && !!this.bossPhase, bossKill: win && mode === 'boss',
+            overloads: this.stats.overloads || 0, distance: Math.min(this.maxDistance, this.distanceTraveled), kills: this.stats.kills, time: this.stats.time,
+            dm: Math.max(0, gameState.darkMatter - this.stats.startDm), report: null
+        };
+        return result;
+    }
+
+    finishSpecial(victory) {
+        const result = this.pendingResult || this.settleSpecial(victory);   // 승리는 lockVictory가 이미 정리해 둠
+        const mode = result.special.mode;
+        this.stopBattle(true);
+        this.menuBgmTimer = setTimeout(() => { if (!this.isActive) sound.playBgm('menu', 2.5); }, 1200);
+        this.director.showResult(result, act => {
+            if (act === 'retry') {   // 같은 모드 한 번 더 (횟수가 남았으면) · 탑은 다음 층 / 같은 층 다시
+                clearTimeout(this.menuBgmTimer);
+                const r = mode === 'tower' ? progress.startTower() : progress.startSpecial(mode);
+                if (r.success) { this.pendingSpecial = r.stage; if (this.onNavigate) this.onNavigate('battle'); return; }
+                act = 'menu';
+            }
+            if (this.onNavigate) this.onNavigate(act);
+        });
+    }
+
+    /**
+     * 승리가 정해진 순간(최종 기지 파괴 · 보스 격파 · 파괴 작전 끝)에 기록·보상·피로도를 바로 확정한다 (11-14 버그 점검 S3).
+     * 예전에는 연출(약 4.5초)이 끝난 뒤에야 확정해서, 그 사이 일시정지 → 작전 포기를 하면 기지 보상 DM은 다 받고
+     * 피로도는 진 판처럼 1만 썼고, 'MISSION COMPLETE'를 보고 앱을 끄면 클리어가 기록되지 않았다.
+     * 정리한 결과는 pendingResult에 두고, 연출이 끝나면 finishBattle이 그대로 결과 화면에 띄운다.
+     */
+    lockVictory() {
+        if (this.pendingResult || !this.isActive || !this.stage) return;
+        this.pendingResult = this.stage.special ? this.settleSpecial(true) : this.settleBattle(true);
+    }
+
     // 전투 종료 → 결과 화면 (승리: 최종 기지 파괴 연출 뒤 / 패배: 시간 초과·목숨 소진 연출 뒤)
     finishBattle(victory) {
+        if (this.stage.special) return this.finishSpecial(victory);   // 스페셜맵: 보통 판 기록·드랍 없이 (D-123)
+        const result = this.pendingResult || this.settleBattle(victory);   // 승리는 lockVictory가 이미 정리해 둠
+        const { next, advance, clearedId } = result.nav;
+        this.stopBattle(true);
+        this.menuBgmTimer = setTimeout(() => { if (!this.isActive) sound.playBgm('menu', 2.5); }, 1200);
+        this.director.showResult(result, act => {
+            // 바로 다음 전투로 가면 메뉴 배경음을 틀지 않음 — 1.2초 안에 [다음 N-1]을 누르면 스토리 인트로 음악을 메뉴 음악이 덮었음 (11-14 버그 점검 L8)
+            if (act === 'retry' || act === 'next') clearTimeout(this.menuBgmTimer);
+            if (act === 'next' && next) progress.selectStage(next.id);
+            if (act === 'retry' && advance) progress.selectStage(clearedId);
+            if (this.onNavigate) this.onNavigate(act === 'retry' || act === 'next' ? 'battle' : act);
+        });
+    }
+
+    /** 보통 판 끝 정리: 기록 · 피로도 · 드랍 · 다음에 고를 판 → 결과 화면에 넘길 값 (화면은 finishBattle). 한 판에 한 번만 부름 */
+    settleBattle(victory) {
         // 세 번째 별: 목표 시간(stage.starTime) 안에 클리어 (D-029)
         if (victory && this.stats.time <= this.stage.starTime) this.starFlags[2] = true;
         const diff = this.difficulty;
@@ -448,7 +564,11 @@ export class BattleEngine {
         const prevStars = [...progress.stage(this.stage.id, diff).stars];
         const firstClear = victory && !progress.stage(this.stage.id, diff).cleared;
         const record = progress.recordStage(this.stage.id, { stars: this.starFlags, cleared: victory, time: this.stats.time }, diff);
-        const next = victory ? nextStageOf(this.stage.id) : null;
+        const stamina = progress.settleStamina(victory ? 'win' : 'lose');   // 피로도: 이기면 확정, 지거나 시간 초과면 1만 쓰고 돌려받음 (Q-049)
+        // 결과 화면 [다음]은 열린 판일 때만 — 표에서 바로 다음 판이 공개 전 구역(6-B → 7-1)이거나 아직 잠긴 판이면 단추를 내지 않음
+        // (기록을 먼저 남긴 뒤라 방금 깬 판은 깬 것으로 셈. 11-14 버그 점검 S2 — 메인 출격 단추만 막고 여기는 안 막았음)
+        const after = victory ? nextStageOf(this.stage.id) : null;
+        const next = after && isUnlocked(after.id, progress) ? after : null;
         // 고른 판을 깨면 '진행해야 할 판'(아직 안 깬 가장 앞 판, 다 깼으면 바로 다음 판)을 골라 둠 — 결과에서 [메인 메뉴]·[연구소]로 나와도 (11-05 피드백 13번).
         // [다시 출격]은 깬 판을 다시 고름, [다음]은 바로 다음 판
         const clearedId = this.stage.id;
@@ -458,7 +578,7 @@ export class BattleEngine {
             : next && isUnlocked(next.id, progress) ? next : null;
         const advance = !!target && target.id !== clearedId && progress.selectedStage === clearedId;
         if (advance) progress.selectStage(target.id);
-        // 마지막 스테이지(4-B)를 처음 깨면 다음 난이도가 열림 + 강화 한도 상승 (D-063)
+        // 그룹 1 마지막 판(6-B, D-119 — 예전 4-B)을 처음 깨면 다음 난이도가 열림 + 강화 한도 상승 (D-063)
         const unlocked = victory && this.stage.id === FINAL_STAGE_ID && wasLocked && difficultyUnlocked(nextDiff.id, progress) ? nextDiff : null;
         const loot = this.finishGrowth(victory, firstClear);   // 스킬 코어 + 파츠 드랍 (battle/growth.js)
         const result = {
@@ -467,12 +587,14 @@ export class BattleEngine {
             loot,
             difficulty: difficultyOf(diff),
             unlocked,
+            maxLevel: progress.maxLevel(),   // 지금 강화 한도 (난이도 한도 + 숨김 그룹 +2씩, D-119)
             starFlags: [...this.starFlags],
             bestStars: progress.stage(this.stage.id, diff).stars,
             prevStars,
             newStars: record.newStars,
             bonus: record.bonus,
             pets: record.pets,
+            chars: record.chars || [],   // 이 판으로 구역 n-1이 열려 합류한 캐릭터 (D-119)
             next,
             timeUp: !victory && this.timeUp,
             livesOut: !victory && this.livesOut,
@@ -485,17 +607,15 @@ export class BattleEngine {
             kills: this.stats.kills,
             time: this.stats.time,
             dm: Math.max(0, gameState.darkMatter - this.stats.startDm),
-            report: victory ? null : this.runReport()   // 패배 원인·할 일 (runReport.js)
+            stamina,                                   // { used, refund } — 진 판 '피로도 N 돌려받음'
+            staminaCost: progress.staminaApplies(this.stage) ? progress.staminaCost(diff) : 0,   // '다음'·'재도전' 단추의 ⚡ 비용
+            staminaHave: progress.stamina.v,
+            report: victory ? null : this.runReport(),   // 패배 원인·할 일 (runReport.js)
+            nav: { next, advance, clearedId }            // 결과 화면 단추가 고를 판 (finishBattle)
         };
-        this.stopBattle();
-        setTimeout(() => { if (!this.isActive) sound.playBgm('menu', 2.5); }, 1200);
         track('stage_end', { stageId: result.stage.id, result: result.victory ? 'victory' : 'defeat', time: result.time, stars: result.starFlags.filter(Boolean).length, dm: result.dm });
         progress.tutorialBattleResult(result.stage.id, diff, victory);
-        this.director.showResult(result, act => {
-            if (act === 'next' && next) progress.selectStage(next.id);
-            if (act === 'retry' && advance) progress.selectStage(clearedId);
-            if (this.onNavigate) this.onNavigate(act === 'retry' || act === 'next' ? 'battle' : act);
-        });
+        return result;
     }
 
     /** 패배 원인 알려주기: 구간 시각 + 남은 거점·보스 체력 → runReport.js */
@@ -517,18 +637,24 @@ export class BattleEngine {
         const dt = Math.min(0.1, (timestamp - this.lastTime) / 1000) * gameTime.scale(timestamp);   // 히트스톱/일시정지 0, 배속 적용
         this.lastTime = timestamp;
 
-        if (this.finalBaseDestroyed || this.timeUp) {   // 승리 연출 / 시간 초과 연출 중: 전투 정지
+        // 승리 연출 / 시간 초과 연출 / 목숨 소진 연출 중: 전투 정지 — 쓰러지는 동안 소환수·장판이 기지를 부숴 승패가 겹치지 않게 (11-14 버그 점검 M2)
+        if (this.finalBaseDestroyed || this.timeUp || this.livesOut) {
             this.loopId = requestAnimationFrame((t) => this.loop(t));
             return;
         }
 
         // 시간·상태
         this.stats.time += dt;
+        if (this.smashQueue) this.tickSmash();   // 파괴 작전 물체 (battle/special.js)
         if (this.checkTimeLimit()) {
             this.loopId = requestAnimationFrame((t) => this.loop(t));
             return;
         }
         this.checkOverload(dt);          // player.js
+        if (this.livesOut) {             // 방금 목숨을 다 씀: 이 프레임의 나머지(아군·장판·적)도 돌리지 않음
+            this.loopId = requestAnimationFrame((t) => this.loop(t));
+            return;
+        }
         this.tickAcid(dt);               // enemyField.js
         this.tickSets(dt);               // sets.js (버프·지속 피해 구역·출혈·블랙홀·포탑·분신)
         this.tickKit(dt);                // kit.js (2차 버프·적 상태·장판·움직이는 판정·소환·변신)
@@ -569,6 +695,8 @@ export class BattleEngine {
      * 요새가 무너지는 동안 승리 자세 / 아니면 배경을 흘리며 거리 누적(거점 출현)
      */
     tickAdvance(dt, frontX) {
+        // 이 프레임에 스킬·장판으로 승리가 정해졌으면(최종 기지·보스) 승리 자세 그대로 — 걷기로 덮지 않음 (11-14 버그 점검 L4)
+        if (this.finalBaseDestroyed) return;
         let closestEnemy = null;
         let minDistance = Infinity;
 
@@ -614,6 +742,7 @@ export class BattleEngine {
                 this.scrollZones(dt);    // sets.js: 독안개·화염·웅덩이도 바닥과 함께
                 this.scrollKit(dt);      // kit.js: 2차 장판·움직이는 판정
                 this.scrollFonts(dt);    // enemyField.js: 구역 6 축복 성수대
+                this.scrollSmash(dt);    // special.js: 파괴 작전 물체 (바닥에 놓인 것 — 걷는 만큼 다가옴)
                 if (this.corpses.length) this.scrollCorpses(dt);   // saint.js
             }
 
@@ -659,7 +788,10 @@ attachMethods(BattleEngine.prototype, {
     'battle/doll.js': DollMethods,
     'battle/growth.js': GrowthBattleMethods,
     'battle/pets.js': PetBattleMethods,
-    'battle/support.js': SupportMethods
+    'battle/support.js': SupportMethods,
+    'battle/traits.js': TraitMethods,
+    'battle/special.js': SpecialBattleMethods
 });
 
 export const battleEngineV2 = new BattleEngine();
+liveTune.subscribe(() => battleEngineV2.applyLiveTune());   // 밸런스 조절 패널에서 값을 바꾸면 바로 (D-127)

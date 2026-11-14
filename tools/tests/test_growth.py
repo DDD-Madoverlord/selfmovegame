@@ -40,13 +40,16 @@ def run(ctx):
               '드랍: 같거나 낮은 등급 → DM·파츠 조각 환급', str(st))
     ctx.check(abs(st['hp1'] - round(st['hp0'] * st['mul'])) <= 1, f"등급 능력치: 유니크 ×{st['mul']}", str(st))
 
-    st = g.js("""progress.shards = 100;
+    st = g.js("""progress.shards = 100; progress.stones = 50; gameState.darkMatter = 500000;
         const cost = progress.shardUpgradeCost('arm_mech_laser');
+        progress.levels['arm_mech_laser'] = cost.needLevel;   // 등급 올리기 전에 지금 등급 한도까지 강화 (D-124)
+        const dm0 = gameState.darkMatter;
         const r = progress.upgradeGradeWithShards('arm_mech_laser');
-        return { cost, r, grade: progress.gradeOf('arm_mech_laser'), shards: progress.shards, max: progress.shardUpgradeCost('arm_mech_laser'),
-            none: progress.shardUpgradeCost('arm_mech_missile') };""")
+        return { cost, r, grade: progress.gradeOf('arm_mech_laser'), shards: progress.shards, stones: progress.stones, dm: dm0 - gameState.darkMatter,
+            max: progress.shardUpgradeCost('arm_mech_laser'), none: progress.shardUpgradeCost('arm_mech_missile') };""")
     ctx.check(st['cost']['grade'] == 'legendary' and st['r']['success'] and st['grade'] == 'legendary' and st['shards'] == 100 - st['cost']['shards']
-              and st['max'] is None and st['none'] is None, '파츠 조각: 유니크 → 레전더리 (조각 차감), 최고 등급·안 가진 파츠는 불가', str(st))
+              and st['stones'] == 50 - st['cost']['stones'] and st['dm'] == st['cost']['dm'] and st['max'] is None and st['none'] is None,
+              '등급 올리기: 유니크 → 레전더리 (조각·DM·승급석 차감, D-124), 최고 등급·안 가진 파츠는 불가', str(st))
 
     st = g.js(IMPORTS + """
         const parts = gameState.getEquippedObjects();
@@ -135,7 +138,7 @@ def run(ctx):
     fresh_battle(g)
     base = g.js("""const e = b.spawnMinion('guard', { x: b.monsterX + 500, elite: true }); e.affixes = []; e.shield = 0;
         const h0 = e.hp; b.dealDamageToEnemy(e, 100, false); return h0 - e.hp;""")
-    g.js("b.gear = { eliteDmg: 0.15, shieldDmg: 0.6, reflectCut: 0.6, healBlock: 3, ccCut: 0.3 };")
+    g.js("b.gear = { eliteDmg: 0.15, shieldDmg: 0.6, reflectCut: 0.6, healBlock: 3, ccCut: 0.3 }; b.roleTaken = 1; b.sigChar = null;")   # 근거리 받는 피해·고유 특성(D-121)은 빼고 옵션만 봄
     st = g.js(IMPORTS + """
         const e = b.spawnMinion('guard', { x: b.monsterX + 500, elite: true }); e.affixes = []; e.shield = 0;
         const h0 = e.hp; b.dealDamageToEnemy(e, 100, false); const elite = h0 - e.hp;
@@ -253,13 +256,17 @@ def run(ctx):
     g.js("b.stopBattle(); window.madOverlordGameV2.switchScreen('menu');")
     g.wait(300)
     st = g.js("""const total = progress.totalStars();
+        const spent = progress.spentStars;
         const a = progress.isCharacterUnlocked('kaiju'); const r = progress.unlockCharacter('kaiju');
-        const b2 = progress.isCharacterUnlocked('kaiju');
-        progress.spentStars = progress.totalStars();
-        const fail = progress.unlockCharacter('doll');
-        return { total, a, r: r.success, b2, fail: fail.success, mech: progress.isCharacterUnlocked('mech') };""")
-    ctx.check(st['total'] == 330 and not st['a'] and st['r'] and st['b2'] and not st['fail'] and st['mech'],
-              '별: 노말 110판 × 3 = 330개, 캐릭터 해금(거대괴수 ★6), 별이 모자라면 못 엶, 거대로봇은 처음부터', str(st))
+        const doll = progress.isCharacterUnlocked('doll');
+        const keep = progress.stages['6-B'];
+        delete progress.stages['6-B'];   // 6-B를 안 깬 것으로: 7-1이 안 열림 → 인형사 아직
+        progress.unlockedChars = progress.unlockedChars.filter(id => id !== 'doll');
+        const dollAfter = progress.isCharacterUnlocked('doll');
+        progress.stages['6-B'] = keep;
+        return { total, a, r: r.success, stars: progress.spentStars - spent, doll, dollAfter, mech: progress.isCharacterUnlocked('mech') };""")
+    ctx.check(st['total'] == 330 and st['a'] and st['r'] and st['stars'] == 0 and st['doll'] and not st['dollAfter'] and st['mech'],
+              '별: 노말 110판 × 3 = 330개 · 캐릭터는 별을 안 씀(D-119): 구역 n-1이 열리면 합류(거대괴수·인형사), 6-B를 안 깼으면 인형사 잠김 · 거대로봇은 처음부터', str(st))
     st = g.js(f"""progress.spentStars = 0;
         for (const d of ['hard', 'hell']) ({ALL}).forEach(id => progress.recordsOf(d)[id] = {CLEAR});
         const avail = progress.availableStars();
@@ -336,7 +343,7 @@ def run(ctx):
             res[id] = id === 'icefloor' ? b.gearMoveMul() : id === 'overload' ? b.skillCooldown('arm', b.skills.arm) / cd0
                 : b.gearDamageMul({ isBuilding: true });
         }
-        b.mutator = { id: 'bloodmoon', ...G.MUTATORS.bloodmoon };
+        b.mutator = { id: 'bloodmoon', ...G.MUTATORS.bloodmoon }; b.roleTaken = 1; b.sigChar = null;   // 변이 피해만 봄 (D-121 역할·고유 특성 제외)
         const e = b.spawnMinion('guard', { x: b.monsterX + 40, elite: false }); const p0 = b.playerHp;
         b.dealDamageToEnemy(e, 1e6, false); const blast = p0 - b.playerHp;
         return { res, blast: blast / b.maxPlayerHp, hud: document.getElementById('hud-stage-v2').textContent, mut: b.stage.mutator };""")
@@ -360,6 +367,7 @@ def run(ctx):
     st = g.js("""const raw = JSON.parse(localStorage.getItem('mo_v2_save'));
         ['grades','options','shards','cores','skillLevels','modules','research','spentStars','unlockedChars','dispatch'].forEach(k => delete raw[k]);
         raw.owned = [...new Set([...(raw.owned || []), 'body_hero'])];
+        raw.stages = {};   // 노말 기록 없음 — 구역 도착 합류(D-119)가 아니라 예전 저장 옮기기로만 열리는지 보려고
         localStorage.setItem('mo_v2_save', JSON.stringify(raw));
         return true;""")
     g.reload_v2()

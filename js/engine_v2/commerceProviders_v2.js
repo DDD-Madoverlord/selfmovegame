@@ -1,5 +1,5 @@
 /* 공급자 교체 지점. 가짜 응답은 현재 실행의 메모리에만 남는다. */
-import { PRODUCTS, productOf } from './shopCatalog_v2.js';
+import { PRODUCTS, productOf, AD_LIMITS } from './shopCatalog_v2.js';
 import { isMockCommerce, commerceEnvironment } from './commerceDev_v2.js';
 
 const handlers = new Set();
@@ -32,7 +32,7 @@ export const ads = {
     get available() { return mock(); },
     async showRewarded(placement) {
         if (!mock()) return { status: 'failed', reason: '광고 준비 중' };
-        if (placement !== 'idle_double') return { status: 'failed', reason: '알 수 없는 광고 위치' };
+        if (!AD_LIMITS[placement]) return { status: 'failed', reason: '알 수 없는 광고 위치' };   // idle_double · stamina_ad
         const result = { status: nextAd, operationId: id(), provider: 'mock' };
         nextAd = 'success';
         return result;

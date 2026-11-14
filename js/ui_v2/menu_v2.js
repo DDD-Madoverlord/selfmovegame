@@ -16,12 +16,13 @@ import { skillsForParts, legPassiveOf } from '../engine_v2/skills_v2.js';
 import { progress } from '../engine_v2/progress_v2.js';
 import { rosterOf } from '../engine_v2/roster_v2.js';
 import { STAGES, CHAPTERS, stageById, isUnlocked, defaultStage, chapterOf, chapterUnlocked, defaultStageIn, unlockAllStagesTemp, allStagesUnlocked } from '../engine_v2/stages_v2.js';
-import { isZoneReleased, isCharacterReleased, releaseDateOf } from '../engine_v2/contentSchedule_v2.js';
+import { isZoneReleased, isCharacterReleased, releaseDateOf, releaseLabelOf } from '../engine_v2/contentSchedule_v2.js';
 import { DIFFICULTIES, difficultyOf, difficultyUnlocked, stageFor, FINAL_STAGE_ID } from '../engine_v2/difficulty_v2.js';
 import { ENEMY_TYPES } from '../engine_v2/enemies_v2.js';
 import { sound } from '../engine_v2/audio/sound_v2.js';
 import { icon, fillIcons } from './icons.js';
 import { openSettings } from './settingsPanel_v2.js';
+import { liveTune } from '../engine_v2/liveTune_v2.js';
 import { TacticalRadar } from './radar_v2.js';
 import { StageMap, stageNpcs, plainName } from './stageMap_v2.js';
 import { openGrowthPanel } from './growthUi_v2.js';
@@ -31,6 +32,7 @@ import { openShop } from './shop_v2.js';
 import { createOfflineRewardButton, updateOfflineRewardButton } from './offlineRewardUi_v2.js';
 import { updateSupportMenu } from './supportUi_v2.js';
 import { shouldPlayIntro, playStoryIntro, introZoneOf, hasIntro } from './storyIntro_v2.js';
+import { staminaGate, sortieTarget } from './staminaUi_v2.js';
 
 const $ = id => document.getElementById(id);
 const SLOTS = [
@@ -103,10 +105,11 @@ export class MenuController {
             taps = 0;
             if (!allStagesUnlocked()) {
                 unlockAllStagesTemp();
+                liveTune.enable(true);   // 왼쪽 가장자리 '⚖ 밸런스' 탭 (시험용 밸런스 조절, D-127 — 이 기기에 남음, 패널에서 숨김)
                 emblem.classList.add('is-dev-unlocked');
                 sound.play('ui_equip');
                 this.renderStages();
-                this.say('<b>시험 모드</b> — 모든 스테이지 잠금 해제 (게임을 다시 켜면 원래대로 · 원래 잠긴 판은 기록 안 됨) · 5번 더 누르면 캐릭터·파츠도 해제');
+                this.say('<b>시험 모드</b> — 모든 스테이지 잠금 해제 (게임을 다시 켜면 원래대로 · 원래 잠긴 판은 기록 안 됨) · 왼쪽 가장자리 ⚖ 탭 = 밸런스 조절 · 5번 더 누르면 캐릭터·파츠도 해제');
                 return;
             }
             if (!progress.unlockEverythingTemp()) return;
@@ -138,12 +141,15 @@ export class MenuController {
                 this.say(isMobile() ? '<b>출격 불가</b> — 연구소에서 몸통 파츠를 사세요' : '<b>출격 불가</b> — 몸통 파츠가 없습니다. MUTATION LAB에서 파츠를 구매하세요');
                 return;
             }
-            // 구역의 첫 스테이지(N-1)를 처음 출격: 스토리 인트로(모션 코믹) 뒤 전투 (storyIntro_v2.js, D-100)
-            if (shouldPlayIntro(progress.selectedStage)) {
-                playStoryIntro(introZoneOf(progress.selectedStage)).then(() => this.switchScreen('battle'));
-                return;
-            }
-            this.switchScreen('battle');
+            // 피로도 확인 (Q-049) — 모자라면 부족 창, 충전해서 채우면 그대로 출격. 인트로보다 먼저 (다 보고 나서 막히지 않게)
+            staminaGate(() => {
+                // 구역의 첫 스테이지(N-1)를 처음 출격: 스토리 인트로(모션 코믹) 뒤 전투 (storyIntro_v2.js, D-100)
+                if (shouldPlayIntro(progress.selectedStage)) {
+                    playStoryIntro(introZoneOf(progress.selectedStage)).then(() => this.switchScreen('battle'));
+                    return;
+                }
+                this.switchScreen('battle');
+            });
         });
         // 스토리 다시 보기: 고른 구역의 인트로 (끝나면 메인 화면 그대로)
         $('btn-story-intro-v2')?.addEventListener('click', () => {
@@ -264,7 +270,7 @@ export class MenuController {
 
     /** 잠긴 구역 안내 (지도 안개 · 안내 줄): 공개 전이면 날짜, 아니면 앞 구역 보스 */
     zoneLockText(ch) {
-        if (!zoneOpen(ch.zone)) return `${releaseDateOf('zones', ch.zone)} 공개 예정`;
+        if (!zoneOpen(ch.zone)) return releaseDateOf('zones', ch.zone) ? `${releaseDateOf('zones', ch.zone)} 공개 예정` : releaseLabelOf('zones', ch.zone);
         const prev = CHAPTERS[CHAPTERS.indexOf(ch) - 1];
         const last = prev && prev.stages[prev.stages.length - 1];
         if (!last) return '';
@@ -366,12 +372,33 @@ export class MenuController {
             + `<button class="v2-mstage__pick" data-act="stages">${icon('map', 34)}스테이지 선택</button>`;
     }
 
+    /** 출격 단추의 ⚡ 비용 (피로도 Q-049 3단계) — 쓰지 않는 때(켜지기 전·스페셜 맵 탭·시험)는 숨김, 모자라면 빨강 */
+    updateSortieCost() {
+        const btn = $('btn-to-battle-v2');
+        if (!btn) return;
+        let tag = $('menu-sortie-cost-v2');
+        if (!tag) {
+            tag = document.createElement('em');
+            tag.id = 'menu-sortie-cost-v2';
+            tag.className = 'v2-sortie__cost';
+            btn.appendChild(tag);
+        }
+        const { stage, diff } = sortieTarget();
+        const c = this.map === 'story' ? progress.staminaCheck(stage, diff) : { ok: true, cost: 0 };
+        tag.hidden = !c.cost;
+        if (!c.cost) return;
+        tag.classList.toggle('is-short', !c.ok);
+        tag.innerHTML = `${icon('bolt', 14)}${c.cost}`;
+        tag.title = c.ok ? `출격하면 피로도 ${c.cost}` : `피로도가 모자랍니다 (지금 ${c.have})`;
+    }
+
     /** 메인 화면이 보일 때마다: 장착 상태로 캐릭터/설명/능력치/상태 줄 갱신, 레이더 시작 */
     updateDisplay() {
         this.updateOfflineReward();
         window.madOverlordGameV2?.tutorialUi?.update();
         if ($('menu-shop-badge-v2')) $('menu-shop-badge-v2').textContent = progress.canClaimPass() ? '●' : '';
         refreshCurrency();   // 별·조각·코어 · DM — 모든 화면 같은 표시줄 (currencyBar_v2.js)
+        this.updateSortieCost();   // 출격 단추 ⚡ 비용 (피로도 Q-049)
         const badge = $('menu-support-badge-v2');   // 받을 파견이 있으면 빨간 점
         const dispatchDone = progress.dispatch.some(d => d.end <= Date.now());
         if (badge) badge.textContent = dispatchDone ? ' ' : '';

@@ -20,6 +20,9 @@ export const SLOT_KEYS = { arm: '1', body: '2', head: '3', mod1: '4', mod2: '5' 
 export const ULT_FILL = { perSec: 1 / 24, perHit: 0.03 };   // 필살기 게이지: 24초 + 기본 공격 1타당 3%
 
 const aim = aimAt;   // 적 몸통 중앙 (건물은 그림 크기의 가운데)
+/** 세뇌해 아군으로 만들 수 있는 적 보병: 거점·바리케이드(제단·폐자재·안테나)·보스·움직이지 않는 것(조명탄·조각상)은 안 됨.
+    보스를 세뇌하면 전장에서 사라져 그 판을 이길 수 없게 됨 (11-14 버그 점검 S1) — battle/allies.js convertEnemy도 같은 것을 막음 */
+export const isConvertible = e => !!e && !e.isBuilding && !e.isBarricade && !e.boss && !(e.t && e.t.static);
 
 // ---- D-118 거대괴수 가시 (가시 폭풍·가시 갑옷) ----
 const THORN_BONE = '230, 220, 170', THORN_TIP = '170, 255, 60';
@@ -268,10 +271,10 @@ export const SKILLS = {
         }
     },
     massMind: {
-        name: '대세뇌', slot: 'head', ult: true, icon: 'mind', color: '#c86eff', target: 'minion', range: 350,
+        name: '대세뇌', slot: 'head', ult: true, icon: 'mind', color: '#c86eff', target: 'minion', range: 350, convert: true,
         desc: '가까운 적 보병 2기를 즉시 세뇌해 아군으로',
         use(b) {
-            const targets = b.enemiesInRange(b.playerRange + this.range).filter(e => !e.isBuilding).slice(0, 2);
+            const targets = b.enemiesInRange(b.playerRange + this.range).filter(isConvertible).slice(0, 2);
             monster.playCast(() => targets.forEach((e, i) => b.schedule(i * 0.12, () => b.convertEnemy(e))));
         }
     },
@@ -787,5 +790,6 @@ export function hasTarget(b, skill) {
     if (skill.target === 'self') return true;
     if (skill.target === 'building') return b.enemies.some(e => e.isBuilding && e.x - b.frontX() <= skill.reach);   // 궤도 지원 사격
     const list = b.enemiesInRange(b.playerRange + (skill.range || 0));
+    if (skill.convert) return list.some(isConvertible);   // 대세뇌: 세뇌할 보병이 있어야 (보스만 남았을 때 필살기를 헛쓰지 않게)
     return skill.target === 'minion' ? list.some(e => !e.isBuilding) : list.length > 0;
 }

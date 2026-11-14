@@ -27,6 +27,27 @@ import { difficultyOf, difficultyOfStage } from '../engine_v2/difficulty_v2.js';
 import { gradeOf, OPTIONS, MUTATORS } from '../engine_v2/growth_v2.js';
 import { setOf, setLabelOf } from '../engine_v2/sets_v2.js';
 import { petOf } from '../engine_v2/pets_v2.js';
+import { rosterOf } from '../engine_v2/roster_v2.js';
+const hexRgb = h => [1, 3, 5].map(i => parseInt(h.slice(i, i + 2), 16)).join(', ');
+/** 스페셜맵 결과 (D-123) — 제목과 보상 한 줄 */
+const specialTitle = r => r.special.mode === 'boss' ? (r.victory ? 'BOSS DOWN' : 'BOSS RUSH FAILED')
+    : r.special.mode === 'tower' ? (r.victory ? 'FLOOR CLEAR' : 'TOWER FAILED') : `GRADE ${r.special.grade}`;
+function specialHtml(r) {
+    const s = r.special;
+    if (s.mode === 'tower') {   // 오버로드의 탑 (D-126)
+        const gain = [s.stones ? `승급석 +${s.stones}` : '', s.cores ? `스킬 코어 +${s.cores}` : '', s.shards ? `조각 +${s.shards}` : '', s.dm ? `DM +${s.dm.toLocaleString()}` : ''].filter(Boolean).join(' · ');
+        return s.victory
+            ? `<p class="v2-result__special">오버로드의 탑 <b>${s.floor}층</b> 돌파${gain ? ` · ${gain}` : ''} · 이번 주 ${s.weekBest}층</p>`
+            : `<p class="v2-result__special">오버로드의 탑 <b>${s.floor}층</b> 실패 — 강해져서 다시 도전하세요 (최고 ${s.best}층)</p>`;
+    }
+    if (s.mode === 'boss') {
+        return s.victory
+            ? `<p class="v2-result__special">보스 러시 <b>${s.step}단계</b> 돌파${s.first ? ' (처음)' : ''} · 승급석 +${s.stones} · 스킬 코어 +${s.cores}${s.shards ? ` · 조각 +${s.shards}` : ''} · DM +${s.dm.toLocaleString()}</p>`
+            : `<p class="v2-result__special">보스 러시 <b>${s.step}단계</b> 실패 — 강해져서 다시 도전하세요 (단계는 그대로)</p>`;
+    }
+    return `<p class="v2-result__special">점수 <b>${s.score.toLocaleString()}</b> · 물체 ${s.broken}개 · 등급 <b>${s.grade}</b> · 조각 +${s.shards} · DM +${s.dm.toLocaleString()}${s.newBest ? ' · <em>이번 주 최고!</em>' : ` · 이번 주 최고 ${s.best.toLocaleString()}`}</p>`;
+}
+
 
 // 별 3개 조건 (D-029): 요새 / 최종 기지 / 목표 시간 안에 클리어
 const starLabels = stage => ['중간 요새', '최종 기지', `${stage.starTime}초 안에`];
@@ -55,6 +76,7 @@ const lootHtml = loot => {
 const diffTag = stage => {
     const d = difficultyOf(difficultyOfStage(stage));
     const mut = stage.mutator && MUTATORS[stage.mutator];   // 나이트메어 전장 변이 (Q-006)
+    if (stage.mutators && stage.mutators.length) return ` · 변이: ${stage.mutators.map(id => MUTATORS[id]?.name).join(' · ')}`;   // 오버로드의 탑 (D-126)
     return d.id === 'normal' ? '' : ` · <span class="v2-diffbadge" style="--diff:${d.color}">${d.name}</span>${mut ? ` · 변이: ${mut.name}` : ''}`;
 };
 const clock = sec => `${String(Math.floor(sec / 60)).padStart(2, '0')}:${String(Math.floor(sec % 60)).padStart(2, '0')}`;
@@ -118,6 +140,13 @@ export class BattleDirector {
             this.frame.appendChild(this.vignette);
         }
         return true;
+    }
+
+    /** 결과 창 없이 전투에서 나감: 기다리던 연출 단계(도장·효과음·배경음 끄기)만 무효로 — 화면에 남은 것은 다음 전투 시작 때 clear가 걷음 */
+    cancel() {
+        this.token += 1;
+        this.lowHp = false;
+        sound.stopLoop('low_hp', 0.1);
     }
 
     /** 전투 시작/재시작: 이전 전투의 연출을 모두 걷어냄 */
@@ -482,15 +511,18 @@ export class BattleDirector {
             isNew: !!r.starFlags[i] && !(r.prevStars && r.prevStars[i])
         }));
         const earned = stars.filter(st => st.now).length;
+        // 피로도 (Q-049): '다음'·'재도전'·'다시 출격' 단추의 ⚡ 비용 — 모자라면 빨강 (누르면 부족 창)
+        const cost = r.staminaCost ? `<em class="v2-btn__cost${r.staminaHave < r.staminaCost ? ' is-short' : ''}">${icon('bolt', 13)}${r.staminaCost}</em>` : '';
         const el = this.layer(`v2-result ${r.victory ? 'is-win' : 'is-lose'}`, `
             <div class="v2-result__panel v2-panel">
                 <div class="v2-hazard v2-result__stripe"></div>
                 <div class="v2-result__head">   <!-- 머리(결과·별)와 몸(기록·보상): PC는 없는 셈(display: contents), 휴대폰 배치는 두 칸 (ui_v2_mobile.css) -->
-                <small class="v2-result__op">STAGE ${stage.id} · ${stage.name}${diffTag(stage)}</small>
-                <h2 class="v2-result__title">${r.victory ? 'MISSION COMPLETE' : 'MISSION FAILED'}</h2>
-                <p class="v2-result__sub">${r.victory ? (r.bossKill ? '최종 거점을 부수고 보스를 쓰러뜨렸습니다' : '적 수비대 거점을 모두 분쇄했습니다') : r.livesOut ? '목숨을 모두 잃었습니다 — 연구소에서 몸통(체력)을 강화해 보세요' : r.bossPhase ? '제한 시간 안에 보스를 쓰러뜨리지 못했습니다' : '제한 시간 안에 최종 기지를 부수지 못했습니다'}</p>
+                <small class="v2-result__op">${r.special ? `SPECIAL · ${stage.name}` : `STAGE ${stage.id} · ${stage.name}`}${diffTag(stage)}</small>
+                <h2 class="v2-result__title">${r.special ? specialTitle(r) : r.victory ? 'MISSION COMPLETE' : 'MISSION FAILED'}</h2>
+                ${r.special ? specialHtml(r) : ''}
+                <p class="v2-result__sub"${r.special ? ' hidden' : ''}>${r.victory ? (r.bossKill ? '최종 거점을 부수고 보스를 쓰러뜨렸습니다' : '적 수비대 거점을 모두 분쇄했습니다') : r.livesOut ? '목숨을 모두 잃었습니다 — 연구소에서 몸통(체력)을 강화해 보세요' : r.bossPhase ? '제한 시간 안에 보스를 쓰러뜨리지 못했습니다' : '제한 시간 안에 최종 기지를 부수지 못했습니다'}</p>
                 ${r.nextAssist ? `<p class="v2-result__assist">${icon('down', 14)}도전 보정 — 다음 도전은 적 체력·공격력 −${Math.round(r.nextAssist * 100)}%</p>` : ''}
-                <div class="v2-result__stars">
+                <div class="v2-result__stars"${r.special ? ' hidden' : ''}>
                     ${stars.map((st, i) => `
                         <div class="v2-result__star${st.now ? ' is-on' : ''}${st.had ? ' is-had' : ''}" style="--d:${0.35 + i * 0.3}s">
                             ${icon('star', 48)}<span>${st.label}</span>${st.isNew ? '<em>NEW</em>' : ''}
@@ -508,12 +540,16 @@ export class BattleDirector {
                 </dl>
                 ${lootHtml(r.loot)}
                 ${(r.pets || []).map(id => `<p class="v2-result__pet">펫 획득 · ${petOf(id).name} — 작전 지원에서 장착할 수 있어요</p>`).join('')}
-                ${r.unlocked ? `<p class="v2-result__unlock" style="--diff:${r.unlocked.color}">${icon('star', 16)} <b>${r.unlocked.name}</b> 난이도가 열렸습니다 · 파츠 강화 한도 Lv${r.unlocked.maxLevel}</p>` : ''}
+                ${r.unlocked ? `<p class="v2-result__unlock" style="--diff:${r.unlocked.color}">${icon('star', 16)} <b>${r.unlocked.name}</b> 난이도가 열렸습니다 · 파츠 강화 한도 Lv${r.maxLevel || r.unlocked.maxLevel}</p>` : ''}
+                ${(r.chars || []).map(id => `<p class="v2-result__unlock v2-result__join" style="--diff:${rosterOf(id)?.color ? hexRgb(rosterOf(id).color) : '62, 230, 255'}">${icon('star', 16)} <b>${rosterOf(id)?.faction || id}</b> 합류! 캐릭터 선택에서 고를 수 있습니다</p>`).join('')}
+                ${r.stamina && r.stamina.refund ? `<p class="v2-result__stamina">⚡ 피로도 ${r.stamina.refund} 돌려받음 <small>진 판은 1만 씁니다</small></p>` : ''}
                 ${r.victory ? '' : reportHtml(r.report)}
                 </div>
                 <div class="v2-result__actions">
-                    ${r.next ? `<button class="v2-btn v2-btn--primary" data-act="next">${icon('play', 16)} 다음 ${r.next.id}</button>` : ''}
-                    <button class="v2-btn ${r.next ? 'v2-btn--ghost' : 'v2-btn--primary'}" data-act="retry">${r.next ? '' : icon('play', 16)} ${r.victory ? '다시 출격' : '재도전'}</button>
+                    ${r.next ? `<button class="v2-btn v2-btn--primary${cost ? ' has-cost' : ''}" data-act="next"><span class="v2-btn__label">${icon('play', 16)} 다음 ${r.next.id}</span>${cost}</button>` : ''}
+                    ${r.special && r.special.mode === 'tower' ? `<button class="v2-btn v2-btn--primary" data-act="retry">${icon('play', 16)} ${r.victory ? `다음 층 (${r.special.nextFloor}층)` : `다시 도전 (${r.special.nextFloor}층)`}</button>`
+                    : r.special ? (r.special.left > 0 ? `<button class="v2-btn v2-btn--primary" data-act="retry">${icon('play', 16)} 한 번 더 (오늘 ${r.special.left}회 남음)</button>` : '<button class="v2-btn v2-btn--ghost" disabled>오늘 횟수를 다 썼어요</button>')
+                        : `<button class="v2-btn ${r.next ? 'v2-btn--ghost' : 'v2-btn--primary'}${cost ? ' has-cost' : ''}" data-act="retry"><span class="v2-btn__label">${r.next ? '' : icon('play', 16)} ${r.victory ? '다시 출격' : '재도전'}</span>${cost}</button>`}
                     <button class="v2-btn v2-btn--ghost" data-act="lab">${icon('gear', 16)} 연구소</button>
                     <button class="v2-btn v2-btn--ghost" data-act="menu">메인 메뉴</button>
                 </div>

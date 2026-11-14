@@ -157,7 +157,7 @@ def run(ctx):
             && JSON.stringify(MECH_VFX.fistHit.layers) === JSON.stringify(v['MECH_VFX.fistHit'].variants.B.def.layers)
             && JSON.stringify(HERO_VFX.slashHit.layers) === JSON.stringify(v['HERO_VFX.slashHit'].variants.D.def.layers);""")
     ctx.check(saved, '게임: localStorage 개별 선택 적용, 나머지 기본값 유지')
-    g.page.goto(ctx.base + '/index.html?vfx=B&vfxStyle=pixel')
+    g.page.goto(ctx.base + '/index.html?skipTitle=1&vfx=B&vfxStyle=pixel')
     g.enter_v2()
     selected = g.js("""const defs = await import('/js/engine_v2/vfx/vfxDefs.js');
         const { VFX_VARIANTS } = await import('/js/engine_v2/vfx/vfxVariants.js');

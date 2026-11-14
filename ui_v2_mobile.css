@@ -541,3 +541,19 @@ body.v2-fit.v2-mobile #screen-select-v2 { left: 0; top: 0; width: var(--v2-aw, 1
 .v2-mobile #screen-battle-v2 .v2-result__pet, .v2-mobile #screen-battle-v2 .v2-result__unlock { margin: 0; font-size: 12px; }
 .v2-mobile #screen-battle-v2 .v2-why-bar i b, .v2-mobile #screen-battle-v2 .v2-why-bar i span { font-size: 11px; }
 .v2-mobile #screen-battle-v2 .v2-result__actions .v2-btn { min-height: 44px; padding: 8px 6px; font-size: 14px; }
+
+/* ⚡ 피로도 칩 · 출격 단추 비용 (Q-049 3단계): 휴대폰에서도 칩은 늘 보이게, 크기는 옆 재화 칩과 같게 */
+.v2-mobile #screen-menu-v2 .v2-topbar .v2-chip--stamina b { font-size: 32px; }
+.v2-mobile #screen-menu-v2 .v2-topbar .v2-chip--stamina small { font-size: 20px; }
+.v2-mobile #screen-menu-v2 .v2-radar__money .v2-chip--stamina b { font-size: 28px; }
+.v2-mobile #screen-menu-v2 .v2-radar__money .v2-chip--stamina small { font-size: 18px; }
+.v2-mobile #screen-select-v2 .v2-chip--stamina b { font-size: 15px; }
+.v2-mobile #screen-menu-v2 .v2-sortie__cost { top: 14px; right: 74px; padding: 4px 14px 4px 10px; border-radius: 18px; font-size: 26px; gap: 4px; }
+.v2-mobile #screen-menu-v2 .v2-sortie__cost .v2-icon { width: 24px; height: 24px; }
+/* 칩이 보이면(body.v2-has-stamina, currencyBar_v2.js) 위 줄이 칩 하나만큼 모자람: 칩은 '⚡ 52'만(최대치는 누르면 나오는 창에) · 간격 조금 좁힘 ·
+   '방치 보상'은 좁은 화면(@container 1449px 이하)과 같이 이름 아래로 */
+.v2-mobile.v2-has-stamina #screen-menu-v2 .v2-topbar__right { gap: 10px; }
+.v2-mobile.v2-has-stamina #screen-menu-v2 .v2-topbar .v2-chip--stamina { padding: 0 20px; gap: 6px; }
+.v2-mobile.v2-has-stamina #screen-menu-v2 .v2-topbar .v2-chip--stamina small { display: none; }
+.v2-mobile.v2-has-stamina #screen-menu-v2 .v2-topbar .v2-chip--res { gap: 18px; padding: 0 22px; }
+.v2-mobile.v2-has-stamina #screen-menu-v2 #btn-menu-offline-v2 { position: absolute; left: 80px; top: 96px; height: 60px; padding: 0 22px; font-size: 22px; }

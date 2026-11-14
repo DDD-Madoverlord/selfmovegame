@@ -68,10 +68,11 @@ PLAN = {
     4: (5, [], ['mech_laser', 'chimera_free', 'chimera_a']),
     5: (5, ['--grade=rare', '--skill=2'], ['mech_laser', 'diver_up']),
     6: (5, ['--grade=rare', '--skill=3'], ['mech_laser', 'saint_up']),
-    7: (5, ['--grade=unique', '--skill=3', '--opts=siege,swift,siege,swift'], ['mech_laser', 'doll_up']),
-    8: (5, ['--grade=unique', '--skill=4', '--opts=siege,swift,siege,swift,siege,swift,siege,swift'], ['mech_laser', 'frost_up']),
-    9: (5, ['--grade=legendary', '--skill=4', '--opts=siege,swift,siege,swift,siege,swift,siege,swift'], ['mech_laser', 'architect_up']),
-    10: (5, ['--grade=legendary', '--skill=5', '--opts=siege,swift,siege,swift,siege,swift,siege,swift', '--mods=orbital'],
+    # 구역 7~10 (D-120): 숨김 그룹 노말이 '지금 헬' 수준이라 그룹 1을 헬까지 키운 성장으로 잼 — 헬 강화 한도 Lv9 + 그룹 2 +2 = Lv11, 그룹 3은 Lv13
+    7: (11, ['--grade=unique', '--skill=4', '--opts=siege,swift,siege,swift,siege,swift,siege,swift'], ['mech_laser', 'doll_up']),
+    8: (11, ['--grade=unique', '--skill=4', '--opts=siege,swift,siege,swift,siege,swift,siege,swift'], ['mech_laser', 'frost_up']),
+    9: (13, ['--grade=legendary', '--skill=5', '--opts=siege,swift,siege,swift,siege,swift,siege,swift'], ['mech_laser', 'architect_up']),
+    10: (13, ['--grade=legendary', '--skill=5', '--opts=siege,swift,siege,swift,siege,swift,siege,swift', '--mods=orbital'],
          ['mech_laser', 'broadcaster_up']),
 }
 # 같은 구역을 다른 레벨로도 (구역 2는 Lv3 → Lv5로 크는 구역)

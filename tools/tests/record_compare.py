@@ -71,7 +71,7 @@ def record(browser, base, scene, dst, tmp):
     ctx = browser.new_context(viewport={'width': W, 'height': H}, record_video_dir=tmp, record_video_size={'width': W, 'height': H})
     page = ctx.new_page()
     t0 = time.time()
-    page.goto(f'{base}/index.html?t={time.time()}')
+    page.goto(f'{base}/index.html?skipTitle=1&t={time.time()}')
     page.evaluate('() => localStorage.clear()')
     page.reload()
     page.click('#btn-select-v2')

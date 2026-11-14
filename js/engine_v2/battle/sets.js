@@ -88,7 +88,7 @@ export const SetMethods = {
 
     /** 주인공이 받는 피해 배율 (player.js damagePlayer) */
     incomingMul() {
-        let m = this.kitIncomingMul();   // 2차 버프·패시브·세트 (battle/kit.js)
+        let m = this.kitIncomingMul() * (this.roleTaken || 1) * this.sigIncomingMul();   // 2차 버프·패시브·세트 (battle/kit.js) · 원거리/근거리 · 고유 특성 (D-119)
         if (this.buffs.thornArmor) m *= 1 - SET.thorn.reduce;
         if (this.buffs.overdrive) m *= 1 - SET.overdrive.reduce;
         if (this.equippedLegId === 'leg_kaiju_a') m *= 1 - SET.shell.reduce;
@@ -177,7 +177,7 @@ export const SetMethods = {
         const endX = this.frontX() + this.playerRange + SET.rail.extra;
         this.fx.play(SET_VFX.railShot, muzzle.x, muzzle.bottom, { to: [endX, aim.b] });
         let mul = 1;
-        this.enemiesInRange(this.playerRange + SET.rail.extra).forEach((e, i) => {
+        this.enemiesInRange(this.playerRange + SET.rail.extra).slice(0, SET.rail.max).forEach((e, i) => {   // 최대 SET.rail.max명 (D-119)
             this.fx.play(SET_VFX.railHit, aimOf(e).x, aimOf(e).b);
             this.dealDamageToEnemy(e, dmg * mul, isCrit && i === 0, { knock: 0.4 });
             mul *= SET.rail.pierce;
@@ -399,9 +399,19 @@ export const SetMethods = {
     },
 
     // ---- 돌진 (로켓 돌진·광견 돌진) ----
-    /** dist px를 sec초 동안 앞으로 (거점 앞에서 멈춤), 지나간 적마다 onHit(e) 한 번
-     *  opt.shove (방패 돌진): 뚫고 지나가지 않고 만난 적을 앞에 붙여 같이 밀고 감 — 밀리지 않는 적(보스·방패병 등)·바리케이드
-     *  앞에서는 멈춤 (디스코드 QA 11-05 홍도도 "돌진 스킬을 쓰면 적을 뚫고 지나감") */
+    /** 앞을 막는 가장 가까운 적 (돌진·순간 이동이 그 앞에서 멈춤) — heavyOnly: 밀리지 않는 적만 (방패 돌진은 나머지를 밀고 감) */
+    dashBlocker(heavyOnly = false) {
+        const front = this.frontX();
+        const heavy = e => e.boss || e.knockResist || e.isBarricade;
+        return this.enemies.filter(e => !e.isBuilding && e.hp > 0 && (!heavyOnly || heavy(e)) && e.x - front >= -60)
+            .sort((p, q) => p.x - q.x)[0] || null;
+    },
+
+    /** dist px를 sec초 동안 앞으로 (거점 앞에서 멈춤), 만난 적마다 onHit(e) 한 번
+     *  적을 뚫고 지나가지 않음: 앞을 막는 적 바로 앞에서 멈춰 그 적을 침 (디스코드 QA 11-08 홍도도 "덮치기·백조의 회전으로
+     *  적을 뚫고 화면 끝까지 나감 — 앞으로 전진하는 비슷한 스킬 모두")
+     *  opt.shove (방패 돌진): 만난 적을 앞에 붙여 같이 밀고 감 — 밀리지 않는 적(보스·방패병 등)·바리케이드 앞에서만 멈춤
+     *  (디스코드 QA 11-05 홍도도 "돌진 스킬을 쓰면 적을 뚫고 지나감") */
     dashForward(dist, sec, onHit, trailFx, opt = {}) {
         const building = this.enemies.find(e => e.isBuilding);
         const start = this.monsterX;
@@ -415,13 +425,11 @@ export const SetMethods = {
             this.schedule((sec * i) / steps, () => {
                 if (!this.isActive || stopped) return;
                 let x = start + ((end - start) * i) / steps;
-                if (opt.shove) {   // 밀리지 않는 적 바로 앞에서 멈춤 (이미 겹쳐 있으면 그 자리)
-                    const wall = this.enemies.filter(e => !e.isBuilding && e.hp > 0 && heavy(e) && e.x - this.frontX() >= -60)
-                        .sort((p, q) => p.x - q.x)[0];
-                    if (wall && x + 100 + gap > wall.x) {
-                        x = Math.max(this.monsterX, wall.x - gap - 100);
-                        stopped = true;
-                    }
+                // 앞을 막는 적 바로 앞에서 멈춤 (이미 겹쳐 있으면 그 자리) — 방패 돌진은 밀리지 않는 적에서만
+                const wall = this.dashBlocker(!!opt.shove);
+                if (wall && x + 100 + gap > wall.x) {
+                    x = Math.max(this.monsterX, wall.x - gap - 100);
+                    stopped = true;
                 }
                 this.monsterX = x;
                 monsterControllerV2.setMonsterPosition(this.monsterX);

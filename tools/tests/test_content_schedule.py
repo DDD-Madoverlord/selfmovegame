@@ -108,11 +108,14 @@ def run(ctx):
         const saved = progress.isCharacterUnlocked('frost');
         progress.unlockedChars = progress.unlockedChars.filter(id => id !== 'frost');
         const result = progress.unlockCharacter('frost');
+        const before = progress.isCharacterUnlocked('frost');
+        progress.stages['7-B'] = { stars: [true, true, true], cleared: true, bestTime: 100 };   // 8-1이 열림 → 서리의 무희 합류 (D-119)
+        const joined = progress.syncCharacterUnlocks();
         window.madOverlordGameV2.selectController.pick('frost');
-        return { saved, success: result.success, cost: result.cost, selected: progress.character };
+        return { saved, success: result.success, before, joined, selected: progress.character };
         """)
-    ctx.check(st['saved'] and st['success'] and st['cost'] > 0 and st['selected'] == 'frost',
-              '과거 캐릭터: 저장 해금 복구, 별 해금과 선택 정상', str(st))
+    ctx.check(st['saved'] and not st['success'] and not st['before'] and 'frost' in st['joined'] and st['selected'] == 'frost',
+              '과거 캐릭터: 저장 해금 복구 · 구역 8 도착 전엔 잠김(별로 못 삼) · 7-B를 깨면 합류해 선택', str(st))
 
     st = g.js(SCHEDULE + STAGES + """
         C.setReleaseSchedule({ zones: { 2: '2999-12-31' }, characters: { frost: '2999-12-31' } });

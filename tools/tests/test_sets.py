@@ -93,7 +93,7 @@ def run(ctx):
     def leg(build, setup, expr):
         g.battle(build, wait_ms=500)
         # 설정과 확인을 한 호출에서 (사이에 게임 루프가 돌면 isAttacking 같은 상태가 풀려 가끔 실패함)
-        return g.js(f"b.enemies.filter(e => !e.isBuilding).forEach(e => {{ e.dom && e.dom.remove(); }}); b.enemies = b.enemies.filter(e => e.isBuilding); {setup}\nreturn {expr};")
+        return g.js(f"b.enemies.filter(e => !e.isBuilding).forEach(e => {{ e.dom && e.dom.remove(); }}); b.enemies = b.enemies.filter(e => e.isBuilding); b.roleTaken = 1; b.sigChar = null; {setup}\nreturn {expr};")   # 원거리·근거리 배율·고유 특성(D-119)은 빼고 다리 패시브만
 
     ctx.check(leg(SETS['mech_a'], 'b.isAttacking = true;', 'Math.abs(b.dmgMul() - 1.2) < 1e-6'), '포격 고정: 멈춰 공격하는 동안 피해 +20%')
     ctx.check(leg(SETS['mech_b'], '', 'b.rangedMul() === 0.5'), '자기장 방벽: 원거리 피해·효과 50%')
@@ -122,7 +122,7 @@ def run(ctx):
     g.battle(SETS['mech_a'], wait_ms=500)
     st = g.js(SK + clear + """const ds = []; const orig = b.schedule; b.schedule = function (d, f) { ds.push(d); return orig.call(this, d, f); };
         SKILLS.chargedRail.use(b); b.schedule = orig; return ds;""")
-    ctx.check(0.7 in st and 1.0 not in st, '포격 사령부 4부위: 충전 레일 사격 충전 0.7초', str(st))
+    ctx.check(0.85 in st and 1.0 not in st, '포격 사령부 4부위: 충전 레일 사격 충전 0.85초 (0.7 → 0.85, D-119)', str(st))
 
     g.battle(SETS['mech_b'], wait_ms=500)
     st = g.js(clear + """const e = b.spawnMinion('guard', { x: b.frontX() + 30 }); e.hp = e.maxHp = 5000; e.stunT = 0;

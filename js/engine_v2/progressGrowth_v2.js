@@ -5,6 +5,7 @@
      grades { 파츠 id: 'rare' … } (없으면 커먼) · options { 파츠 id: ['elite', …] } · shards 파츠 조각 · cores 스킬 코어
      skillLevels { 스킬 id: 2~5 } · modules { owned: [], equipped: [id|null, id|null], levels: { id: 2~3 } }
      research { 연구 id: 레벨 } · spentStars 쓴 별 · unlockedChars [캐릭터 id] · dispatch [{ character, zone, start, end }]
+     skins { owned: [외형 id], equipped: { 캐릭터 id: 외형 id } } · charStarRefund 1 = 예전 별 해금 값을 돌려줌 (D-119)
    세트 장비 (Q-008, sets_v2.js): 세트 파츠는 등급 바닥(레어 세트 = 레어, 유니크 세트 = 유니크) 아래로 없음 —
      저장은 그대로 두고 gradeOf에서 바닥을 씌움 (예전에 산 A·B 세트는 불러올 때 레어로 보이고 옵션을 채움).
      드랍은 묶음 가중(기본·강화 / 레어 세트 / 유니크 세트, DROP.poolWeights), 안 가진 세트 파츠는 조각으로 만듦(craftPart).
@@ -14,13 +15,15 @@ import { gameState } from '../engine/state.js';
 import { PARTS_DB } from '../data/parts.js';
 import { SLOTS, DEFAULT_CHARACTER, characterOfPart, partsOfCharacter } from './roster_v2.js';
 import { STAGES, CHAPTERS } from './stages_v2.js';
-import { isZoneReleased, isCharacterReleased, releaseDateOf } from './contentSchedule_v2.js';
+import { isZoneReleased, isCharacterReleased, releaseLabelOf } from './contentSchedule_v2.js';
 import { minGradeOf, dropGroupOf, setOf, setPerkOf } from './sets_v2.js';
 import { DIFFICULTIES, highestDifficulty, difficultyOf } from './difficulty_v2.js';
 import { emptyPets } from './pets_v2.js';
+import { TRAITS, TRAIT_TIER_STARS, GEAR_KEYS } from './traits_v2.js';
 import {
     GRADES, gradeOf, gradeIndex, OPTIONS, OPTION_CAPS, DROP, AFFINITY, SKILL_LEVEL, CORES,
-    MODULES, MODULE_SLOTS, MODULE_MAX_LEVEL, MODULE_LEVEL_COST, DISPATCH, CHARACTER_STARS, RESEARCH, pickWeighted
+    MODULES, MODULE_SLOTS, MODULE_MAX_LEVEL, MODULE_LEVEL_COST, DISPATCH, CHARACTER_ZONE, LEGACY_CHARACTER_STARS, RESEARCH, pickWeighted,
+    SKINS, SKIN_STARS, skinById, skinCharacterOf, PROMO
 } from './growth_v2.js';
 
 const partById = id => SLOTS.map(s => (PARTS_DB[s] || []).find(p => p.id === id)).find(Boolean) || null;
@@ -28,7 +31,10 @@ const partById = id => SLOTS.map(s => (PARTS_DB[s] || []).find(p => p.id === id)
 export function emptyGrowth() {
     return {
         grades: {}, options: {}, shards: 0, cores: 0, skillLevels: {},
-        modules: { owned: [], equipped: [], levels: {} }, research: {}, spentStars: 0, unlockedChars: [], dispatch: [], pets: emptyPets()
+        modules: { owned: [], equipped: [], levels: {} }, research: {}, spentStars: 0, unlockedChars: [], dispatch: [], pets: emptyPets(),
+        skins: { owned: [], equipped: {} }, charStarRefund: 0,
+        stones: 0,  // 승급석 — 스페셜맵 보스 러시 보상, 5번 파츠 성장의 승급 재료 (D-123)
+        traits: {}  // 특성 트리 (D-125): { 캐릭터 id: [단마다 고른 갈래 0|1] } — 길이 = 연 단 수
     };
 }
 export const GROWTH_KEYS = Object.keys(emptyGrowth());
@@ -45,15 +51,27 @@ export const GrowthMethods = {
             else if (Number.isFinite(v)) g[k] = v;
         }
         g.modules = { owned: [], equipped: [], levels: {}, ...g.modules };
+        g.skins = { owned: Array.isArray(g.skins.owned) ? g.skins.owned.filter(id => skinById(id)) : [],
+            equipped: Object.fromEntries(Object.entries(g.skins.equipped || {}).filter(([c, id]) => skinCharacterOf(id) === c)) };
+        g.traits = Object.fromEntries(Object.entries(g.traits).filter(([c, v]) => TRAITS[c] && Array.isArray(v))
+            .map(([c, v]) => [c, v.slice(0, TRAIT_TIER_STARS.length).map(b => (b === 1 ? 1 : 0))]));
         Object.assign(this, g);
         // 세트 파츠: 등급 바닥에 맞게 옵션 수를 채움 (예전에 산 A·B 세트 → 레어 옵션 1개)
         for (const id of this.owned || []) this.ensureGradeOptions(id);
         // 예전 저장(성장 필드 전): 돈 주고 산 파츠가 있는 캐릭터는 이미 열린 것으로 한 번 옮겨 둠
         if (data && !('unlockedChars' in data)) {
-            for (const id of Object.keys(CHARACTER_STARS)) {
+            for (const id of Object.keys(CHARACTER_ZONE)) {
                 if (SLOTS.some(s => partsOfCharacter(id, s).some(p => p.cost && this.owned.has(p.id)))) this.unlockedChars.push(id);
             }
+        } else if (data && !('charStarRefund' in data)) {
+            // 별로 캐릭터를 사던 때(D-044)의 저장: 그때 쓴 별을 한 번 돌려줌 (D-119 10번 — 이제 구역에 가면 저절로 합류)
+            // 그때 저장에는 이 표시(charStarRefund) 자체가 없다. 표시가 0으로 '있는' 저장은 D-119 뒤에 새로 시작해 한 번도
+            // 다시 켜지 않은 저장이라 돌려줄 것이 없음 — 값이 0인지만 보던 때는 새 저장도 둘째 실행에 별 6~12개를 돌려받았음 (11-14 버그 점검 S6)
+            const refund = this.unlockedChars.reduce((n, id) => n + (LEGACY_CHARACTER_STARS[id] || 0), 0);
+            this.spentStars = Math.max(0, this.spentStars - refund);
         }
+        this.charStarRefund = 1;
+        this.syncCharacterUnlocks();
     },
     growthData() {
         return Object.fromEntries(GROWTH_KEYS.map(k => [k, this[k]]));
@@ -112,17 +130,24 @@ export const GrowthMethods = {
         gameState.notify();
         return { ...base, type: 'refund', options: this.optionsOf(id), dm: r.dm, shards };
     },
-    /** 조각으로 등급 한 칸 올리기 비용 (가진 파츠만, 레전더리면 null) */
+    /** 등급 한 칸 올리기 비용 (가진 파츠만, 레전더리면 null) — 조각 + DM + 승급석, 지금 등급 한도까지 강화해야 (D-124) */
     shardUpgradeCost(id) {
         if (!this.owned.has(id) || id === 'none') return null;
         const next = GRADES[gradeIndex(this.gradeOf(id)) + 1];
-        return next ? { grade: next.id, shards: DROP.shardCost[next.id] } : null;
+        if (!next) return null;
+        const p = PROMO[next.id];
+        return { grade: next.id, shards: p.shards, dm: p.dm, stones: p.stones, needLevel: this.partMaxLevel(id) };
     },
     upgradeGradeWithShards(id) {
         const c = this.shardUpgradeCost(id);
         if (!c) return { success: false, reason: '더 올릴 수 없는 파츠입니다' };
+        if (this.levelOf(id) < c.needLevel) return { success: false, reason: `먼저 Lv${c.needLevel}까지 강화하세요 (지금 등급의 한도)` };
         if (this.shards < c.shards) return { success: false, reason: '파츠 조각이 부족합니다' };
+        if (gameState.darkMatter < c.dm) return { success: false, reason: '다크 매터(DM)가 부족합니다' };
+        if ((this.stones || 0) < c.stones) return { success: false, reason: '승급석이 부족합니다 — 작전 지원 › 스페셜 › 보스 러시에서 얻어요' };
         this.shards -= c.shards;
+        gameState.darkMatter -= c.dm;
+        this.stones -= c.stones;
         this.grades[id] = c.grade;
         this.fillOptions(id, gradeOf(c.grade).options);
         gameState.notify();
@@ -251,22 +276,110 @@ export const GrowthMethods = {
         return true;
     },
 
-    // ---- 2-7 캐릭터 해금 (별) ----
-    /** 기본 캐릭터·별로 연 캐릭터(예전 저장에서 산 캐릭터 포함)는 열림 (선택창에서 확인 — select_v2.js) */
+    // ---- 2-7 캐릭터 합류 (D-119 10번 — 별 해금을 바꿈) ----
+    /** 그 캐릭터의 구역 (거대로봇 = null) */
+    characterZone(id) {
+        return CHARACTER_ZONE[id] || null;
+    },
+    /** 구역 n의 첫 판 n-1이 노말에서 열렸는지 (= n-1 구역 보스전 노말을 깸, 구역 공개 포함 — 고른 난이도와 상관없이) */
+    characterReached(id) {
+        const z = CHARACTER_ZONE[id];
+        if (!z) return false;
+        const first = STAGES.findIndex(s => s.id === `${z}-1`);
+        return first > 0 && isZoneReleased(z) && this.stage(STAGES[first - 1].id, 'normal').cleared;
+    },
+    /** 기본 캐릭터 · 구역에 도착한 캐릭터 · 예전에 연 캐릭터는 열림 (공개 전 캐릭터는 아님 — 선택창 select_v2.js) */
     isCharacterUnlocked(id) {
-        return isCharacterReleased(id) && (id === DEFAULT_CHARACTER || this.unlockedChars.includes(id) || !(id in CHARACTER_STARS));
+        return isCharacterReleased(id) && (id === DEFAULT_CHARACTER || this.unlockedChars.includes(id) || !(id in CHARACTER_ZONE) || this.characterReached(id));
     },
-    characterStars(id) {
-        return CHARACTER_STARS[id] || 0;
+    /** 구역에 도착했는데 아직 기록에 없는 캐릭터를 합류시키고 그 목록을 돌려줌 (판 기록 뒤·불러올 때) */
+    syncCharacterUnlocks() {
+        const joined = Object.keys(CHARACTER_ZONE).filter(id => !this.unlockedChars.includes(id) && isCharacterReleased(id) && this.characterReached(id));
+        this.unlockedChars.push(...joined);
+        return joined;
     },
+    /** 잠긴 캐릭터 안내 (별로 사는 길은 없음 — 예전 호출 자리 호환) */
     unlockCharacter(id) {
-        if (!isCharacterReleased(id)) return { success: false, reason: `곧 공개 · ${releaseDateOf('characters', id)}` };
+        if (!isCharacterReleased(id)) return { success: false, reason: releaseLabelOf('characters', id) };
         if (this.isCharacterUnlocked(id)) return { success: true };
-        const cost = this.characterStars(id);
+        const z = CHARACTER_ZONE[id];
+        return { success: false, reason: `구역 ${z}에 도착하면 합류합니다 (${z - 1}-B 노말 클리어)` };
+    },
+
+    // ---- 특성 트리 (D-119 3번 안 B · D-125, Q-038 임시) — 캐릭터마다 3단 × 2갈래, 단을 별 4 · 8 · 12로 열고 갈래는 언제든 무료로 바꿈 ----
+    /** 연 단마다 고른 갈래 [0|1] (길이 = 연 단 수) */
+    traitPicks(character) {
+        return (this.traits && this.traits[character]) || [];
+    },
+    /** 다음 단을 여는 별 (다 열었거나 없는 캐릭터면 null) */
+    traitOpenCost(character) {
+        const n = this.traitPicks(character).length;
+        return TRAITS[character] && n < TRAIT_TIER_STARS.length ? TRAIT_TIER_STARS[n] : null;
+    },
+    openTraitTier(character) {
+        if (!TRAITS[character]) return { success: false, reason: '없는 캐릭터입니다' };
+        if (!this.isCharacterUnlocked(character)) return { success: false, reason: '합류한 캐릭터만 특성을 열 수 있어요' };
+        const cost = this.traitOpenCost(character);
+        if (cost == null) return { success: false, reason: '모든 단을 열었어요' };
         if (!this.spendStars(cost)) return { success: false, reason: `별이 부족합니다 (★${cost} 필요)` };
-        this.unlockedChars.push(id);
+        this.traits[character] = [...this.traitPicks(character), 0];
         gameState.notify();
-        return { success: true, cost };
+        return { success: true, tier: this.traits[character].length };
+    },
+    /** 연 단의 갈래 바꾸기 (무료) */
+    pickTrait(character, tier, branch) {
+        const picks = this.traitPicks(character);
+        if (!(Number.isInteger(tier) && tier >= 0 && tier < picks.length) || ![0, 1].includes(branch)) return false;
+        this.traits[character] = picks.map((b, i) => (i === tier ? branch : b));
+        gameState.notify();
+        return true;
+    },
+    /** 고른 특성 합계: gear(장비 옵션과 같은 키) + mods(dmg · taken · hp · ult) — battle/growth.js setupGrowth */
+    traitEffects(character) {
+        const out = { gear: {}, mods: { dmg: 0, taken: 0, hp: 0, ult: 0 } };
+        const tree = TRAITS[character];
+        if (!tree) return out;
+        this.traitPicks(character).forEach((b, i) => {
+            const t = tree[i] && tree[i][b];
+            if (!t) return;
+            for (const [k, v] of Object.entries(t.fx)) {
+                if (GEAR_KEYS.includes(k)) out.gear[k] = (out.gear[k] || 0) + v;
+                else out.mods[k] += v;
+            }
+        });
+        return out;
+    },
+    /** 특성에 쓴 별 합계 (화면 안내용) */
+    traitStarsSpent() {
+        return Object.values(this.traits || {}).reduce((n, v) => n + TRAIT_TIER_STARS.slice(0, v.length).reduce((a, c) => a + c, 0), 0);
+    },
+
+    // ---- 캐릭터 외형 (D-119 11번) ----
+    ownsSkin(id) {
+        return this.skins.owned.includes(id);
+    },
+    buySkin(id) {
+        const skin = skinById(id);
+        if (!skin) return { success: false, reason: '없는 외형입니다' };
+        if (this.ownsSkin(id)) return { success: false, reason: '이미 가진 외형입니다' };
+        if (!this.spendStars(SKIN_STARS)) return { success: false, reason: `별이 부족합니다 (★${SKIN_STARS} 필요)` };
+        this.skins.owned.push(id);
+        this.skins.equipped[skinCharacterOf(id)] = id;
+        gameState.notify();
+        return { success: true };
+    },
+    /** 외형 입기 (id = null이면 기본 외형) */
+    equipSkin(character, id) {
+        if (id && (!this.ownsSkin(id) || skinCharacterOf(id) !== character)) return false;
+        if (id) this.skins.equipped[character] = id;
+        else delete this.skins.equipped[character];
+        gameState.notify();
+        return true;
+    },
+    /** 캐릭터가 입은 외형의 색 필터 (리그 그림 전체 — rigAvatar.js setSkinResolver) */
+    skinFilterOf(character) {
+        const id = this.skins && this.skins.equipped[character];
+        return (id && skinById(id)?.filter) || null;
     },
 
     // ---- 2-3 전술 모듈 ----
@@ -366,7 +479,7 @@ export const GrowthMethods = {
     },
     /** 파견 보내기: 보유 캐릭터, 지금 고른 캐릭터가 아님, 이미 파견 중이 아님, 깬 구역, 빈 칸 */
     startDispatch(character, zone, now = Date.now()) {
-        if (!isZoneReleased(zone)) return { success: false, reason: `곧 공개 · 구역 ${zone} · ${releaseDateOf('zones', zone)}` };
+        if (!isZoneReleased(zone)) return { success: false, reason: `구역 ${zone} · ${releaseLabelOf('zones', zone)}` };
         if (this.dispatch.length >= this.dispatchSlots()) return { success: false, reason: '파견 칸이 모두 찼습니다' };
         const reason = this.dispatchReason(character);
         if (reason) return { success: false, reason };

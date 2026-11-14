@@ -158,7 +158,7 @@ export const CHIMERA_SETS2 = packOf('chimera', [
                 enemiesNear(b, x, 120, true).forEach(e => b.kitStatus(e, { poison: [4, 0.15] }));
                 b.fx.play(V.acid(40, 110), x, aimAt(info.enemy).b);
             } }] },
-            4: { on: [{ when: 'lowHp', once: 'perfect', label: '완전체 각성!', buff: { key: 'perfect', sec: 6, mods: { def: 0.5 } }, step: { do: 'custom', fn: (b) => b.useSkillFree?.('head') } }] }
+            4: { on: [{ when: 'lowHp', below: 0.4, once: 'perfect', label: '완전체 각성!', buff: { key: 'perfect', sec: 6, mods: { def: 0.5 } }, step: { do: 'custom', fn: (b) => b.useSkillFree?.('head') } }] }
         },
         head: { name: '삼두 키메라 머리', look: '사자 머리 + 어깨 위 독수리·뱀 머리', skill: 'cmTripleRoar', desc: '필살기 삼두 포효: 사자 포효(1.5초 기절) → 독수리 돌풍(밀쳐냄) → 뱀 독(4초)', stats: { hp: 800, dps: 100, range: 20, speed: 10 } },
         body: { name: '합성 날개 몸통', look: '등에 박쥐 날개 + 독수리 깃', skill: 'cmSoarDive', desc: '비상 강하: 날아올라(1초 무적) 앞쪽에 내리꽂힘 — 넓은 범위 + 밀쳐냄', stats: { hp: 1900, dps: 90, range: 0, speed: 10 } },

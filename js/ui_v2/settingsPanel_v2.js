@@ -5,6 +5,7 @@
    ========================================================================== */
 
 import { icon } from './icons.js';
+import { openAccount } from './account_v2.js';
 import { settings } from '../engine_v2/settings_v2.js';
 import { sound } from '../engine_v2/audio/sound_v2.js';
 import { progress, exportSave, importSave } from '../engine_v2/progress_v2.js';
@@ -59,6 +60,10 @@ export function openSettings() {
             </section>
             <section>
                 <h3>진행 데이터</h3>
+                <div class="v2-settings__row" data-row="account">
+                    <span>계정<small>게스트 기록을 구글 계정에 연동 (연동 보상 DM 5,000)</small></span>
+                    <div class="v2-settings__actions"><button class="v2-btn v2-btn--ghost" data-act="account">계정 연동</button></div>
+                </div>
                 <div class="v2-settings__row">
                     <span>첫 성장 안내<small>진행과 보상 기록을 유지하며 안내를 볼 수 있어요</small></span>
                     <div class="v2-settings__actions">
@@ -189,6 +194,7 @@ export function openSettings() {
     el.querySelector('[data-act="close"]').addEventListener('click', close);
     el.querySelector('[data-act="prob"]').addEventListener('click', openProbInfo);
     el.querySelector('[data-act="tutorial-replay"]').addEventListener('click', () => { progress.replayTutorial(); close(); });
+    el.querySelector('[data-act="account"]').addEventListener('click', () => { close(); openAccount('settings'); });   // 계정 연동 화면 (D-119 2번)
     el.querySelector('[data-act="tutorial-resume"]').addEventListener('click', () => { progress.resumeTutorial(); close(); });
     el.querySelector('[data-act="copy-save"]').addEventListener('click', async () => {
         const out = el.querySelector('[data-out="backup"]');

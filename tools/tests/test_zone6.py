@@ -1,4 +1,4 @@
-"""구역 6 (기적의 대병동: 피에 젖은 성역) — 새 기획 D-085 (예전 "성왕국 변두리" D-078을 바꿈): 구역 탭·해금(5-B 다음, 난이도는 4-B 그대로),
+"""구역 6 (기적의 대병동: 피에 젖은 성역) — 새 기획 D-085 (예전 "성왕국 변두리" D-078을 바꿈): 구역 탭·해금(5-B 다음, 다음 난이도는 6-B로 — D-119),
 배경, 새 적(가시 장벽·독 장판 성수·마취 기절·수혈 드론·피의 자폭·구급 마차 보병 배출), 화형의 소각로 불 장판,
 6-B 탐욕의 심장(핏빛 파동·혈정석 쐐기·생명력 착취)·강제 헌혈 → 승리, 파견 구역 6.
 예전 구역 6 종류(병동 간수·그림자 집행자·헌금 기사)는 지금 구역에 안 나오지만 행동은 남아 있어 직접 불러 확인"""
@@ -10,7 +10,7 @@ def run(ctx):
     g = ctx.game(fresh=True)
     g.enter_v2()
 
-    # 구역 6은 5-B 전까지 잠김 → 구역 1~5를 깨면 열리고 누르면 6-1, 난이도 해금 기준은 4-B 그대로
+    # 구역 6은 5-B 전까지 잠김 → 구역 1~5를 깨면 열리고 누르면 6-1, 다음 난이도는 그룹 1 마지막 판 6-B로 (D-119, 예전 4-B)
     g.js(CLEAR.replace('IDS', '[1, 2, 3, 4]') + "window.madOverlordGameV2.menuController.renderStages();")
     st = g.map_zone('ch6')
     ctx.check(st['fog'].startswith('기적의 대병동') and st['locked'] and '아이언클래드' in st['foot'], '구역 6은 5-B 보스 전까지 잠김 (안개에 구역 이름)', str(st))
@@ -20,7 +20,7 @@ def run(ctx):
         return { sel: progress.selectedStage, n: S.CHAPTER6.stages.length, after5: S.nextStageOf('5-B').id, final: D.FINAL_STAGE_ID, hard: D.difficultyUnlocked('hard', progress) };""")
     st['name'] = name
     ctx.check(st['sel'] == '6-1' and '피에 젖은 성역' in st['name'] and st['n'] == 11 and st['after5'] == '6-1'
-              and st['final'] == '4-B' and st['hard'], '5-B 클리어 → 구역 6 열림(6-1), 11판, 난이도 해금은 4-B 그대로', str(st))
+              and st['final'] == '6-B' and not st['hard'], '5-B 클리어 → 구역 6 열림(6-1), 11판, 하드는 아직(6-B를 깨야 열림)', str(st))
     g.shot('zone6_menu', '#screen-menu-v2')
 
     battle_at(g, '6-1')
@@ -108,7 +108,10 @@ def run(ctx):
     g.wait(2000)
     ctx.check(g.js("return b.enemies.filter(e => e.type === 'pauper').length;") == 3, '강제 헌혈: 실험체 3명이 끌려 나옴')
     g.js("b.enemies.filter(e => e.type === 'pauper').forEach(e => { e.speed = 2000; });")
-    g.wait(800)
+    g.wait(500)
+    # 닿아도 나온 지 2.5초는 지나야 흡수 (11-14 버그 점검 S5 — 보스가 바로 앞에 있어도 부술 시간이 있게)
+    ctx.check(g.js("return b.enemies.filter(e => e.type === 'pauper').length;") == 3, '실험체가 닿아도 바로 흡수되지 않음 (나온 뒤 2.5초)')
+    g.wait(2600)
     st = g.js("return { left: b.enemies.filter(e => e.type === 'pauper').length, healed: b.boss.hp > window.__hp, shield: b.boss.shield > 0 };")
     ctx.check(st['left'] == 0 and st['healed'] and st['shield'], '실험체가 심장에 닿으면 흡수 → 보스 회복 + 피의 방어막', str(st))
     g.shot('zone6_donors', '#screen-battle-v2')

@@ -221,7 +221,7 @@ def run(ctx):
 
     # 로컬에서도 명시적으로 켠 시험에서만 구매한다.
     normal = g.js("return localStorage.getItem('mo_v2_save');")
-    g.page.goto(g.base + '/index.html?mockCommerce=1')
+    g.page.goto(g.base + '/index.html?skipTitle=1&mockCommerce=1')
     g.enter_v2()
     st = g.js(API + """
         const {emptyCommerce}=await import('/js/engine_v2/progressCommerce_v2.js');
@@ -276,7 +276,7 @@ def run(ctx):
     trial = g.js("return JSON.parse((await import('/js/engine_v2/saveStore_v2.js')).load('mo_v2_save'));")
     trial['pets']['equipped'] = 'clockwork_keeper'
     trial['stages'] = {}
-    g.page.goto(g.base + '/index.html')
+    g.page.goto(g.base + '/index.html?skipTitle=1')
     g.enter_v2()
     st = g.js(API + f"""
         const trial={json.dumps(trial)};

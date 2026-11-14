@@ -5,6 +5,7 @@ import { kstDayKey, kstWeekKey } from './kstTime_v2.js';
 import { validatePets } from './pets_v2.js';
 import { validateOffline } from './offlineReward_v2.js';
 import { validateTutorial } from './tutorial_v2.js';
+import { validateStamina } from './stamina_v2.js';
 
 const memory = new Map();
 const listeners = new Set();
@@ -144,12 +145,13 @@ export function validateCommerce(c, allowMock = isMockCommerce()) {
                 && ((o.productId === 'pet_clockwork_keeper' && v.source === o.orderId && v.duplicateShards === 0)
                     || (o.productId === 'weekly_pass_7d' && v.source === `pass:${o.orderId}:7` && c.rewardClaims[v.source] && v.duplicateShards === 1)))) fail();
     }
-    for (const [field, dateField, allowed, max] of [['dailyAds', 'dayKey', Object.keys(AD_LIMITS), 2],
-        ['weeklyPurchases', 'weekKey', ['supply_small', 'supply_medium'], 1]]) {
+    // 하루 광고 횟수 한도는 자리마다 다름 (AD_LIMITS — idle_double 2 · stamina_ad 3)
+    for (const [field, dateField, allowed, max] of [['dailyAds', 'dayKey', Object.keys(AD_LIMITS), k => AD_LIMITS[k]],
+        ['weeklyPurchases', 'weekKey', ['supply_small', 'supply_medium'], () => 1]]) {
         const v = c[field];
         if (!shape(v, [dateField, 'counts']) || !object(v.counts) || !(v[dateField] === null || day(v[dateField]))
             || (v[dateField] === null && Object.keys(v.counts).length)
-            || Object.entries(v.counts).some(([k, n]) => !allowed.includes(k) || !uint(n) || n > max)) fail();
+            || Object.entries(v.counts).some(([k, n]) => !allowed.includes(k) || !uint(n) || n > max(k))) fail();
         if (field === 'weeklyPurchases' && v.weekKey && kstWeekKey(Date.parse(v.weekKey)) !== v.weekKey) fail();
     }
     if (c.dailyAds.dayKey && kstDayKey(c.lastSeenAt) < c.dailyAds.dayKey) fail();
@@ -179,9 +181,10 @@ function validate(entries) {
     if (data.pets !== undefined) validatePets(data.pets);
     if (data.offline !== undefined) validateOffline(data.offline);
     if (data.tutorial !== undefined) validateTutorial(data.tutorial);
+    if (data.stamina !== undefined) validateStamina(data.stamina);
     if (data.savedAt !== undefined && !Number.isFinite(data.savedAt)) throw new Error('저장 시간이 올바르지 않습니다.');
     if (data.saveId !== undefined && (typeof data.saveId !== 'string' || !data.saveId)) throw new Error('저장 식별자가 올바르지 않습니다.');
-    for (const key of ['shards', 'cores', 'spentStars']) {
+    for (const key of ['shards', 'cores', 'spentStars', 'charStarRefund', 'stones']) {
         if (data[key] !== undefined && !Number.isFinite(data[key])) throw new Error(`진행 데이터의 ${key} 값이 올바르지 않습니다.`);
     }
     const records = [data.stages || {}, ...Object.values(data.diffStages || {})];
@@ -195,6 +198,21 @@ function validate(entries) {
     }
     if (data.options && Object.values(data.options).some(v => !Array.isArray(v) || v.some(id => typeof id !== 'string'))) {
         throw new Error('파츠 옵션의 모양이 올바르지 않습니다.');
+    }
+    if (data.special !== undefined && (!object(data.special) || !object(data.special.used)
+        || ['boss', 'smash'].some(k => !(Number.isInteger(data.special.used[k]) && data.special.used[k] >= 0))
+        || !(Number.isInteger(data.special.bossBest) && data.special.bossBest >= 0) || !object(data.special.smashBest)
+        || (data.special.dayKey !== null && typeof data.special.dayKey !== 'string')
+        || (data.special.tower !== undefined && (!object(data.special.tower) || !(Number.isInteger(data.special.tower.best) && data.special.tower.best >= 0))))) {
+        throw new Error('스페셜맵 기록의 모양이 올바르지 않습니다.');
+    }
+    if (data.skins !== undefined && (!object(data.skins) || !Array.isArray(data.skins.owned) || data.skins.owned.some(id => typeof id !== 'string')
+        || !object(data.skins.equipped) || Object.values(data.skins.equipped).some(id => typeof id !== 'string'))) {
+        throw new Error('캐릭터 외형의 모양이 올바르지 않습니다.');
+    }
+    if (data.traits !== undefined && (!object(data.traits)
+        || Object.values(data.traits).some(v => !Array.isArray(v) || v.length > 3 || v.some(b => b !== 0 && b !== 1)))) {
+        throw new Error('특성 트리의 모양이 올바르지 않습니다.');
     }
     if (data.modules !== undefined && (!object(data.modules)
         || ['owned', 'equipped'].some(key => data.modules[key] !== undefined && !Array.isArray(data.modules[key]))

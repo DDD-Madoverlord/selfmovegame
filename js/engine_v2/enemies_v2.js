@@ -1360,18 +1360,24 @@ function tickHeart(b, e, dt) {
 }
 
 // 강제 헌혈 실험체: 보스에게 걸어가 닿으면 흡수 — 보스 회복 + 피의 방어막 (stage.boss.donors)
+const DONOR_HOLD = 2.5;   // 나온 뒤 이 시간(초)이 지나야 흡수됨 (stage.boss.donors.hold로 바꿀 수 있음)
 function tickDonor(b, e, dt, slowMul) {
     const boss = b.boss;
     if (!boss || !b.enemies.includes(boss)) {
         moveBy(b, e, e.speed * slowMul * dt);   // 보스가 없으면 그냥 다가옴
         return;
     }
+    // 보스 쪽으로 걸어감 (어느 쪽에 있든 한 걸음씩 — 예전에는 보스가 실험체보다 주인공 쪽에 있으면 보스 자리로 순간 이동해
+    // 나오자마자 흡수됐음. 보스가 40px 앞까지 다가온 뒤로는 20초마다 회복·방어막을 막을 방법이 없었다 — 11-14 버그 점검 S5)
+    const dn = b.stage.boss.donors || { heal: 0.08, shield: 0.06 };
+    e.donorT = (e.donorT || 0) + dt;
     if (!(e.rootT > 0)) {
-        e.x = Math.min(e.x + e.speed * slowMul * dt, boss.x);
+        const gap = boss.x - e.x;
+        e.x += Math.sign(gap) * Math.min(Math.abs(gap), e.speed * slowMul * dt);
         if (e.dom) e.dom.style.left = `${e.x}px`;
     }
-    if (boss.x - e.x > 20) return;
-    const dn = b.stage.boss.donors || { heal: 0.08, shield: 0.06 };
+    // 닿아도 나온 지 hold초는 지나야 흡수 — 보스가 바로 앞에 있어도 부술 시간이 있음
+    if (Math.abs(boss.x - e.x) > 20 || e.donorT < (dn.hold ?? DONOR_HOLD)) return;
     const gain = Math.min(boss.maxHp - boss.hp, boss.maxHp * dn.heal);
     boss.hp += gain;
     if (boss.hpBar) boss.hpBar.style.width = `${(boss.hp / boss.maxHp) * 100}%`;

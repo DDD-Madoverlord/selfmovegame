@@ -20,6 +20,7 @@ export const COACH = {
     lab_upgrade: { text: '장착한 파츠를 골라 <b>강화</b><br>레벨마다 체력·공격력이 올라요', sec: 8 },
     offline_intro: { text: '접속하지 않아도 DM이 쌓여요<br><b>방치 보상</b>에서 직접 받으세요', short: '<b>방치 보상</b>을 받으세요', sec: 7, side: 'bottom' },
     pet_intro: { text: '펫을 처음 얻었어요!<br><b>작전 지원 → 펫</b>에서 장착하세요', short: '<b>펫</b>을 장착하세요', sec: 7, side: 'bottom' },
+    stamina_intro: { text: '이제 출격할 때 <b>피로도</b>를 써요 (노말 6)<br>6분마다 1씩 차고, 진 판은 거의 돌려받아요', short: '<b>피로도</b> — 6분마다 1 · 진 판은 돌려받음', sec: 9, side: 'bottom' },
     shop_intro: { text: '<b>상점</b>에서 상품을 확인할 수 있어요<br>확률 정보는 <b>설정 › 정보</b>에', short: '<b>상점</b>이 열렸어요', sec: 7, side: 'bottom' }
 };
 
@@ -27,6 +28,8 @@ export const COACH = {
 export function coach(id, anchor, { remember = true } = {}) {
     const c = COACH[id];
     if (!c || (remember && progress.hasTip(id))) return null;
+    // 화면을 덮는 창 뒤에서 뜨면 못 본 채 사라지고 본 것으로 남음 (11-14 버그 점검 L9) — 다음 기회에 다시 뜸
+    if ([...document.querySelectorAll('.v2-title, .v2-account')].some(n => n.getClientRects().length)) return null;
     // 선택자를 쉼표로 여럿 주면 앞에서부터 보이는 것 (PC 단추 / 휴대폰 배치 메뉴 줄 단추)
     const a = typeof anchor === 'string'
         ? anchor.split(',').map(sel => [...document.querySelectorAll(sel)].find(n => n.getClientRects().length)).find(Boolean)

@@ -10,7 +10,7 @@ import { monsterControllerV2 } from '../monster_v2.js';
 import { HERO_ORB } from '../vfx/heroVfx.js';
 import { HERO_VFX, CHIMERA_VFX } from '../vfx/vfxDefs.js';
 import { ensureEnemyStyles } from '../enemies_v2.js';
-import { BABY, EGG, FOOT_B, MINION } from './tuning.js';
+import { ALLY_FIGHT, BABY, EGG, FOOT_B, MINION } from './tuning.js';
 
 export const AllyMethods = {
     // [세뇌 스마트 구속구]: 적 보병 소멸 시 아군 미니언 징집 소환
@@ -27,7 +27,7 @@ export const AllyMethods = {
         const baby = kind === 'baby_kaiju';
         const minion = kind === 'chimera';   // 합성괴인 졸개: 주인공 능력치 비례 (tuning.js MINION)
         const maxHp = opts.hp ?? (baby ? BABY.hp : minion ? Math.round(this.maxPlayerHp * MINION.hp) : 350);
-        const dps = opts.dps ?? (baby ? BABY.dps : minion ? this.playerDps * MINION.dps : 17.5); // 세뇌 미니언은 적 보병 데미지의 절반
+        const dps = opts.dps ?? (baby ? BABY.dps : minion ? this.playerDps * MINION.dps * this.sigAllyMul() : 17.5); // 세뇌 미니언은 적 보병 데미지의 절반
         const allyId = `ally_${Date.now()}_${Math.random()}`;
 
         const el = document.createElement('div');
@@ -120,12 +120,18 @@ export const AllyMethods = {
             }
 
             const hitRange = (closestEnemyToAlly && closestEnemyToAlly.isBuilding) ? 110 : 65;
-            const fighting = !!closestEnemyToAlly && minAllyDist <= hitRange;
-            if (fighting !== !!ally.attacking && ally.dom) {   // 싸우는 동안 공격 동작 (그림이 있는 아군)
-                ally.attacking = fighting;
-                ally.dom.classList.toggle('is-attacking', fighting);
+            // 싸우는 중이면 조금 밀려나도 계속 · 시작한 공격 동작은 잠깐 끝까지 (ALLY_FIGHT — 공격·걷기가 매 순간 바뀌던 것, 11-08 QA)
+            const fighting = !!closestEnemyToAlly && minAllyDist <= hitRange + (ally.attacking ? ALLY_FIGHT.stick : 0);
+            if (ally.atkHold > 0) ally.atkHold -= dt;
+            const swinging = fighting || (!!ally.attacking && ally.atkHold > 0 && !!closestEnemyToAlly);
+            if (swinging !== !!ally.attacking) {   // 싸우는 동안 공격 동작 (그림이 있는 아군)
+                ally.attacking = swinging;
+                if (swinging) ally.atkHold = ALLY_FIGHT.hold;
+                if (ally.dom) ally.dom.classList.toggle('is-attacking', swinging);
             }
-            if (fighting) {
+            if (swinging && !fighting) {
+                // 휘두르던 동작을 마저 끝냄 (제자리)
+            } else if (fighting) {
                 if (!ally.supportOwner || this.support?.active?.elapsed < (this.support?.active?.exitAt ?? SUPPORT.exitAt)) {
                     const mul = ally.supportOwner ? 1 : this.allyDmgMul() * this.supportAttackMul();
                     this.dealDamageToEnemy(closestEnemyToAlly, ally.dps * mul * dt, false,
@@ -163,7 +169,9 @@ export const AllyMethods = {
 
     // [대세뇌] 살아 있는 적 보병을 즉시 아군으로 (보상 없이 전장에서 제거 후 세뇌 미니언 소환)
     convertEnemy(e) {
-        if (!this.enemies.includes(e) || e.isBuilding) return;
+        // 보스·바리케이드·움직이지 않는 것은 세뇌 안 됨 — 보스가 목록에서 빠지면 승리 조건이 사라짐 (11-14 버그 점검 S1)
+        if (!this.enemies.includes(e) || e.isBuilding || e.isBarricade || e.boss || (e.t && e.t.static)) return;
+        this.dropStatues(e);   // 열기 주술사를 세뇌하면 못 깨운 조각상도 부서짐 (enemyField.js)
         this.enemies = this.enemies.filter(o => o !== e);
         if (e.dom) e.dom.remove();
         this.mindOrb(e.x);
