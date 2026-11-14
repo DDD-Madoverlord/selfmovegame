@@ -42,8 +42,8 @@ def edge_values(arr):
 
 def measure(name):
     im = np.asarray(Image.open(os.path.join(VFX_PNG, f'{name}.png')).convert('RGBA'))
-    size = im.shape[1] // FRAMES
-    per = [edge_values(im[:, i * size:(i + 1) * size]) for i in range(FRAMES)]
+    size = im.shape[0]   # 칸은 정사각 — 칸 수는 띠 너비 / 높이 (영혼 동물 묶음 spirit_set은 6칸, D-126)
+    per = [edge_values(im[:, i * size:(i + 1) * size]) for i in range(im.shape[1] // size)]
     allowed = ALLOWED.get(name, set())
     out = {}
     for s in SIDES:

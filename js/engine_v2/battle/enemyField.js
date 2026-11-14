@@ -507,6 +507,30 @@ export const EnemyMethods = {
         ], { duration: R.ms, easing: 'ease-out' });
     },
 
+    /**
+     * 띄워 뒤집기 (대지 뒤집기, D-122): 그림이 h만큼 솟으며 한 바퀴 뒤집혀 떨어짐 → 착지 때 납작했다 일어섬 + 흙먼지.
+     * 보스·밀리지 않는 적은 살짝 들썩이기만. o: { h, ms, dust(착지 이펙트) }
+     */
+    tossEnemy(e, o = {}) {
+        const sprite = e.dom?.querySelector('.v2-enemy__sprite');
+        if (!sprite || !sprite.animate || e.isBuilding) return;
+        const heavy = e.boss || e.knockResist;
+        const h = heavy ? 16 : (o.h ?? 110) * (e.elite ? 0.7 : 1), ms = (o.ms ?? 900) * (heavy ? 0.5 : 1);
+        const rate = gameTime.speed || 1;
+        e.recoil?.cancel();
+        sprite.style.transformOrigin = '50% 60%';
+        const turn = heavy ? 0 : -360;
+        e.recoil = sprite.animate([
+            { transform: 'translateY(0) rotate(0deg)', easing: 'ease-out' },
+            { transform: `translateY(${-h * 0.75}px) rotate(${turn * 0.25}deg)`, offset: 0.22, easing: 'linear' },
+            { transform: `translateY(${-h}px) rotate(${turn * 0.5}deg)`, offset: 0.42, easing: 'ease-in' },
+            { transform: `translateY(0px) rotate(${turn * 0.96}deg) scale(1.12, 0.82)`, offset: 0.8, easing: 'ease-out' },
+            { transform: `translateY(${-h * 0.08}px) rotate(${turn}deg) scale(0.96, 1.05)`, offset: 0.9 },
+            { transform: `translateY(0px) rotate(${turn}deg)` }
+        ], { duration: ms / rate });
+        if (o.dust) this.schedule(ms * 0.8 / 1000, () => { if (this.enemies.includes(e)) this.fx.play(o.dust, aimOf(e).x, FOOT_B); });
+    },
+
     /** 쓰러진 적: 체력바를 지우고 뒤로 넘어지며 흐려진 뒤 치움 (그림이 없으면 바로 치움) */
     enemyFall(e) {
         const el = e.dom;

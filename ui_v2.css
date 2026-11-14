@@ -1097,7 +1097,7 @@
 /* 강철 방벽 (공병 중장비 굴착기 동체, D-118): 바닥에서 쿵 솟고, 끝나면 앞으로 기울며 무너짐 */
 #screen-battle-v2 .v2-kit-art.is-steelwall {
     background: url('assets/sprites/vfx/art/steel_wall.webp') center bottom / contain no-repeat;
-    filter: drop-shadow(0 0 4px rgba(255, 210, 60, 0.45)); z-index: 11;
+    filter: drop-shadow(0 0 4px rgba(255, 210, 60, 0.45)); z-index: 11; image-rendering: pixelated;   /* 도트 그림 (D-124) */
     animation: v2-steelwall-rise 0.32s cubic-bezier(.2, 1.4, .4, 1);
 }
 #screen-battle-v2 .v2-kit-art.is-steelwall.is-gone { animation: v2-steelwall-fall .45s ease-in forwards; }
@@ -3121,3 +3121,8 @@ body.v2-mobile .v2-story__title-text { zoom: 1.2; }
 @keyframes v2-hunt-spin { to { transform: rotate(360deg); } }
 @keyframes v2-hunt-pulse { from { opacity: .55; } to { opacity: 1; } }
 @keyframes v2-hunt-bob { from { transform: translateY(0); } to { transform: translateY(3px); } }
+
+/* ---- 공포에 질린 적 (D-122 공포의 오라): 등을 돌려 물러남 (떨림은 battle/kit.js kitEnemyHeld가 translate로) ---- */
+#screen-battle-v2 .enemy-entity.is-feared .v2-enemy__sprite { scale: -1 1; }
+/* 석화의 눈물 (D-127): 굳은 동안 몸이 잿빛 대리석 색 */
+#screen-battle-v2 .enemy-entity.is-stone .v2-enemy__sprite { filter: grayscale(1) brightness(1.18) contrast(1.08) !important; }

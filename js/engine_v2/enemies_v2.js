@@ -1010,6 +1010,7 @@ export function updateEnemy(b, e, dt, frontX) {
         return;
     }
     if (b.legContact(e)) return;   // 다리 패시브(궤도 돌진)로 밀려남
+    if (b.kitWallBlocks?.(e)) { setAttacking(e, false); return; }   // 강철 방벽 뒤에 막힘 (battle/kit.js, D-124)
     if (t.selfDestruct && !silenced) {   // 맹독 잠수부 (새 기획 구역 5): 붙으면 자폭 → 피해 + 산성 장판, 자기는 쓰러짐
         const sd = t.selfDestruct;
         b.fx.play(ELITE_VFX.volatileBlast, e.x + ENEMY_CENTER, FOOT_B);

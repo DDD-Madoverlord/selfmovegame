@@ -194,29 +194,159 @@ function soulDrain(b, ctx, s) {
     b.fx.play(V.motes(SOUL, 14), b.monsterX + 40, FOOT_B + 90);
 }
 
+// ---- D-122 (2026-11-14 5차): 마왕 ----
+// 마검 연무: 예전엔 고른 적 발밑에 베기 그림만 5번 → 캐릭터가 사라져 적들 사이를 지그재그로 오가며(붉은 잔상 + 대시 자국) 5번 베고 제자리로
+/** 캐릭터 그림(리그 캔버스)을 찍어 이펙트 좌표로: { img, glowImg(진홍 실루엣), cx(가운데 x), top, w, h } */
+function heroSnap(b) {
+    const c = monster.spriteCanvas, f = b.fx.canvas;
+    if (!c || !f || !c.width) return null;
+    const r = c.getBoundingClientRect(), fr = f.getBoundingClientRect();
+    if (!fr.height || !r.width) return null;
+    const k = b.fx.H / fr.height;
+    const img = document.createElement('canvas');
+    img.width = c.width; img.height = c.height;
+    img.getContext('2d').drawImage(c, 0, 0);
+    const glowImg = document.createElement('canvas');
+    glowImg.width = c.width; glowImg.height = c.height;
+    const g = glowImg.getContext('2d');
+    g.drawImage(c, 0, 0);
+    g.globalCompositeOperation = 'source-in';
+    g.fillStyle = 'rgb(255, 40, 70)';
+    g.fillRect(0, 0, c.width, c.height);
+    return { img, glowImg, cx: (r.left - fr.left + r.width / 2) * k, top: (r.top - fr.top) * k, w: r.width * k, h: r.height * k };
+}
+const DANCE_GAP = 0.13;
+const DANCE_PUFF = fxOf(spr('dark_burst', 150, { dur: 0.4, frameRange: [3, 7], hue: 70, glow: 1 }),
+    { type: 'streaks', at: 0, count: 8, speed: 300, angle: -Math.PI / 2, cone: 3.1, len: 26, color: DEMON });
+const streak = (from, to) => fxOf({ type: 'dashStreak', at: 0, dur: 0.24, to, w: 14, color: DEMON });
+function bladeDance(b, ctx, s) {
+    const list = b.enemiesInRange(s.range).filter(e => !e.isBuilding).sort((p, q) => p.x - q.x);
+    if (!list.length) return;
+    const n = list.length, order = [];   // 가까운 적 ↔ 먼 적을 번갈아 (지그재그)
+    for (let i = 0; i < s.n; i++) order.push(list[i % 2 ? n - 1 - (i >> 1) % n : (i >> 1) % n]);
+    const snap = heroSnap(b), c = monster.spriteCanvas;
+    const chest = FOOT_B + 70;
+    const home = snap ? snap.cx : b.monsterX + 60;
+    const restore = () => { if (c) c.style.opacity = ''; };
+    if (c) c.style.opacity = '0';
+    b.fx.play(DANCE_PUFF, home, FOOT_B + 60);
+    let prev = [home, chest];
+    order.forEach((e, i) => b.schedule(0.06 + i * DANCE_GAP, () => {
+        if (!b.isActive) return;
+        const side = i % 2 ? 1 : -1;   // 적 앞 · 뒤를 번갈아
+        const ex = b.enemies.includes(e) ? aimAt(e).x : prev[0] + 60;
+        const pos = [ex + side * 52, chest];
+        b.fx.play(streak(prev, pos), prev[0], prev[1], { to: pos });
+        if (snap) b.fx.play(fxOf({ type: 'afterimage', at: 0, dur: 0.42, img: snap.img, glowImg: snap.glowImg, w: snap.w, h: snap.h,
+            ox: -snap.w / 2, oy: 0, flip: side > 0 }), pos[0], b.fx.H - snap.top);
+        if (b.enemies.includes(e)) {
+            b.fx.play(V.cleave(0, 150, { dur: 0.3, flipX: side > 0 }), aimAt(e).x, aimAt(e).b);
+            kitHit(b, e, s.dmg, { knock: 0.3, stop: i === order.length - 1 });
+        }
+        prev = pos;
+    }));
+    const end = 0.06 + order.length * DANCE_GAP;
+    b.schedule(end, () => b.fx.play(streak(prev, [home, chest]), prev[0], prev[1], { to: [home, chest] }));
+    b.schedule(end + 0.1, () => { restore(); if (b.isActive) b.fx.play(DANCE_PUFF, home, FOOT_B + 60); });
+    setTimeout(restore, (end + 0.6) * 1000 + 400);   // 전투가 끝나 일정이 지워져도 캐릭터는 다시 보이게
+}
+bladeDance.preview = api => {
+    const y = api.enemyChestY(), d = api.dummies;
+    let prev = [api.CHAR_X, y];
+    for (let i = 0; i < 5; i++) api.later(i * DANCE_GAP, () => {
+        const di = i % 2 ? d.length - 1 - (i >> 1) % d.length : (i >> 1) % d.length, side = i % 2 ? 1 : -1;
+        const pos = [d[di].x + side * 30, y];
+        api.vfx.play(streak(prev, pos), prev[0], prev[1], { scale: api.VFX_SCALE * 0.6, to: pos });
+        api.vfx.play(V.cleave(0, 150, { dur: 0.3, flipX: side > 0 }), d[di].x, y, { scale: api.VFX_SCALE * 0.6 });
+        api.hit(di);
+        prev = pos;
+    });
+};
+
+// 공포의 오라: 예전엔 발밑 보라 터짐(dark_burst)만 → 등 뒤로 진홍 그림자 마왕이 솟아 노려보고(shadow_rise 색 돌림 — 몸 뒤 바닥층)
+//   1초마다 검붉은 위압 파동이 퍼짐. 겁먹은 적은 등을 돌려 덜덜 떨며 물러남 (battle/kit.js kitEnemyHeld · ui_v2.css .is-feared)
+const FEAR_LOOM = sec => fxOf(spr('shadow_rise', 340, { anchorY: 0.95, dur: sec, frameRange: [3, 5], loopSec: 1.6, pingPong: true, hue: 75, glow: 0.9,
+    alpha: 0.8, fadeIn: 0.5, fadeOut: 0.7, layer: 'ground', softEdges: 0.16, dx: -30 }));
+const FEAR_WAVE = fxOf({ type: 'shockwave', at: 0, dur: 0.75, r: 300, width: 16, ground: true, color: '170, 20, 50' },
+    { type: 'shockwave', at: 0.12, dur: 0.6, r: 220, width: 8, ground: true, color: DEMON },
+    { type: 'streaks', at: 0, count: 10, speed: 360, angle: 0, cone: 0.9, len: 30, color: '200, 30, 60', dy: -60 });
+function fearAura(b, ctx, s) {
+    const at = () => [b.monsterX + 60, FOOT_B];
+    b.fx.play(FEAR_LOOM(s.sec), ...at(), { follow: at, alive: () => b.isActive });
+    for (let k = 0; k < Math.ceil(s.sec); k++) b.schedule(k + 0.15, () => { if (b.isActive) b.fx.play(FEAR_WAVE, b.monsterX + 75, FOOT_B); });
+}
+fearAura.preview = api => {
+    api.vfx.play(FEAR_LOOM(3), api.CHAR_X, api.GROUND_Y, { scale: api.VFX_SCALE * 0.6 });
+    for (let k = 0; k < 3; k++) api.later(k + 0.15, () => { api.vfx.play(FEAR_WAVE, api.CHAR_X + 20, api.GROUND_Y, { scale: api.VFX_SCALE * 0.6 }); api.dummies.forEach((_, i) => api.hit(i, 0.4)); });
+};
+
 // 별자리 심판: 별 n개에서 차례로 빛줄기 → 마지막에 별자리 전체 폭발
+// ---- D-126 (2026-11-14 저녁): 별을 먹는 자 ----
+// 유성 사슬: 예전엔 가는 번개 줄(chainBolt) + 작은 금빛 터짐뿐 → 굵은 보라 번개 두 겹(바깥 빛 + 흰 심, 곁가지 3) + 맞은 자리 보라 번개 폭발(lightning_burst 색 돌림)
+//   + 섬광·불티, 처음 튈 때 오브에서 번개가 터져 나옴
+const STAR_BOLT = fxOf({ type: 'bolt', at: 0, dur: 0.32, count: 1, jag: 22, branches: 3, width: 9, flicker: 0.04, color: STAR },
+    { type: 'bolt', at: 0, dur: 0.32, count: 1, jag: 22, branches: 1, width: 3, flicker: 0.04, color: '255, 255, 255' });
+const STAR_ZAP = fxOf(spr('lightning_burst', 170, { dur: 0.42, frameRange: [1, 5], hue: -150, glow: 1.3 }),
+    { type: 'flash', at: 0, dur: 0.14, r: 46, color: '240, 220, 255' },
+    { type: 'sparks', at: 0, count: 9, speed: 300, angle: -Math.PI / 2, cone: 3, color: STAR });
+const ORB_ZAP = fxOf(spr('lightning_burst', 130, { dur: 0.32, frameRange: [2, 5], hue: -150, glow: 1.2 }), { type: 'flash', at: 0, dur: 0.12, r: 40, color: STAR });
+function starChainCast(b) {
+    const m = monster.getSocketPoint('tip', 'sword') || monster.getMuzzlePoint();
+    if (m) b.fx.play(ORB_ZAP, m.x, m.bottom);
+}
+starChainCast.preview = api => { const m = api.socket('tip', 'sword'); api.vfx.play(ORB_ZAP, m[0], m[1], { scale: api.VFX_SCALE * 0.6 }); };
+
+// 별자리 심판: 예전엔 작은 별빛 기둥 7개 + 가는 선 → 하늘 높이 큰 별이 하나씩 떠오르며 별자리 선으로 이어지고(끝까지 남음)
+//   별마다 큰 별빛 기둥(star_judgment 340)이 내리꽂힘 → 마지막에 별자리 전체가 번쩍이며 모든 별에서 기둥이 한꺼번에 + 가운데 거대한 보라 성운 폭발
+const STAR_BEAM = fxOf(spr('star_judgment', 340, { anchorY: 0.92, dur: 0.75, glow: 1.25 }),
+    { type: 'shockwave', at: 0.3, dur: 0.45, r: 120, width: 8, ground: true, color: STAR });
+const NOVA = fxOf(spr('plasma_white', 560, { anchorY: 0.88, dur: 1.2, frameRange: [1, 7], hue: 60, glow: 1.3 }),
+    { type: 'flash', at: 0, dur: 0.35, r: 420, color: '235, 215, 255' },
+    { type: 'shockwave', at: 0.05, dur: 0.7, r: 520, width: 22, ground: true, color: STAR },
+    { type: 'sparks', at: 0.05, count: 30, speed: 520, angle: -Math.PI / 2, cone: 2.2, color: STAR },
+    { type: 'dust', at: 0.1, count: 10, speed: 320, size: 30, life: [0.8, 1.2], color: '110, 90, 150' });
 function constellation(b, ctx, s) {
     const n = Math.round(s.n);
-    const x0 = b.frontX() + 50, span = 520;
+    const x0 = b.frontX() + 50, span = 520, gap = 0.26;
+    const total = n * gap + 0.5;
+    const pts = [];
     let prev = null;
     for (let i = 0; i < n; i++) {
-        const x = x0 + (span * i) / Math.max(1, n - 1), top = 260 + (i % 2) * 50;
+        const x = x0 + (span * i) / Math.max(1, n - 1), top = 330 + (i % 3) * 45 + (i % 2) * 20;
         const from = prev;
         prev = [x, top];
-        b.schedule(i * 0.28, () => {
+        pts.push(prev);
+        b.schedule(i * gap, () => {
             if (!b.isActive) return;
-            if (from) b.fx.play(V.chainBolt(STAR), from[0], from[1], { to: [x, top] });
-            b.fx.play(V.sheet('star_judgment', 220, { anchorY: 0.92, dur: 0.6 }), x, FOOT_B);
-            enemiesNear(b, x, 70).forEach(e => kitHit(b, e, s.dmg, { knock: 0.4 }));
+            const life = total - i * gap + 0.6;
+            b.fx.play(fxOf({ type: 'starPoint', at: 0, dur: life, r: 24, color: STAR }), x, top);
+            if (from) b.fx.play(fxOf({ type: 'starLine', at: 0, dur: life, w: 5, color: STAR }), from[0], from[1], { to: [x, top] });
+            b.fx.play(STAR_BEAM, x, FOOT_B);
+            b.director.shake(2, 120);
+            enemiesNear(b, x, 80).forEach(e => kitHit(b, e, s.dmg, { knock: 0.4 }));
         });
     }
-    b.schedule(n * 0.28 + 0.3, () => {
+    b.schedule(total, () => {
         if (!b.isActive) return;
-        b.fx.play(V.gold(220, 360, { dur: 0.7 }), x0 + span / 2, 180);
-        b.director.shake(7, 300);
+        pts.forEach(([x], i) => b.fx.play(STAR_BEAM, x, FOOT_B, { scale: 1.1 }));
+        b.fx.play(NOVA, x0 + span / 2, FOOT_B);
+        b.director.shake(10, 500);
         b.enemies.filter(e => e.x - b.monsterX < 900).forEach(e => kitHit(b, e, s.final, { knock: 0.8, baseMul: 1.5 }));
     });
 }
+constellation.preview = api => {
+    const k = api.VFX_SCALE * 0.5, d = api.dummies, n = 5;
+    const x0 = api.CHAR_X + 60 * k, x1 = d[d.length - 1].x + 30 * k;
+    let prev = null;
+    for (let i = 0; i < n; i++) api.later(i * 0.22, () => {
+        const x = x0 + (x1 - x0) * i / (n - 1), y = api.GROUND_Y - (300 + (i % 2) * 40) * k;
+        api.vfx.play(fxOf({ type: 'starPoint', at: 0, dur: 2, r: 24, color: STAR }), x, y, { scale: k });
+        if (prev) api.vfx.play(fxOf({ type: 'starLine', at: 0, dur: 2, w: 5, color: STAR }), prev[0], prev[1], { scale: k, to: [x, y] });
+        api.vfx.play(STAR_BEAM, x, api.GROUND_Y, { scale: k });
+        prev = [x, y];
+    });
+    api.later(n * 0.22 + 0.3, () => { api.vfx.play(NOVA, (x0 + x1) / 2, api.GROUND_Y, { scale: k }); d.forEach((_, i) => api.hit(i, 0.5)); });
+};
 
 export const HERO_SETS2 = packOf('hero', [
     // ---- 유니크 ① 어둠의 군주 (Q-008 3-2) — 검은 날개와 부서진 왕관 ----
@@ -371,11 +501,11 @@ export const HERO_SETS2 = packOf('hero', [
                     { at: 0.4, do: 'shake', power: 6, ms: 400 }] },
             hrFearAura: { name: '공포의 오라', slot: 'body', cd: 15, icon: 'horn', color: '#ff3c50', target: 'self', clip: 'cast', p: { sec: 6 },
                 desc: '6초간 둘레 적이 겁먹어 뒤로 물러남 (공격 못 함)',
-                steps: [{ do: 'zone', follow: true, x: -40, w: 300, sec: '$sec', status: { fear: 1.2 }, every: 1, puff: V.dark(-20, 120, { dur: 0.5 }), puffEvery: 0.25 },
-                    { do: 'fx', on: 'self', x: 40, vfx: V.ring('200, 40, 60', 200) }] },
+                steps: [{ do: 'zone', follow: true, x: -40, w: 300, sec: '$sec', status: { fear: 1.2 }, every: 1 },
+                    { do: 'custom', fn: fearAura, sec: '$sec', preview: fearAura.preview }] },
             hrBladeDance: { name: '마검 연무', slot: 'arm', cd: 9, icon: 'sword', color: '#ff3c50', target: 'enemy', range: 260, clip: 'sweep',
                 desc: '앞 적들 사이를 오가며 5번 베기',
-                steps: [{ at: 0.15, do: 'hit', pick: 'random', n: 1, range: 260, times: 5, every: 0.12, dmg: 1, vfx: V.cleave(0, 140, { dur: 0.3 }) }] }
+                steps: [{ at: 0.15, do: 'custom', fn: bladeDance, n: 5, range: 260, dmg: 1, preview: bladeDance.preview }] }
         }
     },
 
@@ -393,14 +523,15 @@ export const HERO_SETS2 = packOf('hero', [
         skills: {
             hrConstellation: { name: '별자리 심판', slot: 'head', ult: true, cd: 0, icon: 'orbital', color: '#c8a0ff', target: 'enemy', range: 600, clip: 'cast', p: { n: 7 },
                 desc: '별 7개에서 차례로 빛줄기 → 마지막에 별자리 전체 폭발',
-                steps: [{ at: 0.3, do: 'custom', fn: constellation, n: '$n', dmg: 1.6, final: 3 }] },
+                steps: [{ at: 0.3, do: 'custom', fn: constellation, n: '$n', dmg: 1.6, final: 3, preview: constellation.preview }] },
             hrNebula: { name: '성운 장막', slot: 'body', cd: 15, icon: 'shield', color: '#c8a0ff', target: 'self', clip: 'cast',
                 desc: '6초간 나·아군 받는 피해 -40%, 원거리 피해·효과 -80%',
                 steps: [{ do: 'buff', key: 'nebula', sec: 6, mods: { def: 0.4, allyDef: 0.4, rangedCut: 0.8 }, vfx: V.portal(200, 240, { dur: 0.8 }) },
                     { at: 0.3, do: 'fx', on: 'self', x: 20, b: FOOT_B + 110, vfx: V.motes(STAR, 10), repeat: 6, repeatGap: 1 }] },
             hrStarChain: { name: '유성 사슬', slot: 'arm', cd: 9, icon: 'chain', color: '#c8a0ff', target: 'enemy', range: 400, clip: 'cast', p: { n: 6 },
                 desc: '별빛이 적 6명을 차례로 튀며 피해 + 0.5초 기절',
-                steps: [{ at: 0.3, do: 'chain', n: '$n', range: 400, jump: 220, dmg: 1.1, decay: 0.95, status: { stun: 0.5 }, vfx: V.chainBolt(STAR), hitVfx: V.gold(220, 60) }] }
+                steps: [{ at: 0.28, do: 'custom', fn: starChainCast, preview: starChainCast.preview },
+                    { at: 0.3, do: 'chain', n: '$n', range: 400, jump: 220, gap: 0.12, dmg: 1.1, decay: 0.95, status: { stun: 0.5 }, vfx: STAR_BOLT, hitVfx: STAR_ZAP }] }
         }
     }
 ]);

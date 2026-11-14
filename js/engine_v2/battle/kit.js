@@ -361,8 +361,14 @@ export const KitMethods = {
     kitEnemyHeld(e, dt) {
         if (!(e.kitFearT > 0)) return false;
         e.kitFearT -= dt;
-        e.x += (e.speed || 60) * 0.6 * dt;
-        if (e.dom) e.dom.style.left = `${e.x}px`;
+        e.x += Math.max(e.speed || 60, 45) * 0.6 * dt;
+        // 겁먹은 모습 (D-122): 등을 돌려(ui_v2.css .is-feared) 덜덜 떨며 물러남
+        const sp = e.dom?.querySelector('.v2-enemy__sprite');
+        if (e.dom) {
+            e.dom.style.left = `${e.x}px`;
+            e.dom.classList.toggle('is-feared', e.kitFearT > 0);
+        }
+        if (sp) sp.style.translate = e.kitFearT > 0 ? `${((Math.random() - 0.5) * 4).toFixed(1)}px ${(-Math.random() * 2).toFixed(1)}px` : '';
         if (e.kitFearT <= 0) this.updateEnemyFilter(e);
         return true;
     },
@@ -391,6 +397,8 @@ export const KitMethods = {
             el.style.left = `${x + z.artDx}px`;
         }
         this.kitZones.push(z);
+        // 강철 방벽(D-124): 적 투사체가 벽 그림 오른쪽 끝에서 막혀 불꽃으로 흩어짐 (vfxPlayer barrier)
+        if (o.wall) this.fx.vfx.barrier = () => { const w = this.kitZones.find(k => k.wall && k.t > 0); return w ? this.kitWallEdge(w) : null; };
         if (o.field) {
             playImageField(this.fx, o.field, z.w, z.sec, () => [z.x + z.w / 2, FOOT_B],
                 () => z.t > 0 && this.kitZones.includes(z), () => z.t);
@@ -471,16 +479,27 @@ export const KitMethods = {
             return true;
         });
     },
-    /** 강철 방벽(장판 wall): 보스가 아닌 적은 벽 오른쪽 끝에서 멈춤 (enemyField.js tickEnemies) */
+    /** 강철 방벽 오른쪽 끝 (그림이 있으면 그림 오른쪽 끝 — 판정 폭 46px보다 그림이 넓음) */
+    kitWallEdge(z) {
+        return z.art ? z.x + (z.artDx ?? 0) + (z.art.w ?? z.w) - 12 : z.x + z.w;
+    },
+    /** 강철 방벽(장판 wall): 보스가 아닌 적은 벽 뒤(오른쪽)에 멈춰 섬 (enemyField.js tickEnemies)
+     *  D-124: 예전엔 판정 46px 오른쪽 끝에 세워 근접 사거리(55px) 안이라 벽 너머로 주인공을 때렸음 → 적의 왼쪽 끝을 벽 그림 오른쪽 끝에 맞춤
+     *  (벽 뒤에 서서 주인공에 닿지 못함). 벽 그림 앞(왼쪽)에 있던 적은 그대로 둠 */
     kitWallHold(e) {
         if (!isUnit(e) || e.boss || !this.kitZones.length) return;
         for (const z of this.kitZones) {
-            if (!z.wall) continue;
-            const cx = aimOf(e).x, edge = z.x + z.w;
-            if (cx < z.x || cx >= edge) continue;
-            e.x += edge - cx;
+            if (!z.wall || !(z.t > 0)) continue;
+            const edge = this.kitWallEdge(z);
+            if (aimOf(e).x < z.x || e.x >= edge) continue;
+            e.x = edge;
             if (e.dom) e.dom.style.left = `${e.x}px`;
         }
+    },
+    /** 강철 방벽 뒤에 막힌 적인지 (enemies_v2.js 근접 공격을 건너뜀) */
+    kitWallBlocks(e) {
+        if (!isUnit(e) || e.boss) return false;
+        return this.kitZones.some(z => z.wall && z.t > 0 && Math.abs(e.x - this.kitWallEdge(z)) < 2);
     },
 
     /** 걷는 동안 장판도 바닥과 같이 흘러감 (sets.js scrollZones) */
@@ -623,7 +642,7 @@ export const KitMethods = {
     },
 
     // ---- 새 기본 공격 (attackType 'kit' — 파츠 kitAttack, 변신 중이면 변신 공격) ----
-    /** def: { kind: 'shot'|'lob'|'melee'|'pierce'|'chain'|'multi', vfx?, hitVfx?, color?, splash?, splashMul?, n?, gap?, decay?, jump?, status?, statusPick?[] } */
+    /** def: { kind: 'shot'|'lob'|'melee'|'pierce'|'chain'|'multi', vfx?, hitVfx?, fly?(dur → 날아가는 그림 fx), color?, splash?, splashMul?, n?, gap?, decay?, jump?, status?, statusPick?[] } */
     fireKitAttack(target, dmg, isCrit) {
         const def = this.kitXform?.attack || this.kitAttackDef;
         if (!def) return false;
@@ -647,7 +666,20 @@ export const KitMethods = {
             case 'shot':
             case 'lob': {
                 let aim = aimOf(target);
-                const go = () => this.fx.launchOrb(muzzle, () => { if (this.enemies.includes(target)) aim = aimOf(target); return aim; },
+                // fly: 구슬 대신 그림이 날아감 (빛 바늘 석궁 화살, D-128) — 쏠 때 적 자리로 dur초 동안 날아간 뒤 맞음
+                const flyShot = () => {
+                    const a0 = aimOf(target), dur = def.dur ?? 0.2;
+                    const fx0 = muzzle.x + (def.flyFrom?.[0] ?? 0), fb0 = muzzle.bottom + (def.flyFrom?.[1] ?? 0);   // flyFrom: 총구에서 [x, 높이] 만큼 옮겨 출발 (석궁 위 화살 자리)
+                    this.fx.play(def.fly(dur), fx0, fb0, { to: [a0.x, a0.b] });
+                    this.schedule(dur, () => {
+                        if (!this.isActive) return;
+                        aim = this.enemies.includes(target) ? aimOf(target) : a0;
+                        if (def.vfx) this.fx.play(def.vfx, aim.x, aim.b);
+                        hit(target, dmg / n, isCrit);
+                        splash(aim.x, dmg / n);
+                    });
+                };
+                const go = def.fly ? flyShot : () => this.fx.launchOrb(muzzle, () => { if (this.enemies.includes(target)) aim = aimOf(target); return aim; },
                     def.color || '255, 200, 120', def.dur ?? (def.kind === 'lob' ? 0.45 : 0.25), () => {
                         if (!this.isActive) return;
                         if (def.vfx) this.fx.play(def.vfx, aim.x, aim.b);

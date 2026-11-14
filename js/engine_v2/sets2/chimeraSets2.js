@@ -101,6 +101,32 @@ function encircle(b, ctx, s) {
 }
 
 // 진화 순환: 무작위 진화 n개 (공격 / 받는 피해 / 이동 / 회복)
+// ---- D-126 (2026-11-14 저녁): 태초의 키메라 ----
+// 만수 행진: 예전엔 다섯 동물 모두 같은 사자 그림(spirit_charge)을 색만 바꿔 0.1초마다 찍음 → 동물마다 제 그림 하나가 판정과 함께 달림 (wave ride)
+//   사자 spirit_charge(1~4칸) · 독수리·곰·뱀·늑대 spirit_set(Gemini 영혼 동물) + 빛 꼬리·흙먼지, 끝에서 금빛으로 흩어짐(spirit_charge 5~7칸)
+const BEAST = (frame, size, o = {}) => fxOf(
+    spr('spirit_set', size, { dur: 30, frameRange: [frame, frame], glow: 1.3, fadeIn: 0.1, hue: o.hue || 0, angle: o.angle || 0, dy: o.dy || 0 }),
+    { type: 'motes', at: 0, count: 14, spread: size * 0.3, rise: [10, 40], life: [0.3, 0.6], size: 2.6, color: o.color || '255, 235, 180' });
+const LION = fxOf(spr('spirit_charge', 220, { dur: 30, frameRange: [1, 4], loopSec: 0.36, glow: 1.2, fadeIn: 0.1 }));
+const BEAST_END = hue => fxOf(spr('spirit_charge', 200, { dur: 0.6, frameRange: [5, 7], hue, glow: 1.1 }));
+const BEAST_DUST = fxOf({ type: 'dust', at: 0, dy: 62, count: 3, speed: 90, dir: 'left', size: 18, life: [0.4, 0.7], color: '170, 150, 120' });   // 발밑 흙먼지 (판정 높이 b에서 내려 바닥에)
+const MARCH = {
+    lion: { ride: LION, rideEnd: BEAST_END(0), vfx: BEAST_DUST },
+    eagle: { ride: BEAST(0, 230, { angle: -0.55, color: '180, 240, 255', hue: 0 }), rideEnd: BEAST_END(180) },
+    bear: { ride: BEAST(1, 260, { dy: -20, color: '255, 200, 160' }), rideEnd: BEAST_END(-30), vfx: BEAST_DUST },
+    snake: { ride: BEAST(2, 220, { dy: -10, color: '220, 180, 255' }), rideEnd: BEAST_END(230) },
+    wolf: { ride: BEAST(3, 230, { dy: -10, color: '200, 255, 200' }), rideEnd: BEAST_END(140), vfx: BEAST_DUST }
+};
+
+// 영혼 독수리: 예전엔 금빛 터짐(golden_burst)만 → 하늘 왼쪽 위에서 영혼 독수리(spirit_set 0칸)가 비스듬히 내리꽂힌 뒤 금빛 충격 + 깃털 같은 불티
+const EAGLE_DIR = 0.72;   // spirit_set 0칸 독수리가 내리꽂는 방향 (아래 오른쪽, 라디안)
+const EAGLE_FALL = fly => fxOf(spr('spirit_set', 210, { dur: fly, frameRange: [0, 0], travel: true, angleOffset: -EAGLE_DIR, glow: 1.4 }),
+    { type: 'motes', at: 0, count: 10, spread: 40, rise: [10, 40], life: [0.3, 0.5], size: 2.4, color: '255, 240, 200' });
+const EAGLE_HIT = fxOf(spr('golden_burst', 190, { dur: 0.45, glow: 1.2 }),
+    { type: 'shockwave', at: 0, dur: 0.4, r: 110, width: 9, ground: true, color: GOLD },
+    { type: 'sparks', at: 0, count: 12, speed: 320, angle: -Math.PI / 2, cone: 2.4, color: '255, 240, 200' },
+    { type: 'dust', at: 0.03, count: 5, speed: 200, size: 20, life: [0.5, 0.8], color: '170, 150, 120' });
+
 const EVOLVE = [
     { key: 'evoAtk', mods: { dmg: 0.5 }, label: '진화: 공격 +50%' },
     { key: 'evoDef', mods: { def: 0.5 }, label: '진화: 받는 피해 -50%' },
@@ -300,19 +326,19 @@ export const CHIMERA_SETS2 = packOf('chimera', [
             cmBeastMarch: { name: '만수 행진', slot: 'head', ult: true, cd: 0, icon: 'roar', color: '#fff0c8', target: 'enemy', range: 600, clip: 'summon', p: { extra: 0 },
                 desc: '동물 영혼이 차례로 돌진 — 사자(기절) · 독수리(밀침) · 곰(큰 피해) · 뱀(독) · 늑대(감속)',
                 steps: [
-                    { at: 0.2, do: 'wave', from: -40, speed: 640, dist: 700, w: 60, dmg: 1, status: { stun: 1 }, vfx: V.sheet('spirit_charge', 190, { dur: 0.35 }), vfxEvery: 0.1, b: FOOT_B + 70 },
-                    { at: 0.7, do: 'wave', from: -40, speed: 700, dist: 700, w: 60, dmg: 0.8, push: 40, vfx: V.sheet('spirit_charge', 170, { dur: 0.35, hue: 180 }), vfxEvery: 0.1, b: FOOT_B + 110 },
-                    { at: 1.2, do: 'wave', from: -40, speed: 560, dist: 700, w: 70, dmg: 2.6, vfx: V.sheet('spirit_charge', 220, { dur: 0.35, hue: -30 }), vfxEvery: 0.1, b: FOOT_B + 70 },
-                    { at: 1.7, do: 'wave', from: -40, speed: 640, dist: 700, w: 60, dmg: 0.8, status: { poison: [4, 0.3] }, vfx: V.sheet('spirit_charge', 170, { dur: 0.35, hue: 230 }), vfxEvery: 0.1, b: FOOT_B + 60 },
-                    { at: 2.2, do: 'wave', from: -40, speed: 680, dist: 700, w: 60, dmg: 0.8, status: { slow: 3 }, vfx: V.sheet('spirit_charge', 170, { dur: 0.35, hue: 140 }), vfxEvery: 0.1, b: FOOT_B + 60 },
-                    { at: 2.7, do: 'wave', from: -40, speed: 640, dist: 700, w: 60, dmg: 1, status: { stun: 1 }, vfx: V.sheet('spirit_charge', 190, { dur: 0.35 }), vfxEvery: 0.1, b: FOOT_B + 70, when: b => b.kitPatch?.cmBeastMarch?.extra > 0 },
-                    { at: 3.2, do: 'wave', from: -40, speed: 700, dist: 700, w: 60, dmg: 0.8, push: 40, vfx: V.sheet('spirit_charge', 170, { dur: 0.35, hue: 180 }), vfxEvery: 0.1, b: FOOT_B + 110, when: b => b.kitPatch?.cmBeastMarch?.extra > 0 }] },
+                    { at: 0.2, do: 'wave', from: -40, speed: 640, dist: 700, w: 60, dmg: 1, status: { stun: 1 }, ...MARCH.lion, vfxEvery: 0.15, b: FOOT_B + 70 },
+                    { at: 0.7, do: 'wave', from: -40, speed: 700, dist: 700, w: 60, dmg: 0.8, push: 40, ...MARCH.eagle, b: FOOT_B + 130 },
+                    { at: 1.2, do: 'wave', from: -40, speed: 560, dist: 700, w: 70, dmg: 2.6, ...MARCH.bear, vfxEvery: 0.15, b: FOOT_B + 80 },
+                    { at: 1.7, do: 'wave', from: -40, speed: 640, dist: 700, w: 60, dmg: 0.8, status: { poison: [4, 0.3] }, ...MARCH.snake, b: FOOT_B + 55 },
+                    { at: 2.2, do: 'wave', from: -40, speed: 680, dist: 700, w: 60, dmg: 0.8, status: { slow: 3 }, ...MARCH.wolf, vfxEvery: 0.15, b: FOOT_B + 65 },
+                    { at: 2.7, do: 'wave', from: -40, speed: 640, dist: 700, w: 60, dmg: 1, status: { stun: 1 }, ...MARCH.lion, vfxEvery: 0.15, b: FOOT_B + 70, when: b => b.kitPatch?.cmBeastMarch?.extra > 0 },
+                    { at: 3.2, do: 'wave', from: -40, speed: 700, dist: 700, w: 60, dmg: 0.8, push: 40, ...MARCH.eagle, b: FOOT_B + 130, when: b => b.kitPatch?.cmBeastMarch?.extra > 0 }] },
             cmEvolve: { name: '진화 순환', slot: 'body', cd: 15, icon: 'injector', color: '#fff0c8', target: 'self', clip: 'flex', cast: true, p: { n: 1 },
                 desc: '10초간 무작위 진화 하나 — 공격 +50% / 받는 피해 -50% / 이동 +50% / 초당 3% 회복',
                 steps: [{ do: 'custom', fn: evolve, n: '$n', sec: 10 }] },
             cmSpiritEagles: { name: '영혼 독수리', slot: 'arm', cd: 9, icon: 'wave', color: '#fff0c8', target: 'enemy', range: 260, clip: 'summon',
                 desc: '영혼 독수리 3마리가 내리꽂힘 — 범위 피해 + 밀침',
-                steps: [{ at: 0.3, do: 'rain', count: 3, every: 0.2, radius: 85, dmg: 1.8, knock: 1.2, vfx: V.gold(0, 170), delay: 0.1, shake: 3 }] }
+                steps: [{ at: 0.3, do: 'rain', count: 3, every: 0.2, radius: 85, dmg: 1.8, knock: 1.2, vfx: EAGLE_HIT, fall: EAGLE_FALL(0.38), fallDx: -300, fallTo: 20, delay: 0.38, shake: 3 }] }
         }
     }
 ]);

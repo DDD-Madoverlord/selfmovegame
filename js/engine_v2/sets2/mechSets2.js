@@ -18,8 +18,10 @@ const CYAN = '120, 240, 255', AMBER = '255, 180, 70', PLASMA = '215, 235, 255', 
 const muzzleAt = b => monster.getMuzzlePoint() || { x: b.monsterX + 90, bottom: 125 };
 /** 기본 공격 발사 (장거리 저격포·플라즈마 방사 팔 공용, attacks.js fireShotFx): 총구 섬광 + 빛줄기 탄, 맞는 판정은 예전 근접과 같음 */
 // 철거 철구: 줄무늬 쇠공이 불꽃 꼬리를 달고 굴러감 (wrecking_ball 2·3칸 반복) → 다 굴러간 자리에서 부서지며 먼지 (4~7칸)
-const WRECK_RIDE = fxOf(spr('wrecking_ball', 260, { anchorY: 0.85, dur: 30, frameRange: [2, 3], loopSec: 0.24, fadeIn: 0.08 }));
-const WRECK_END = fxOf(spr('wrecking_ball', 260, { anchorY: 0.85, dur: 0.6, frameRange: [4, 7] }));
+// D-125: 이펙트 기본 섞기(밝게 더하기)라 쇠공이 배경이 비치는 반투명으로 보였음 → 보통 섞기(불투명) + 둘레 빛만 따로 살짝
+const WRECK_RIDE = fxOf(spr('wrecking_ball', 260, { anchorY: 0.85, dur: 30, frameRange: [2, 3], loopSec: 0.24, fadeIn: 0.08, blend: 'normal', glow: 0 }),
+    spr('wrecking_ball', 260, { anchorY: 0.85, dur: 30, frameRange: [2, 3], loopSec: 0.24, fadeIn: 0.08, alpha: 0.35, glow: 0 }));
+const WRECK_END = fxOf(spr('wrecking_ball', 260, { anchorY: 0.85, dur: 0.6, frameRange: [4, 7], blend: 'normal', glow: 0, fadeOut: 0.25 }));
 const SNIPER_SHOT = { hue: 35, speed: 1900, size: 120, flash: 82, hitVfx: V.blast(20, 90, { dur: 0.32 }) };
 /** 관통 저격 충전: 둘레 빛이 총구로 모임 — 저음 폭발(bass_drop) 고리를 거꾸로 틀어 줄어들게 + 모이는 빛줄기 */
 function snipeCharge(b, ctx, s) {
@@ -119,6 +121,61 @@ function repairDrones(b, ctx, s) {
 }
 
 // 기신 보행: 걸음마다 앞 적 작은 피해, 10% 확률 0.5초 기절
+// ---- D-122 (2026-11-14 5차): 기신 아포칼립스 · 성간 방랑자 ----
+// 가속포 난사: 예전엔 바닥에 폭발만 → 쌍열 포신에서 포탄(lob shell)이 번갈아 포물선으로 날아가 떨어져 터짐 + 포구 불꽃
+const SALVO_LOB = { from: 'muzzle', speed: 1050,
+    flash: fxOf(spr('fire_burst', 64, { dur: 0.14, frameRange: [1, 3], glow: 1.3 }), { type: 'smoke', at: 0.03, count: 2, size: 11, rise: 22, life: [0.35, 0.55], color: '95, 90, 95' }),
+    look: { style: 'shell', color: RED, r: 8, arc: 80, trail: 0.45 } };
+
+// 종말의 포: 예전엔 apocalypse_beam 한 칸(560px — 화면 가운데서 끝나고 3·4칸은 칸 끝에 잘림)을 8번 다시 그림
+//   → 3초 내내 총구를 따라가는 붉은 광선 하나가 화면 오른쪽 끝 너머까지 뻗음 (궤도 광선 기둥을 붉게 눕힘 — 바깥 빛 + 흰 심)
+//   + 총구 불꽃(apocalypse_beam 1·2칸 — 칸 안에서 끝남)
+const BEAM_START = { left: 0, right: 0, top: 0.12, bottom: 0 };   // 눕힌 기둥의 총구 쪽 끝(칸 윗변)만 옅게 — 잘린 단면이 안 보이게
+const DOOM_BEAM = (sec, len) => fxOf(
+    ...V.laser(180, len, 230, { dur: sec, growIn: 0.06, fadeOut: 0.5, loopSec: 0.1, softEdges: BEAM_START }).layers,
+    ...V.laser(180, len, 86, { dur: sec, growIn: 0.05, fadeOut: 0.45, glow: 0, loopSec: 0.08, alpha: 0.95, softEdges: BEAM_START }).layers,
+    spr('apocalypse_beam', 300, { dur: sec, anchorX: 0.05, frameRange: [1, 2], loopSec: 0.2, pingPong: true, fadeOut: 0.45, glow: 1.25,
+        softEdges: { left: 0, right: 0.3, top: 0.14, bottom: 0.14 } }),
+    { type: 'flash', at: 0, dur: 0.25, r: 120, color: RED });
+// D-123: 충전 2초가 발밑 기운(power_aura) 두 번뿐이라 밋밋했음 → 총구로 붉은 빛줄기가 빨려 들고(gather) 저음 고리가 줄어들며(bass_drop 거꾸로)
+//   붉은 번개가 튀고 점점 세게 떨림 → 마지막 0.25초 총구가 하얗게 달아오름 (D-124: 캐릭터 둘레 불꽃 같던 발밑 기운 power_aura는 뺌)
+const DOOM_CHARGE = sec => fxOf(
+    { type: 'sprite', sheet: 'bass_drop', at: 0, dur: sec, size: 240, frameRange: [1, 4], reverse: true, hue: 73, glow: 0, fadeIn: 0.15 },
+    { type: 'gather', at: 0, dur: sec, r: 175, count: 26, cycles: 3.4, color: RED },
+    spr('lightning_burst', 130, { at: 0.35, dur: sec - 0.35, frameRange: [1, 4], loopSec: 0.22, hue: -52, alpha: 0.75, fadeIn: 0.3, glow: 0.8 }),
+    { type: 'flash', at: sec - 0.25, dur: 0.3, r: 70, color: '255, 235, 220' });
+function doomCharge(b, ctx, s) {
+    const at = () => { const m = muzzleAt(b); return [m.x, m.bottom]; };
+    b.fx.play(DOOM_CHARGE(s.sec), ...at(), { follow: at, alive: () => b.isActive });
+    [0.4, 0.9, 1.35].forEach((t, i) => b.schedule(t, () => b.director.shake(2 + i * 2, 420)));   // 점점 세게 떨림
+}
+doomCharge.preview = api => {
+    const m = api.muzzle();
+    api.vfx.play(DOOM_CHARGE(1.9), m[0], m[1], { scale: api.VFX_SCALE * 0.6, follow: () => api.muzzle() });
+};
+const screenW = b => (b.fx.canvas ? b.fx.canvas.width / (b.fx.res || 1) : 0) || 1400;
+function doomBeam(b, ctx, s) {
+    const at = () => { const m = muzzleAt(b); return [m.x, m.bottom]; };
+    const [x, y] = at();
+    b.fx.play(DOOM_BEAM(s.sec, screenW(b) - x + 200), x, y, { follow: at, alive: () => b.isActive });
+}
+doomBeam.preview = api => { const m = api.muzzle(); api.vfx.play(DOOM_BEAM(2.2, 1500), m[0], m[1], { scale: api.VFX_SCALE * 0.55, follow: () => api.muzzle() }); };
+
+// 유성우: 예전엔 운석 그림을 바닥에 그대로 놓아 "떨어지는" 느낌이 없고 터지는 칸(4~6) 구름이 칸 끝에 잘려 보였음
+//   → 화면 위 왼쪽에서 꼬리 달린 별 운석(1·2칸)이 비스듬히 떨어져 꽂힌 뒤 터짐(3~7칸, 가장자리 옅게)
+const METEOR_DIR = 0.83;   // meteor_cyan 1·2칸 꼬리 → 머리 방향 (아래 오른쪽)
+const METEOR_FALL = fly => fxOf(spr('meteor_cyan', 220, { dur: fly, frameRange: [1, 2], loopSec: 0.16, travel: true, angleOffset: -METEOR_DIR,
+    anchorX: 0.68, anchorY: 0.7, glow: 1.4 }));
+const METEOR_HIT = fxOf(spr('meteor_cyan', 290, { anchorY: 0.86, dur: 0.8, frameRange: [3, 7], softEdges: 0.22 }),
+    { type: 'shards', at: 0, count: 5, speed: 260, size: 6, spin: 8, life: [0.6, 0.9], shape: 'rock', color: '120, 140, 160', dy: -8, floor: 8 },
+    { type: 'cracks', at: 0, dur: 0.9, count: 6, len: 70, color: STAR });
+
+// 차원 절단: 예전엔 V.beam(레이저포처럼 보이는 빛줄기) → 칼끝이 사거리 끝까지 그어 나가고 그 줄이 공간의 틈처럼 벌어졌다 닫힘(riftCut)
+//   + 팔 끝 청록 베기 호 (slash_violet 색 돌림)
+const RIFT = (gap, swing) => fxOf(spr('slash_violet', swing, { dur: 0.3, frameRange: [1, 4], hue: -95, dx: 30, glow: 1.2 }),
+    { type: 'riftCut', at: 0.02, dur: 0.85, color: STAR, gap },
+    { type: 'sparks', at: 0.04, count: 10, speed: 340, angle: 0, cone: 0.35, color: STAR });
+
 function titanStep(b) {
     const list = enemiesNear(b, b.frontX() + 50, 70, true);
     if (!list.length) return;
@@ -299,16 +356,17 @@ export const MECH_SETS2 = packOf('mech', [
             mcDoomCannon: { name: '종말의 포', slot: 'head', ult: true, cd: 0, icon: 'laser', color: '#ff463c', target: 'enemy', range: 700, clip: 'doomCannon', sfx: 'charge_up',
                 desc: '2초 충전 → 화면 끝까지 거대 광선 3초 (거점 2배)',
                 steps: [{ do: 'buff', key: 'doomCannon', sec: 5.2, mods: { flags: ['knockImmune'] } },
-                    { at: 0.1, do: 'fx', on: 'self', x: 50, vfx: V.aura(-40, 230, { dur: 1 }), repeat: 2, repeatGap: 0.95 },
+                    { at: 0.1, do: 'custom', fn: doomCharge, sec: 1.9, preview: doomCharge.preview },
                     { at: 2.0, do: 'shake', power: 9, ms: 3000 },
-                    { at: 2.0, do: 'line', dmg: 1.2, baseMul: 2, decay: 1, knock: 0.3, vfx: V.sheet('apocalypse_beam', 560, { anchorX: 0.03, dur: 0.45 }), hitVfx: V.blast(0, 70, { dur: 0.3 }), repeat: 8, repeatGap: 0.38 }] },
+                    { at: 2.0, do: 'custom', fn: doomBeam, sec: 3.05, preview: doomBeam.preview },
+                    { at: 2.0, do: 'line', range: 1600, dmg: 1.2, baseMul: 2, decay: 1, knock: 0.3, hitVfx: V.blast(0, 70, { dur: 0.3 }), repeat: 8, repeatGap: 0.38 }] },
             mcOverload: { name: '동력 과부하', slot: 'body', cd: 16, icon: 'overdrive', color: '#ff463c', target: 'self', clip: 'power',
                 desc: '8초간 공격 속도 +40% · 쿨다운 2배 빨리 — 대신 초당 체력 1%',
                 steps: [{ do: 'buff', key: 'overload', sec: 8, mods: { atkSpd: 0.4, cdRate: 1, drain: 0.01 }, vfx: V.aura(-40, 210) },
                     { at: 0.2, do: 'fx', on: 'self', x: 30, b: FOOT_B + 120, vfx: V.embers(RED), repeat: 8, repeatGap: 1 }] },
             mcSalvoStorm: { name: '가속포 난사', slot: 'arm', cd: 9, icon: 'missile', color: '#ff463c', target: 'enemy', range: 380, clip: 'salvo', p: { count: 12 },
                 desc: '1.5초 동안 포탄 12발을 흩뿌림 (2부위: +6발)',
-                steps: [{ at: 0.1, do: 'rain', count: '$count', every: 0.12, radius: 55, dmg: 0.6, vfx: V.blast(0, 110), delay: 0.15, shake: 2 }] }
+                steps: [{ at: 0.1, do: 'rain', count: '$count', every: 0.12, radius: 55, dmg: 0.6, lob: SALVO_LOB, vfx: V.blast(0, 110), shake: 2 }] }
         }
     },
 
@@ -327,14 +385,15 @@ export const MECH_SETS2 = packOf('mech', [
             mcMeteorShower: { name: '유성우', slot: 'head', ult: true, cd: 0, icon: 'rocket', color: '#96fff0', target: 'enemy', range: 560, clip: 'call',
                 desc: '7초간 유성 18개 — 큰 범위 피해 + 0.5초 기절',
                 steps: [{ do: 'buff', key: 'meteorUlt', sec: 7.5, mods: { flags: ['meteorUlt'] } },
-                    { at: 0.3, do: 'rain', count: 18, every: 0.38, x: [40, 560], radius: 85, dmg: 1.6, status: { stun: 0.5 }, vfx: V.sheet('meteor_cyan', 270, { anchorY: 0.85, dur: 0.7 }), delay: 0.35, shake: 3 }] },
+                    { at: 0.3, do: 'rain', count: 18, every: 0.38, x: [40, 560], radius: 85, dmg: 1.6, status: { stun: 0.5 }, vfx: METEOR_HIT,
+                        fall: METEOR_FALL(0.45), fallDx: -330, fallTo: 12, delay: 0.45, shake: 3 }] },
             mcWarp: { name: '차원 도약', slot: 'body', cd: 14, icon: 'speed', color: '#96fff0', target: 'enemy', range: 200, clip: 'dash',
                 desc: '앞으로 200px 순간 이동 — 떠난 자리에 시간 균열 5초 (적 감속)',
                 steps: [{ at: 0.1, do: 'blink', dist: 200, dmg: 0.8, vfx: V.portal(120, 150, { dur: 0.5, softEdges: 0.16 }), leave: { tag: 'rift', field: 'rift', w: 170, sec: 5, slow: true } }] },
             mcDimensionCut: { name: '차원 절단', slot: 'arm', cd: 9, icon: 'sword', color: '#96fff0', target: 'enemy', range: 400, clip: 'rush',
                 desc: '사거리 400 일직선 베기 → 1초 뒤 같은 줄 두 번째 베기',
-                steps: [{ at: 0.15, do: 'line', dmg: 1.6, pierce: 0.3, decay: 1, knock: 0.4, vfx: V.beam(STAR, 14), hitVfx: V.xcut(0, 90) },
-                    { at: 1.15, do: 'line', dmg: 1.6, pierce: 0.3, decay: 1, knock: 0.6, vfx: V.beam(STAR, 18), hitVfx: V.xcut(0, 110) }] }
+                steps: [{ at: 0.15, do: 'line', dmg: 1.6, pierce: 0.3, decay: 1, knock: 0.4, vfx: RIFT(15, 190), hitVfx: V.xcut(0, 90) },
+                    { at: 1.15, do: 'line', dmg: 1.6, pierce: 0.3, decay: 1, knock: 0.6, vfx: RIFT(20, 230), hitVfx: V.xcut(0, 110) }] }
         }
     }
 ]);

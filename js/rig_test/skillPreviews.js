@@ -129,7 +129,18 @@ export function kitPreview(key, slot) {
                     for (let i = 0; i < n; i++) api.later(i * (s.every ?? 0.15), () => {
                         const d = api.dummies[i % api.dummies.length];
                         const x = d.x + (Math.random() - 0.5) * 60, y = s.vfxB != null ? yOf(s.vfxB) : api.GROUND_Y;
-                        if (s.fall) {   // 하늘에서 떨어진 뒤 터짐 (게임 rain과 같게, D-119)
+                        if (s.lob) {   // 몸에서 포물선으로 던져 떨어진 뒤 터짐 (게임 rain lob과 같게, D-122 — 포탄·용 비늘)
+                            const m = Array.isArray(s.lob.from) ? api.socket(s.lob.from[0], s.lob.from[1]) : api.muzzle(), fly = 0.38;
+                            if (s.lob.flash) play(s.lob.flash, m[0], m[1]);
+                            const look = s.lob.look || {};
+                            if (s.lob.sprite) api.vfx.play({ layers: [{ ...s.lob.sprite, at: 0, travel: true, arc: (s.lob.sprite.arc ?? 60) * 0.7, dur: fly }] }, m[0], m[1],
+                                { scale: api.VFX_SCALE * 0.7, to: [x, y] });   // 그림 한 장이 날며 돎 (약병, D-127)
+                            else api.vfx.play({ layers: [{ type: 'lob', at: 0, ...look, arc: (look.arc ?? 60) * 0.7, dur: fly, seed: i }] }, m[0], m[1],
+                                { scale: api.VFX_SCALE * 0.7, to: [x, y] });
+                            api.later(fly, () => { play(v, x, y, s); api.hit(i % api.dummies.length); });
+                            if (s.zone?.field) api.later(fly, () => field(s.zone, x - (s.zone.w || 80) * k / 2));
+                            return;
+                        } else if (s.fall) {   // 하늘에서 떨어진 뒤 터짐 (게임 rain과 같게, D-119)
                             play(s.fall, x + (s.fallDx ?? 0) * k, -40, { ...s, to: [x, y - (s.fallTo ?? 0) * k] });
                             api.later(s.delay ?? 0, () => play(v, x, y, s));
                         } else play(v, x, y, s);
@@ -150,6 +161,7 @@ export function kitPreview(key, slot) {
                     api.dummies.forEach((d, i) => api.later(0.2 + i * 0.12, () => api.hit(i)));
                     break;
                 case 'chain': {
+                    if (typeof s.trailPreview === 'function') s.trailPreview(api, api.VFX_SCALE);   // 바늘·실을 따로 그리는 사슬 (꿰매기 사슬, D-127)
                     let from = api.muzzle();
                     api.dummies.slice(0, Math.round(valOf(sk, s.n, 3))).forEach((d, i) => {
                         const a = from;

@@ -1,12 +1,13 @@
 """설명 기반 적용 대상의 실제 파츠 스킬, 이미지 루프·끝 처리·클리핑을 검증한다."""
 
 EXPECTED = {
-    'earthRoar': 'subwoofer_blast', 'groundSlam': 'subwoofer_blast', 'rampage': 'subwoofer_blast',
-    'earthSmash': 'subwoofer_blast', 'kjHeartbeat': 'subwoofer_blast', 'dvSteamHammer': 'subwoofer_blast',
+    # 땅 강타(D-120)·핵 심장 고동(D-122~123)은 코드 그림 반구 충격파(domeWave)로 바뀜, 약초 연기(D-127)는 연기 그림 한 장(defeat_puff)
+    'earthRoar': 'subwoofer_blast', 'groundSlam': 'domeWave', 'rampage': 'subwoofer_blast',
+    'earthSmash': 'domeWave', 'kjHeartbeat': 'domeWave', 'dvSteamHammer': 'subwoofer_blast',
     'bcSubBomb': 'subwoofer_blast', 'dragonBreath': 'breath_fire', 'kjKingBreath': 'breath_gold',
     'kjDoomBeam': 'primal_beam', 'toxicBreath': 'poison', 'flamethrower': 'fire', 'acidSpit3': 'acid',
     'mcPlasmaCarpet': 'plasmaBurn', 'kjEruption': 'lava', 'kjSwamp': 'swamp', 'lifeSeal': 'seal',
-    'stPotionThrow': 'herb', 'stHerbSmoke': 'herb', 'fsMoonFall': 'moon', 'cmWebTrap': 'web',
+    'stPotionThrow': 'herb', 'stHerbSmoke': 'defeat_puff', 'fsMoonFall': 'moon', 'cmWebTrap': 'web',
     'dvGhostFire': 'ghostFire', 'dvSteamVeil': 'steam', 'kjVortex': 'vortex',
     'dvPressureField': 'water', 'dvWhirlAnchor': 'water'
 }
@@ -83,8 +84,8 @@ def run(ctx):
         state = None
         for _ in range(65):
             g.wait(40)
-            state = g.js(f"""const it = b.fx.vfx.items.find(it => it.type === 'sprite' && it.started && it.t > 0.06 &&
-                (it.sheet === '{expected}' || it.fieldStyle === '{expected}'));
+            state = g.js(f"""const it = b.fx.vfx.items.find(it => it.started && it.t > 0.06 && (it.type === '{expected}' ||
+                it.type === 'sprite' && (it.sheet === '{expected}' || it.fieldStyle === '{expected}')));
                 return it ? {{ sheet: it.sheet, field: it.fieldStyle || null, width: it.width || it.size,
                     height: it.height || it.size, loop: it.loopSec || 0 }} : null;""")
             if state:

@@ -84,6 +84,7 @@ export function kitHit(b, e, dmg, o = {}) {
     }
     if (dmg > 0) b.dealDamageToEnemy(e, b.unit() * dmg * mul, !!o.crit, { knock: o.knock ?? 0.6, stop: o.stop, pierce: o.pierce });
     if (o.status && live(b, e)) b.kitStatus(e, o.status);
+    if (o.toss && live(b, e)) b.tossEnemy?.(e, o.toss);   // 띄워 뒤집음 (대지 뒤집기, D-122 — battle/enemyField.js)
     if (o.hitVfx && b.enemies.includes(e)) b.fx.play(o.hitVfx, aimAt(e).x, aimAt(e).b);
 }
 
@@ -99,6 +100,16 @@ function kitShot(b, e, s, stop) {
         if (s.vfx) b.fx.play(s.vfx, aimAt(e).x, aimAt(e).b);
         kitHit(b, e, s.dmg, { ...s, stop });
     });
+}
+
+/** 던지는 자리 (rain lob): 'muzzle'(무기 끝 — 두 포신은 번갈아 위아래로) | [소켓, 뼈] | 없으면 앞쪽 */
+function lobFrom(b, from, i) {
+    if (Array.isArray(from)) {
+        const p = monster.getSocketPoint(from[0], from[1]);
+        if (p) return p;
+    }
+    const m = monster.getMuzzlePoint() || { x: b.monsterX + 90, bottom: 140 };
+    return from === 'muzzle' ? { x: m.x, bottom: m.bottom + (i % 2 ? -7 : 7) } : m;
 }
 
 // ---- 단계 실행 ----
@@ -142,6 +153,28 @@ const STEP = {
                 if (!b.isActive) return;
                 const t = targets[i] && live(b, targets[i]) ? aimAt(targets[i]).x : b.frontX() + a + Math.random() * (z - a);
                 const x = t + (Math.random() - 0.5) * (s.jitter ?? 20);
+                // lob: 몸(총구·발톱 소켓)에서 포물선으로 던져 떨어진 뒤 터짐 (가속포 포탄·용 비늘, D-122) — 나는 시간 = 거리 / speed
+                if (s.lob) {
+                    const from = lobFrom(b, s.lob.from, i);
+                    const to = [x, (s.vfxB ?? FOOT_B) + (s.lob.toB ?? 6)];
+                    const fly = Math.max(0.18, Math.min(0.7, Math.hypot(to[0] - from.x, to[1] - from.bottom) / (s.lob.speed || 900)));
+                    if (s.lob.flash) b.fx.play(s.lob.flash, from.x, from.bottom);
+                    const look = s.lob.look || {};
+                    // sprite: 그림 한 장이 포물선으로 날며 돎 (약병, D-127) — 없으면 코드 그림 lob
+                    if (s.lob.sprite) b.fx.play({ layers: [{ ...s.lob.sprite, at: 0, travel: true, arc: (s.lob.sprite.arc ?? 60) * (0.85 + Math.random() * 0.3), dur: fly }] },
+                        from.x, from.bottom, { to });
+                    else b.fx.play({ layers: [{ type: 'lob', at: 0, ...look, arc: (look.arc ?? 60) * (0.75 + Math.random() * 0.5), dur: fly, seed: i * 1.7 }] },
+                        from.x, from.bottom, { to });
+                    b.schedule(fly, () => {
+                        if (!b.isActive) return;
+                        if (s.vfx) b.fx.play(s.vfx, x, s.vfxB ?? FOOT_B, { scale: s.scale || 1 });
+                        enemiesNear(b, x, s.radius ?? 60).forEach(e => kitHit(b, e, s.dmg, s));
+                        if (s.zone) b.kitZone({ ...s.zone, x: x - (s.zone.w || 80) / 2 - b.frontX() });
+                        if (s.shake) b.director.shake(s.shake, 140);
+                    });
+                    if (s.sfx && i % 2 === 0) sound.play(s.sfx, { vol: 0.5, rate: 0.9 + Math.random() * 0.2 });
+                    return;
+                }
                 // fall: 화면 위 밖에서 떨어지는 그림 (창의 비·혜성, D-119) — delay 동안 날아와 꽂힌 뒤 vfx(터짐)
                 if (s.fall) b.fx.play(s.fall, x + (s.fallDx ?? 0), (b.fx.H || 600) + 60, { scale: s.scale || 1, to: [x, (s.vfxB ?? FOOT_B) + (s.fallTo ?? 0)] });
                 else if (s.vfx) b.fx.play(s.vfx, x, s.vfxB ?? FOOT_B, { scale: s.scale || 1 });
@@ -163,12 +196,14 @@ const STEP = {
     chain(b, s, ctx) {
         const first = pickTargets(b, s.pick || 'nearest', 1, s.range ?? ctx.range)[0];
         if (!first) return;
-        const hit = new Set();
+        const hit = new Set(), order = [];
         let cur = first, prev = monster.getMuzzlePoint() || { x: b.monsterX + 90, bottom: 130 };
         let prevPt = [prev.x, prev.bottom];
+        const start = prevPt;
         for (let i = 0; i < Math.round(s.n || 3) && cur; i++) {
             const e = cur;
             hit.add(e);
+            order.push(e);
             const pt = [aimAt(e).x, aimAt(e).b];
             const from = prevPt;
             b.schedule(i * (s.gap ?? 0.08), () => {
@@ -179,6 +214,7 @@ const STEP = {
             cur = b.enemies.filter(o => !hit.has(o) && o.hp > 0 && Math.abs(aimAt(o).x - pt[0]) <= (s.jump ?? 200))
                 .sort((p, q) => Math.abs(aimAt(p).x - pt[0]) - Math.abs(aimAt(q).x - pt[0]))[0];
         }
+        if (s.trail) s.trail(b, s, order, start);   // 튄 차례대로 따로 그림 (꿰매기 사슬 바늘·실, D-127)
     },
     /** 바닥 장판 (x는 frontX 기준) */
     zone(b, s) {
@@ -199,8 +235,18 @@ const STEP = {
         b.enemiesInRange(s.range ?? ctx.range).forEach(e => {
             kitHit(b, e, s.dmg || 0, { ...s, knock: 0 });
             if (live(b, e) && isUnit(e) && !e.boss && !e.knockResist) {
-                e.x += (s.dist ?? 120) * (1 + (b.kitMod?.('pullMul') || 0));   // 조류 지배: 끌어오기·밀어내기 거리 +
-                if (e.dom) e.dom.style.left = `${e.x}px`;
+                const d = (s.dist ?? 120) * (1 + (b.kitMod?.('pullMul') || 0));   // 조류 지배: 끌어오기·밀어내기 거리 +
+                if (s.slide) {   // slide초 동안 미끄러지듯 밀려남 (날개 돌풍, D-122) — 처음 빠르고 끝에서 멈춤
+                    const n = 8;
+                    for (let k = 1; k <= n; k++) b.schedule(s.slide * k / n, () => {
+                        if (!live(b, e)) return;
+                        e.x += d * ((1 - Math.pow(1 - k / n, 2)) - (1 - Math.pow(1 - (k - 1) / n, 2)));
+                        if (e.dom) e.dom.style.left = `${e.x}px`;
+                    });
+                } else {
+                    e.x += d;
+                    if (e.dom) e.dom.style.left = `${e.x}px`;
+                }
                 b.kitPushed?.(e);
             }
         });

@@ -7,8 +7,10 @@
    동작은 rig/diverRig.js (thrust·slam은 2차에서 더함)
    ========================================================================== */
 
-import { packOf, V } from './common.js';
+import { packOf, V, fxOf, spr } from './common.js';
 import { FOOT_B } from '../battle/tuning.js';
+import { monsterControllerV2 as monster } from '../monster_v2.js';
+import { enemiesNear, kitHit } from '../skillKit_v2.js';
 
 const WATER = '90, 225, 235', ABYSS = '40, 220, 190', CORAL = '255, 140, 150', JELLY = '220, 140, 255', STEAM = '240, 240, 235', GOLD = '255, 215, 110', STAR = '200, 180, 255';
 const isUnit = e => !e.isBuilding && !e.isBarricade;
@@ -28,6 +30,72 @@ function coralWalls(b, ctx, s) {
         b.fx.play(V.impact(-30, 150), b.frontX() + x + 17, FOOT_B);
     }));
 }
+
+// ---- D-126 (2026-11-14 저녁): 리바이어던 · 별바다 항해사 ----
+// 심해 압력장: 예전엔 바닥 물 장판뿐 → 압력장 너비에 짙은 바닷물 기둥(pressureField — 일렁이는 수면·빛줄기·오르는 거품·1초마다 내려오는 압력 물결)
+function pressureField(b, ctx, s) {
+    const z = b.kitZone({ tag: 'pressure', field: 'water', x: 0, w: s.w, sec: s.sec, slow: true, dps: 0.4, status: { weak: [1, 0.3] }, every: 0.5 });
+    if (!z) return;
+    b.fx.play(fxOf({ type: 'pressureField', at: 0, dur: s.sec + 0.3, w: s.w, h: 240, remaining: () => z.t }), z.x + z.w / 2, FOOT_B,
+        { follow: () => [z.x + z.w / 2, FOOT_B], alive: () => b.kitZones.includes(z) });
+}
+pressureField.preview = api => {
+    const k = api.VFX_SCALE * 0.56, d = api.dummies, x0 = api.CHAR_X + 60 * k, x1 = d[d.length - 1].x + 40 * k;
+    api.vfx.play(fxOf({ type: 'pressureField', at: 0, dur: 3, w: (x1 - x0) / k, h: 240 }), (x0 + x1) / 2, api.GROUND_Y, { scale: k });
+};
+
+// 소용돌이 닻: 예전엔 바닥 물 장판뿐 → 물 닻(spirit_set 5칸, Gemini) 두 개가 몸 둘레를 크게 돌며(orbit) 소용돌이(water_burst 고리, 눕혀 회전),
+//   둘레에서 물보라가 안쪽으로 빨려 듦(gather) — 3초
+const ANCHOR = (sec, phase) => spr('spirit_set', 130, { dur: sec, frameRange: [5, 5], glow: 1.2, fadeIn: 0.15, fadeOut: 0.3, dy: -60,
+    orbit: { r: 150, ry: 46, speed: 7, phase, spin: 1.4 } });
+const WHIRL = sec => fxOf(ANCHOR(sec, 0), ANCHOR(sec, Math.PI),
+    spr('water_burst', 330, { dur: sec, frameRange: [3, 3], squash: 0.32, spin: 5, alpha: 0.8, fadeIn: 0.2, fadeOut: 0.4, layer: 'ground' }),
+    spr('tidal_wave', 200, { dur: sec, frameRange: [5, 7], loopSec: 0.45, alpha: 0.55, dx: 120, anchorY: 0.9, fadeOut: 0.4 }),
+    { type: 'gather', at: 0, dur: sec, r: 200, count: 22, cycles: 4, color: WATER, dy: -40 });
+function whirlAnchor(b, ctx, s) {
+    const at = () => [b.monsterX + 60, FOOT_B + 10];
+    b.fx.play(WHIRL(s.sec), ...at(), { follow: at, alive: () => b.isActive });
+}
+whirlAnchor.preview = api => api.vfx.play(WHIRL(2.5), api.CHAR_X, api.GROUND_Y, { scale: api.VFX_SCALE * 0.6 });
+
+// 은하 해류 (필살기): 예전엔 작은 별 해류 그림(200)을 0.1초마다 찍는 작은 파도 8번 → 8초 동안 화면을 가로지르는 큰 은하 물결(star_current 1~4칸 크게)이
+//   흐르고, 매초 거대한 은하 소용돌이(star_current 4~7칸 400)가 판정과 함께 밀고 나가며(wave ride), 맞으면 보라 별빛 터짐
+const GALAXY_FLOW = sec => fxOf(spr('star_current', 0, { width: 760, height: 360, dur: sec, frameRange: [1, 4], loopSec: 1.1, pingPong: true, alpha: 0.7,
+        anchorX: 0.02, fadeIn: 0.5, fadeOut: 0.8, softEdges: 0.2 }),
+    { type: 'motes', at: 0, count: 40, spread: 340, rise: [20, 80], life: [0.8, 1.4], size: 2.6, color: STAR, dx: 320 });
+const GALAXY_RIDE = fxOf(spr('star_current', 400, { dur: 30, frameRange: [3, 6], loopSec: 0.5, glow: 1.3, fadeIn: 0.1 }),
+    { type: 'sparks', at: 0, count: 8, speed: 200, angle: Math.PI, cone: 0.6, color: STAR });
+const GALAXY_END = fxOf(spr('star_current', 380, { dur: 0.6, frameRange: [6, 8], glow: 1.2 }));
+const GALAXY_HIT = fxOf(spr('star_judgment', 160, { dur: 0.45, frameRange: [4, 7], anchorY: 0.6, glow: 1.2 }), { type: 'flash', at: 0, dur: 0.12, r: 40, color: STAR });
+function galaxyFlow(b, ctx, s) {
+    b.fx.play(GALAXY_FLOW(s.sec), b.monsterX + 60, FOOT_B + 120, { follow: () => [b.monsterX + 60, FOOT_B + 120], alive: () => b.isActive });
+}
+galaxyFlow.preview = api => {
+    const k = api.VFX_SCALE * 0.5;
+    api.vfx.play(GALAXY_FLOW(3), api.CHAR_X, api.GROUND_Y - 120 * k, { scale: k });
+    api.later(0.3, () => api.vfx.play(GALAXY_RIDE, api.CHAR_X + 200 * k, api.GROUND_Y - 120 * k, { scale: k, to: [api.CHAR_X + 700 * k, api.GROUND_Y - 120 * k] }));
+};
+
+// 별빛 거품: 예전엔 머리 위 아이콘과 처음 포털 그림뿐 → 5초 동안 몸을 감싼 무지개빛 비눗방울(bubble — 테 색이 돌고, 반사광·별가루, 끝에 톡 터짐)
+function starBubble(b, ctx, s) {
+    const at = () => [b.monsterX + 60, FOOT_B + 95];
+    b.fx.play(fxOf({ type: 'bubble', at: 0, dur: s.sec, r: 100, ry: 118 }), ...at(), { follow: at, alive: () => b.isActive });
+}
+starBubble.preview = api => api.vfx.play(fxOf({ type: 'bubble', at: 0, dur: 3, r: 100, ry: 118 }), api.CHAR_X, api.GROUND_Y - 95 * api.VFX_SCALE * 0.6, { scale: api.VFX_SCALE * 0.6 });
+
+// 별똥 작살비: 예전엔 금빛 터짐(golden_burst)만 → 작살총에서 별빛이 하늘로 쏘아 오른 뒤, 하늘에서 별똥 작살(spirit_set 4칸)이 비스듬히 꽂히고
+//   꽂힌 자리에 별빛 기둥 조각 + 작은 충격
+const HARPOON_FALL = fly => fxOf(spr('spirit_set', 210, { dur: fly, frameRange: [4, 4], travel: true, angleOffset: -Math.PI / 2, anchorY: 0.82, glow: 1.4 }));
+const HARPOON_HIT = fxOf(spr('star_judgment', 170, { dur: 0.5, frameRange: [4, 7], anchorY: 0.92, glow: 1.2 }),
+    { type: 'shockwave', at: 0, dur: 0.35, r: 70, width: 6, ground: true, color: STAR },
+    { type: 'sparks', at: 0, count: 8, speed: 260, angle: -Math.PI / 2, cone: 1.8, color: STAR });
+const HARPOON_UP = fxOf({ type: 'streaks', at: 0, count: 6, speed: 900, angle: -Math.PI / 2, cone: 0.25, len: 40, color: STAR },
+    { type: 'flash', at: 0, dur: 0.12, r: 40, color: STAR });
+function harpoonsUp(b) {
+    const m = monster.getMuzzlePoint();
+    if (m) b.fx.play(HARPOON_UP, m.x, m.bottom);
+}
+harpoonsUp.preview = api => api.vfx.play(HARPOON_UP, ...api.muzzle(), { scale: api.VFX_SCALE * 0.6 });
 
 export const DIVER_SETS2 = packOf('diver', [
     // ---- 레어 ① 심해 잠수정 (1차 계획) — 멀리서 어뢰로 부수는 포격형 ----
@@ -228,10 +296,11 @@ export const DIVER_SETS2 = packOf('diver', [
                     { at: 0.5, do: 'shake', power: 8, ms: 1400 }] },
             dvPressureField: { name: '심해 압력장', slot: 'body', cd: 15, icon: 'wave', color: '#28dcbe', target: 'self', clip: 'cast', p: { w: 400 },
                 desc: '8초간 넓은 압력장 — 적 느려짐·주는 피해 -30% + 초당 피해',
-                steps: [{ at: 0.4, do: 'zone', tag: 'pressure', field: 'water', x: 0, w: '$w', sec: 8, slow: true, dps: 0.4, status: { weak: [1, 0.3] }, every: 0.5 }] },
+                steps: [{ at: 0.4, do: 'custom', fn: pressureField, w: '$w', sec: 8, preview: pressureField.preview }] },
             dvWhirlAnchor: { name: '소용돌이 닻', slot: 'arm', cd: 9, icon: 'whirl', color: '#28dcbe', target: 'self', clip: 'anchor',
                 desc: '닻을 돌려 3초간 둘레 적을 끌어모으며 여러 번 피해',
-                steps: [{ at: 0.45, do: 'zone', field: 'water', follow: true, x: -60, w: 240, sec: 3, pull: 200, dps: 0.8 }] }
+                steps: [{ at: 0.45, do: 'zone', field: 'water', follow: true, x: -60, w: 240, sec: 3, pull: 200, dps: 0.8 },
+                    { at: 0.45, do: 'custom', fn: whirlAnchor, sec: 3, preview: whirlAnchor.preview }] }
         }
     },
 
@@ -250,13 +319,18 @@ export const DIVER_SETS2 = packOf('diver', [
             dvStarCurrent: { name: '은하 해류', slot: 'head', ult: true, cd: 0, icon: 'wave', color: '#c8b4ff', target: 'enemy', range: 520, clip: 'cast',
                 desc: '8초간 별빛 해류 — 적을 계속 밀며 매초 피해, 내 진격 속도 +30%',
                 steps: [{ at: 0.4, do: 'buff', key: 'starCurrent', sec: 8, mods: { move: 0.3 } },
-                    { at: 0.4, do: 'wave', from: 0, speed: 700, dist: 520, w: 60, dmg: 0.6, push: 30, vfx: V.sheet('star_current', 200, { dur: 0.4 }), vfxEvery: 0.1, b: FOOT_B + 50, repeat: 8, repeatGap: 1 }] },
+                    { at: 0.4, do: 'custom', fn: galaxyFlow, sec: 8, preview: galaxyFlow.preview },
+                    { at: 0.4, do: 'shake', power: 4, ms: 300, repeat: 8, repeatGap: 1 },
+                    { at: 0.4, do: 'wave', from: 0, speed: 620, dist: 560, w: 70, dmg: 0.6, push: 30, ride: GALAXY_RIDE, rideEnd: GALAXY_END, hitVfx: GALAXY_HIT,
+                        b: FOOT_B + 110, repeat: 8, repeatGap: 1 }] },
             dvStarBubble: { name: '별빛 거품', slot: 'body', cd: 14, icon: 'shield', color: '#c8b4ff', target: 'self', clip: 'cast',
                 desc: '5초간 해로운 효과 무시 + 나·아군 받는 피해 -30%',
-                steps: [{ do: 'cleanse' }, { do: 'buff', key: 'starBubble', sec: 5, mods: { flags: ['ccImmune'], def: 0.3, allyDef: 0.3 }, vfx: V.portal(200, 200, { dur: 0.7 }) }] },
+                steps: [{ do: 'cleanse' }, { do: 'buff', key: 'starBubble', sec: 5, mods: { flags: ['ccImmune'], def: 0.3, allyDef: 0.3 }, vfx: V.portal(200, 200, { dur: 0.7 }) },
+                    { do: 'custom', fn: starBubble, sec: 5, preview: starBubble.preview }] },
             dvStarHarpoons: { name: '별똥 작살비', slot: 'arm', cd: 9, icon: 'rocket', color: '#c8b4ff', target: 'enemy', range: 400, clip: 'cast', p: { n: 8 },
                 desc: '작살 8개가 하늘로 쏘아져 앞쪽에 떨어짐',
-                steps: [{ at: 0.42, do: 'rain', count: '$n', every: 0.1, radius: 50, dmg: 0.8, vfx: V.gold(220, 100, { dur: 0.35 }), delay: 0.4 }] }
+                steps: [{ at: 0.38, do: 'custom', fn: harpoonsUp, preview: harpoonsUp.preview },
+                    { at: 0.42, do: 'rain', count: '$n', every: 0.1, radius: 50, dmg: 0.8, vfx: HARPOON_HIT, fall: HARPOON_FALL(0.4), fallDx: -90, fallTo: 6, delay: 0.4 }] }
         }
     }
 ]);

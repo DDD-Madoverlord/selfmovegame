@@ -305,9 +305,22 @@ export class Skeleton {
         return { keys, hidden };
     }
 
+    /** 그리는 순서: 뼈 z, 세트 그림(rig.json parts)에 z가 있으면 그 값 (D-126 — 별을 먹는 자 별빛 오브는 손 앞에) */
+    _order() {
+        if (!this.partAlias) return this.drawOrder;
+        let any = false;
+        const zs = this.drawOrder.map(b => {
+            const z = this.layout.parts[this.partAlias[b.part] || b.part]?.z;
+            if (z != null) any = true;
+            return z ?? b.z;
+        });
+        if (!any) return this.drawOrder;
+        return this.drawOrder.map((b, i) => [b, zs[i], i]).sort((p, q) => p[1] - q[1] || p[2] - q[2]).map(p => p[0]);
+    }
+
     draw(ctx, base) {
         const swap = this._poseSwaps();
-        for (const b of this.drawOrder) {
+        for (const b of this._order()) {
             if (swap && swap.hidden.has(b.name)) continue;
             // partAlias: 세트 파츠 그림으로 바꿔 그림 (예: head → head_a, rigAvatar.setVariants). 색 필터는 원래 부위키로 찾음
             const key = (swap && swap.keys[b.name]) || (this.partAlias && this.partAlias[b.part]) || b.part;

@@ -252,7 +252,7 @@ export function variantThumb(character, file, variant) {
 // 슬롯 → 캐릭터별 리그 부위 그림 키
 const SLOT_PARTS = {
     mech: { head: ['head'], body: ['body', 'canister'], arm: ['armR_cannon', 'armR_fist', 'armL'], leg: ['legR', 'legL'] },
-    kaiju: { head: ['head', 'jaw'], body: ['body', 'tail1', 'tail2', 'tail3'], arm: ['armF'], leg: ['legF', 'legN'] },
+    kaiju: { head: ['head', 'jaw'], body: ['body', 'tail1', 'tail2', 'tail3', 'wing'], arm: ['armF'], leg: ['legF', 'legN'] },
     hero: { head: ['head'], body: ['torso', 'pauldron', 'cape1', 'cape2', 'capeIn'], arm: ['armF', 'sword'], leg: ['thighF', 'shinF', 'thighB', 'shinB'] },
     chimera: { head: ['head'], body: ['torso', 'wing', 'tail1', 'tail2'], arm: ['armF', 'armB'], leg: ['legF', 'legB'] },
     diver: { head: ['head', 'head_up'], body: ['torso', 'torso_up'], arm: ['armF', 'armB', 'armF_up', 'armB_up', 'anchorB', 'anchorB_up'],

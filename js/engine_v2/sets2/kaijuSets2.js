@@ -64,15 +64,115 @@ function crystalSpears(b, ctx, s) {
 }
 
 // 열기 발자국: 걸음마다 발밑 불씨가 앞으로 튀어 앞쪽 적에게 화상 (예전: 뒤에 남는 2초 용암 장판)
+// D-122: 발밑에서만 번쩍여 "앞으로 튄다"가 안 보였음 → 용암 불씨 4~5개가 포물선으로 앞쪽 reach까지 날아가 땅에 톡톡 터짐
+const CINDER = { type: 'lob', style: 'ember', color: LAVA, trail: 0.45 };
+const CINDER_POP = fxOf(spr('fire_burst', 54, { dur: 0.32, frameRange: [2, 6], anchorY: 0.75, glow: 1.2 }),
+    { type: 'sparks', at: 0, count: 6, speed: 170, angle: -Math.PI / 2, cone: 1.4, color: LAVA });
 function heatStep(b, ctx, s) {
     const foot = b.frontX() - 55;
     b.fx.play(fxOf(spr('power_aura', 70, { anchorY: 0.92, dur: 0.6, frameRange: [5, 7], glow: 0, alpha: 0.85 }),
         { type: 'embers', at: 0, count: 9, speed: 260, angle: -0.35, cone: 0.7, size: 2.2, life: [0.4, 0.7], drag: 1.2, color: '255, 170, 70' }), foot, FOOT_B);
+    const n = 4 + (Math.random() < 0.5 ? 1 : 0);
+    for (let i = 0; i < n; i++) {
+        const at = i * 0.035, fly = 0.3 + 0.12 * (i / n) + Math.random() * 0.06;
+        const tx = b.frontX() + 30 + (i + 0.3 + Math.random() * 0.6) * (s.reach - 30) / n;
+        b.fx.play(fxOf({ ...CINDER, at, dur: fly, arc: 34 + Math.random() * 34, r: 3.8 + Math.random() * 2.4, seed: i }),
+            foot + 20, FOOT_B + 26, { to: [tx, FOOT_B + 4] });
+        b.schedule(at + fly, () => { if (b.isActive) b.fx.play(CINDER_POP, tx, FOOT_B); });
+    }
     enemiesNear(b, b.frontX() + s.reach / 2, s.reach / 2, true).forEach(e => {
         b.kitStatus(e, { burn: s.burn });
         b.fx.play(V.blast(0, 70, { dur: 0.35 }), aimAt(e).x, FOOT_B + 20);
     });
 }
+
+// ---- D-122 (2026-11-14 5차): 종말의 거신 · 태고의 용왕 ----
+// 핵 심장 고동: 예전엔 subwoofer_blast 시트(칸 끝에 닿아 잘려 보임) → 가슴에서 쿵-쿵 붉은 고동(heartPulse) + 몸 둘레로 퍼지는 붉은 반구 파동(domeWave)
+//   D-123: 고동 자리를 가슴 갑각의 붉은 핵(소켓 core)에 맞춤 — 예전 chest 소켓은 핵보다 위·뒤
+const HEART = fxOf({ type: 'heartPulse', at: 0, dur: 0.6, r: 46, color: DOOM });
+const HEART_WAVE = fxOf({ type: 'domeWave', at: 0.03, dur: 0.7, r: 310, h: 0.5, flat: 0.12, color: '255, 160, 90' },
+    { type: 'domeWave', at: 0.1, dur: 0.6, r: 230, h: 0.42, flat: 0.12, color: '255, 60, 30' },
+    { type: 'shockwave', at: 0.06, dur: 0.55, r: 340, width: 18, ground: true, color: DOOM },
+    { type: 'dust', at: 0.04, count: 8, speed: 280, size: 22, life: [0.6, 0.9], color: '120, 80, 60' });
+const chestOf = b => { const p = monster.getSocketPoint('core', 'body'); return p ? [p.x, p.bottom] : [b.monsterX + 120, FOOT_B + 150]; };
+function heartbeat(b) {
+    const [x, y] = chestOf(b);
+    b.fx.play(HEART, x, y, { follow: () => chestOf(b) });
+    b.fx.play(HEART_WAVE, (b.monsterX + b.frontX()) / 2 + 30, FOOT_B);
+}
+heartbeat.preview = api => {
+    const [x, y] = api.socket('core', 'body');
+    api.vfx.play(HEART, x, y, { scale: api.VFX_SCALE, follow: () => api.socket('core', 'body') });
+    api.vfx.play(HEART_WAVE, api.CHAR_X + 40 * api.VFX_SCALE, api.GROUND_Y, { scale: api.VFX_SCALE * 0.6 });
+};
+
+// 대지 뒤집기: 예전엔 바닥 충격(ground_impact)에 기절만 → 앞쪽 땅이 뒤집히고 적이 솟아 한 바퀴 뒤집혀 떨어짐 (tossEnemy)
+//   D-123: 코드로 그린 땅 판(upheaval)이 다른 이펙트와 그림체가 달라 → Gemini 손그림 시트 earth_flip(용암 금 → 바위 판이 솟아 뒤집힘 → 흙먼지)을
+//   앞쪽 너비에 3장, 가까운 쪽부터 차례로 + 바위 조각
+const OVERTURN = w => fxOf(...[-0.33, 0, 0.33].map((f, i) => spr('earth_flip', Math.max(150, w * 0.62) * (i === 1 ? 1.1 : 0.95),
+        { at: i * 0.07, dx: f * w, anchorY: 0.84, dur: 1.15, glow: 0, blend: 'normal', fadeOut: 0.3 })),
+    ...[-0.3, 0.3].map((f, i) => ({ type: 'shards', at: 0.1 + i * 0.07, dx: f * w, dy: -10, count: 4, speed: 320, size: 8, spin: 9,
+        life: [0.7, 1.0], shape: 'rock', color: '105, 80, 62', floor: 8 })));
+const LAND_DUST = fxOf({ type: 'dust', at: 0, count: 4, speed: 110, size: 16, life: [0.45, 0.7], color: '130, 105, 85' },
+    { type: 'starburst', at: 0, dur: 0.25, r: 26, color: '255, 220, 160' });
+function overturn(b, ctx, s) {
+    const w = s.w || 220;
+    b.fx.play(OVERTURN(w), b.frontX() + w / 2 + 10, FOOT_B);
+    b.fx.play(V.impact(-20, 150, { dur: 0.45 }), b.frontX() + 10, FOOT_B);
+}
+overturn.preview = api => {
+    const k = api.VFX_SCALE * 0.56, far = api.dummies[api.dummies.length - 1].x, x0 = api.CHAR_X + 90 * k;
+    api.vfx.play(OVERTURN((far - x0) / api.VFX_SCALE + 60), (x0 + far) / 2, api.GROUND_Y, { scale: api.VFX_SCALE });
+};
+
+// 용왕의 숨결: 예전엔 0.5초짜리 숨결 그림을 12번 다시 그려 끊기고, 시트 3·4칸 끝이 칸 경계에 잘려 보였음
+//   → 6초 내내 입을 따라가는 숨결 하나 (1·2칸만 — 칸 안에서 끝남 + 오른쪽 끝 옅게) + 끝에서 흩어지는 불길(5·6칸)
+const KING_BREATH = sec => ({ layers: [
+    { type: 'sprite', sheet: 'breath_gold', at: 0, dur: sec, width: 560, height: 300, anchorX: 0.03, anchorY: 0.5, frameRange: [1, 2], loopSec: 0.32, pingPong: true,
+        fadeIn: 0.15, fadeOut: 0.45, glow: 1.12, softEdges: { left: 0.14, right: 0.3, top: 0.14, bottom: 0.14 } },   // D-125: 왼쪽(입 쪽) 끝도 옅게 — 칸 끝의 흐린 회색 띠가 입 위에 네모로 보였음
+    { type: 'sprite', sheet: 'breath_gold', at: 0.2, dur: sec - 0.2, width: 300, height: 250, dx: 400, anchorX: 0.25, anchorY: 0.5, frameRange: [5, 6], loopSec: 0.5,
+        pingPong: true, phase: 0.2, alpha: 0.85, fadeIn: 0.3, fadeOut: 0.45, softEdges: 0.22 }
+] });
+const mouthOf = b => { const p = monster.getSocketPoint('mouth', 'head'); return p ? [p.x, p.bottom] : [b.frontX(), FOOT_B + 200]; };
+function kingBreath(b, ctx, s) {
+    const [x, y] = mouthOf(b);
+    b.fx.play(KING_BREATH(s.sec), x, y, { follow: () => mouthOf(b), alive: () => b.isActive });
+}
+kingBreath.preview = api => api.vfx.play(KING_BREATH(3), ...api.socket('mouth', 'head'), { scale: api.VFX_SCALE * 0.7, follow: () => api.socket('mouth', 'head') });
+
+// 날개 돌풍: 예전엔 금빛 속도선 부채꼴 하나(음파처럼 보임) → 등 날개 뒤에서 금빛 바람이 소용돌이쳐 일어나고(몸 뒤 바닥층)
+//   그 바람이 앞으로 크게 휩쓸며(흙먼지·부스러기) 적이 0.45초에 걸쳐 밀려남 (push slide)
+//   D-123: 코드 선 그림(빛 날개·바람 줄기)은 입체감이 없어 → Gemini 손그림 시트 wing_gust(금빛 바람 소용돌이, 왼쪽 → 오른쪽)
+//   D-124: 실제 날개(wing_m 뼈)가 쳐들었다 내려치는 동작(wingFlap) — 내려치는 순간(0.4초) 돌풍
+const WING_SWIRL = fxOf(spr('wing_gust', 300, { anchorX: 0.3, anchorY: 0.6, dur: 0.6, frameRange: [1, 5], glow: 0.9, alpha: 0.7, layer: 'ground', fadeOut: 0.2 }),
+    { type: 'motes', at: 0.1, count: 10, spread: 70, rise: [40, 90], life: [0.5, 0.8], size: 2.4, color: GOLD });
+// D-124: 돌풍이 제자리에서 끝(오른쪽 끝이 칸에 잘린 듯)나지 않게 — 그림이 앞으로 200px 밀려 가며 흩어지고(travel) 끝 0.35초 옅어짐,
+//   시트 3~5칸은 둥글게·오른쪽 끝을 넓게 옅게 (tools/images/round_vfx_frames.py · soften_vfx_edges.py)
+const GUST = fxOf(spr('wing_gust', 0, { width: 470, height: 330, anchorX: 0.04, dur: 0.9, frameRange: [2, 8], glow: 0.9, fadeIn: 0.06, fadeOut: 0.35,
+        travel: true, angleOffset: 0 }),
+    { type: 'dust', at: 0.05, count: 7, dir: 'right', speed: 360, size: 24, life: [0.7, 1.0], color: '150, 125, 95' },
+    { type: 'debris', at: 0.06, count: 12, angle: -0.2, cone: 0.5, speed: 520, size: 3, color: '210, 175, 110' });
+const wingOf = b => { const p = monster.getSocketPoint('wingM', 'body'); return p ? [p.x, p.bottom] : [b.monsterX + 20, FOOT_B + 230]; };
+function galeGust(b) {
+    const x = b.frontX() - 15, y = FOOT_B + 100;
+    b.fx.play(GUST, x, y, { to: [x + 200, y] });
+}
+galeGust.preview = api => {
+    const k = api.VFX_SCALE * 0.56, x = api.CHAR_X + 40 * k, y = api.GROUND_Y - 60 * k;
+    api.vfx.play(GUST, x, y, { scale: k, to: [x + 200 * k, y] });
+};
+function galeWings(b) {
+    const [x, y] = wingOf(b);
+    b.fx.play(WING_SWIRL, x, y, { follow: () => wingOf(b) });
+}
+galeWings.preview = api => {
+    api.vfx.play(WING_SWIRL, ...api.socket('wingM', 'body'), { scale: api.VFX_SCALE * 0.6, follow: () => api.socket('wingM', 'body') });
+};
+
+// 용린 비: 예전엔 금빛 터짐(golden_burst)만 떨어져 비늘이 안 보였음 → 발톱에서 금빛 비늘(lob scale)이 빙글 돌며 포물선으로 흩뿌려져 꽂힘
+const SCALE_LOB = { from: ['claw', 'armF'], speed: 640, look: { style: 'scale', color: GOLD, r: 9, arc: 130, trail: 0.3 } };
+const SCALE_HIT = fxOf(spr('golden_burst', 62, { dur: 0.3, frameRange: [2, 5], glow: 1.1 }),
+    { type: 'sparks', at: 0, count: 5, speed: 150, angle: -Math.PI / 2, cone: 1.6, color: GOLD });
 
 // 포식: 보통 적은 한입에, 엘리트·보스는 큰 피해 + 체력 회복
 function devour(b, ctx, s) {
@@ -248,10 +348,12 @@ export const KAIJU_SETS2 = packOf('kaiju', [
                 desc: '심장이 3번 고동 — 박동마다 넓은 충격파 + 체력 4% 회복',
                 steps: [{ do: 'hit', pick: 'all', range: 260, dmg: 1.2, knock: 1, repeat: 3, repeatGap: 0.6 },
                     { do: 'heal', ratio: 0.04, repeat: 3, repeatGap: 0.6 },
-                    { do: 'fx', on: 'self', x: 40, vfx: V.shock(50, 440), repeat: 3, repeatGap: 0.6 }] },
+                    { do: 'custom', fn: heartbeat, preview: heartbeat.preview, repeat: 3, repeatGap: 0.6 },
+                    { do: 'shake', power: 4, ms: 160, repeat: 3, repeatGap: 0.6 }] },
             kjOverturn: { name: '대지 뒤집기', slot: 'arm', cd: 9, icon: 'slam', color: '#ff4628', target: 'enemy', range: 40, clip: 'slam', p: { range: 220 },
                 desc: '앞쪽 땅을 뒤집어 적을 띄움 — 큰 피해 + 1.5초 기절',
-                steps: [{ at: 0.4, do: 'hit', pick: 'all', range: '$range', dmg: 2.6, status: { stun: 1.5 }, vfx: V.impact(-20, 180), ground: true, knock: 0.4 },
+                steps: [{ at: 0.4, do: 'custom', fn: overturn, w: '$range', preview: overturn.preview },
+                    { at: 0.45, do: 'hit', pick: 'all', range: '$range', dmg: 2.6, status: { stun: 1.5 }, toss: { h: 120, ms: 950, dust: LAND_DUST }, knock: 0.2 },
                     { at: 0.4, do: 'shake', power: 8, ms: 300 }] }
         }
     },
@@ -268,18 +370,22 @@ export const KAIJU_SETS2 = packOf('kaiju', [
         leg: { name: '용왕 다리', look: '금빛 비늘 다리, 용 발톱', desc: '용의 위엄: 엘리트·보스에게 받는 피해 -25%, 주는 피해 +15%',
             passive: { name: '용의 위엄', desc: '엘리트·보스에게 받는 피해 -25%, 주는 피해 +15%', target: [{ when: 'elite', dmg: 0.15 }], incoming: [{ when: 'elite', def: 0.25 }] } },
         skills: {
-            kjKingBreath: { name: '용왕의 숨결', slot: 'head', ult: true, cd: 0, icon: 'breath', color: '#ffd25a', target: 'enemy', range: 420, clip: 'breath', sfx: 'kaiju_breath', p: { trail: 0 },
+            // D-122: 숨결 동작(breathLong 6.8초) 동안 입을 벌린 채 버팀 — 기본 공격 동작이 끼어들지 않음
+            kjKingBreath: { name: '용왕의 숨결', slot: 'head', ult: true, cd: 0, icon: 'breath', color: '#ffd25a', target: 'enemy', range: 420, clip: 'breathLong', sfx: 'kaiju_breath', p: { trail: 0 },
                 desc: '6초간 금빛 숨결로 앞을 쓸어내림 — 매초 피해 + 3초 화상, 거점 2배',
-                steps: [{ at: 0.35, do: 'line', from: 'mouth', dmg: 0.9, baseMul: 2, decay: 0.95, vfx: breathImage('breath_gold', 500, 0.55), status: { burn: [3, 0.3] }, repeat: 12, repeatGap: 0.5, knock: 0.2 },
+                steps: [{ at: 0.35, do: 'custom', fn: kingBreath, sec: 6, preview: kingBreath.preview },
+                    { at: 0.35, do: 'line', from: 'mouth', dmg: 0.9, baseMul: 2, decay: 0.95, status: { burn: [3, 0.3] }, repeat: 12, repeatGap: 0.5, knock: 0.2,
+                        hitVfx: V.blast(25, 60, { dur: 0.3 }) },
                     { at: 0.6, do: 'zone', field: 'goldFire', x: 0, w: 420, sec: 9.5, status: { burn: [2, 0.3] }, every: 0.8, when: b => b.kitPatch?.kjKingBreath?.trail > 0 }] },
-            kjGale: { name: '날개 돌풍', slot: 'body', cd: 14, icon: 'wave', color: '#ffd25a', target: 'enemy', range: 400, clip: 'roar', p: { rush: 0 },
+            kjGale: { name: '날개 돌풍', slot: 'body', cd: 14, icon: 'wave', color: '#ffd25a', target: 'enemy', range: 400, clip: 'wingFlap', p: { rush: 0 },
                 desc: '날개를 펴 돌풍 — 앞 적 모두 멀리 밀어냄',
-                steps: [{ at: 0.3, do: 'push', range: 420, dist: 170, dmg: 0.8 },
-                    { at: 0.3, do: 'fx', x: 60, vfx: fxOf({ type: 'speedlines', at: 0, dur: 0.4, count: 10, len: 120, angle: 0, cone: 0.6, width: 4, color: GOLD }) },
-                    { at: 0.3, do: 'buff', key: 'galeRush', sec: 3, mods: { move: '$rush' }, when: b => b.kitPatch?.kjGale?.rush > 0 }] },
+                steps: [{ at: 0.05, do: 'custom', fn: galeWings, preview: galeWings.preview },
+                    { at: 0.4, do: 'custom', fn: galeGust, preview: galeGust.preview },
+                    { at: 0.48, do: 'push', range: 420, dist: 170, dmg: 0.8, slide: 0.45 },
+                    { at: 0.42, do: 'buff', key: 'galeRush', sec: 3, mods: { move: '$rush' }, when: b => b.kitPatch?.kjGale?.rush > 0 }] },
             kjScaleRain: { name: '용린 비', slot: 'arm', cd: 9, icon: 'spikes', color: '#ffd25a', target: 'enemy', range: 260, clip: 'roar',
                 desc: '금빛 비늘 20개를 흩뿌림 — 피해 + 5초 방어 -20%',
-                steps: [{ at: 0.3, do: 'rain', count: 20, every: 0.04, radius: 45, dmg: 0.45, vfx: V.gold(0, 70), status: { vuln: [5, 0.2] }, jitter: 60 }] }
+                steps: [{ at: 0.3, do: 'rain', count: 20, every: 0.04, radius: 45, dmg: 0.45, lob: SCALE_LOB, vfx: SCALE_HIT, status: { vuln: [5, 0.2] }, jitter: 60 }] }
         }
     }
 ]);

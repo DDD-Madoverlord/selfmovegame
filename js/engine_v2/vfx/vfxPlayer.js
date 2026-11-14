@@ -71,7 +71,10 @@ import { EXTRA_DRAW, preloadSkillArt } from './skillFx2.js';
 
 const WHITE = '255, 255, 255';
 const GROUND_TYPES = new Set(['rune', 'glow', 'cracks', 'mist']);
-const MAX_PARTS = 700;   // 입자 상한: 넘으면 오래된 것부터 버림 (스킬이 겹쳐도 프레임 유지)
+const MAX_PARTS = 700;
+const BLOCKABLE = new Set(['orb', 'missile', 'needle']);   // 막는 벽에 막히는 탄 (D-124)
+const BLOCK_FX = { layers: [{ type: 'sparks', at: 0, count: 10, speed: 260, angle: 0, cone: 2.2, color: '255, 220, 140' },
+    { type: 'flash', at: 0, dur: 0.12, r: 22, color: '255, 240, 200' }] };   // 입자 상한: 넘으면 오래된 것부터 버림 (스킬이 겹쳐도 프레임 유지)
 
 export class VfxPlayer {
     constructor({ style = 'glow' } = {}) {
@@ -228,10 +231,19 @@ export class VfxPlayer {
         this.parts = this.parts.filter(p => p.t < p.dur);
         if (this.parts.length > MAX_PARTS) this.parts.splice(0, this.parts.length - MAX_PARTS);
 
+        const wall = this.barrier ? this.barrier() : null;
         for (const pr of this.projectiles) {
             if (pr.owner && !this.projectiles.includes(pr)) continue;
             const first = this.parts.length;
             this._updateProjectile(pr, dt);
+            // 막는 벽(강철 방벽, D-124): 오른쪽(적 쪽)에서 날아온 탄이 벽 오른쪽 끝에 닿으면 불꽃으로 흩어지고 도착(피해·효과)하지 않음
+            if (wall != null && !pr.done && BLOCKABLE.has(pr.kind)) {
+                pr.fromX ??= pr.from ? pr.from[0] : pr.x;
+                if (pr.fromX > wall + 4 && pr.x != null && pr.x <= wall) {
+                    pr.done = true;
+                    this.play(BLOCK_FX, wall, pr.y);
+                }
+            }
             if (pr.owner) {
                 for (let i = first; i < this.parts.length; i++) this.parts[i].owner = pr.owner;
                 // 적중 처리 중 철수/승리가 시작됐다면 방금 생긴 꼬리 입자도 제거한다.
@@ -980,6 +992,11 @@ export const VFX_SHEETS = {
     dome_gold: { src: 'assets/sprites/vfx/dome_gold.webp', frames: 9 },             // 방주 방벽 금빛 육각 돔 (바닥 기준, 9칸 모두 돔 — 이어 틀어도 끊기지 않게)
     apocalypse_beam: { src: 'assets/sprites/vfx/apocalypse_beam.webp', frames: 9 }, // 종말의 포 진홍 광선 (왼쪽 기준, 오른쪽으로)
     meteor_cyan: { src: 'assets/sprites/vfx/meteor_cyan.webp', frames: 9 },         // 유성우 청록 별 운석 (바닥 기준)
+    earth_flip: { src: 'assets/sprites/vfx/earth_flip.webp', frames: 9 },          // 대지 뒤집기: 용암 금이 가고 바위 판이 솟아 뒤집힌 뒤 흙먼지 (바닥 기준, D-123 Gemini)
+    wing_gust: { src: 'assets/sprites/vfx/wing_gust.webp', frames: 9 },            // 날개 돌풍: 금빛 바람 소용돌이가 왼쪽에서 오른쪽으로 (왼쪽 기준, D-123 Gemini)
+    spirit_set: { src: 'assets/sprites/vfx/spirit_set.webp', frames: 6 },          // 영혼 독수리·곰·뱀·늑대 · 별똥 작살 · 물 닻 (한 칸씩 그림, D-126 Gemini)
+    saint_set: { src: 'assets/sprites/vfx/saint_set.webp', frames: 6 },            // 금종 · 촛불 · 약병 · 실 고치 · 재봉 바늘 · 대리석 손 (불투명 물건 그림 — blend 'normal', D-127 Gemini)
+    saint_set2: { src: 'assets/sprites/vfx/saint_set2.webp', frames: 6 },           // 붉은 나비 · 금빛 바늘 · 장미 넝쿨 · 큰 장미 · 금 가위 · 금실 천 (불투명 — blend 'normal', D-128 Gemini)
     // 2차 세트 대표 시트 (D-071) — 타락 히어로
     eclipse_sun: { src: 'assets/sprites/vfx/eclipse_sun.webp', frames: 9 },         // 일식 검은 해 + 보라 코로나 (가운데 기준)
     ghost_cavalry: { src: 'assets/sprites/vfx/ghost_cavalry.webp', frames: 9 },     // 기사단 돌격 흰·금 유령 기사 (왼쪽에서 오른쪽으로)
@@ -1215,10 +1232,23 @@ const DRAW = {
             const p = travelPoint(it, u, x, y, s), q = travelPoint(it, Math.max(0, u - 0.03), x, y, s);
             x = p[0]; y = p[1];
             const dir = u > 0.03 ? Math.atan2(p[1] - q[1], p[0] - q[0]) : Math.atan2(it.to[1] - y, it.to[0] - x);
-            it.angle = dir + (it.angleOffset || 0);
+            it.angle = it.upright ? (it.angleOffset || 0) : dir + (it.angleOffset || 0);   // upright: 날아가도 돌지 않음 (나비, D-128)
         }
-        const w = (it.width ?? it.size ?? 160) * s;
-        const h = (it.height ?? it.size ?? 160) * s * (it.growIn ? Math.min(1, Math.max(0.02, it.t / it.growIn)) : 1);   // growIn: 길이가 기준점에서 뻗어 나감 (레이저, D-118)
+        if (it.orbit) {   // 기준점 둘레를 도는 그림 (소용돌이 닻, D-126): {r, ry, speed(rad/초), phase} — 뒤쪽 반 바퀴는 살짝 작고 어둡게
+            const o = it.orbit, a = (o.phase || 0) + it.t * (o.speed ?? 6);
+            x += Math.cos(a) * o.r * s; y += Math.sin(a) * (o.ry ?? o.r * 0.35) * s;
+            it.orbitBack = Math.sin(a) < 0;
+            if (o.spin) it.angle = a * (o.spin === true ? 1 : o.spin);
+        }
+        // popIn: 0.4배에서 살짝 넘쳤다(1.08) 제 크기로 튀어나옴 (종·촛불·고치, D-127)
+        const pv = it.popIn ? Math.min(1, Math.max(0, it.t / it.popIn)) : 1;
+        const pop = pv < 0.7 ? 0.4 + 0.68 * (1 - (1 - pv / 0.7) ** 2) : 1.08 - 0.08 * (pv - 0.7) / 0.3;
+        // flap: 날갯짓 — 너비가 |sin|으로 접혔다 펴짐 {speed, min} (나비, D-128)
+        const flap = it.flap ? (it.flap.min ?? 0.3) + (1 - (it.flap.min ?? 0.3)) * Math.abs(Math.sin((it.t + (it.flap.seed || 0)) * (it.flap.speed ?? 16))) : 1;
+        const w = (it.width ?? it.size ?? 160) * s * (it.orbitBack ? 0.85 : 1) * pop * flap;
+        const h = (it.height ?? it.size ?? 160) * s * (it.orbitBack ? 0.85 : 1) * pop * (it.growIn ? Math.min(1, Math.max(0.02, it.t / it.growIn)) : 1);   // growIn: 길이가 기준점에서 뻗어 나감 (레이저, D-118)
+        // swing: 기준점(anchor) 둘레로 흔들림 {amp(라디안), speed, decay(초당 줄어듦)} — 울리는 종 (D-127)
+        const swing = it.swing ? Math.sin(it.t * (it.swing.speed ?? 7)) * (it.swing.amp ?? 0.3) * Math.exp(-it.t * (it.swing.decay ?? 0)) : 0;
         ctx.save();
         ctx.globalCompositeOperation = it.blend === 'normal' ? 'source-over' : 'lighter';
         const remaining = it.remaining ? it.remaining() : it.dur - it.t;
@@ -1231,7 +1261,7 @@ const DRAW = {
             ctx.scale(it.flipX ? -1 : 1, it.squash ?? 1);
             ctx.rotate((it.angle || 0) + it.t * it.spin);
         } else {
-            ctx.rotate(it.angle || 0);
+            ctx.rotate((it.angle || 0) + swing);
             ctx.scale(it.flipX ? -1 : 1, it.squash ?? 1);
         }
         const ax = it.anchorX ?? 0.5, ay = it.anchorY ?? 0.5;

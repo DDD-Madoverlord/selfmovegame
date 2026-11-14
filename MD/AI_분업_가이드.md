@@ -144,6 +144,17 @@ Claude 데스크톱 앱 안의 브라우저 창에서도 gemini.google.com을 �
 - 원본 크기 내려받기가 되는지·어디로 저장되는지 아직 확인 안 함 (안 되면 결과 그림을 꺼낼 길이 없음).
 → 지금은 **크롬이 빠르고 확실**. 크롬을 쓰시는 동안 방해되면 크롬 창을 하나 더 열어 Claude 탭 그룹은 그 창에서만 움직이게 한다.
 
+### 내장 브라우저로 실제로 받은 방법 (2026-11-14, D-123 — 클라우드 세션 + 데스크톱 앱 연결)
+Claude 데스크톱 앱의 내장 브라우저(사용자 무료 Gemini 계정 로그인)로 그림 3장(`earth_flip`·`wing_gust` 시트, 강철 방벽)을 받았다. 무료 모델이라 장수를 아낌.
+1. `gemini.google.com/app` → **업로드 및 도구 → 이미지 만들기** → 입력칸 아래 비율 단추에서 **1:1**(이펙트 시트) / **3:4**(세로 그림) → 프롬프트 입력 → 보내기. 약 20~40초.
+   이어지는 시트는 같은 대화에서 `Great. Now another NEW sprite sheet in exactly the same format and painting style …`로 → 화풍이 맞음.
+2. 참고 그림 첨부는 하지 않음(글자로 옮기는 비용이 큼) → 대신 **기존 시트를 보고 그림체를 글로 적음** (`crisp hand-painted Korean action-RPG effect art, luminous, soft painted volume, 3x3, pure black background, … well inside each cell`). 결과가 기존 시트와 잘 맞았음.
+3. 결과 확인: 페이지 위에 `position:fixed` 덮개를 만들어 결과 `img`(blob 주소)를 크게 띄우고 화면으로 봄.
+4. **내려받기 전에 사용자에게 확인** → 그림에 마우스를 올리면 생기는 **원본 크기 이미지 다운로드** 단추 → PC `내려받기` 폴더(`C:\Users\<사용자>\Downloads`)에 `Gemini_Generated_Image_*.png`. 내려받기 폴더는 `device_request_folder_access`로 한 번 허용받음.
+   - 받는 중엔 `<uuid>.tmp`로 보이고 이름이 바뀌기까지 1~2분 걸릴 때가 있음 → 파일 끝에 `IEND`가 있으면 다 받은 것이므로 `.tmp`를 바로 복사해도 됨.
+   - 내려받기 폴더는 지우기 권한이 없어 `cp`로 프로젝트 `assets/sprites/vfx/src/<이름>_raw.png`에 복사 → `device_stage_files`로 클라우드 작업 공간에 옮겨 처리(`build_vfx_sheet.py` 등).
+   - 원본 크기는 1:1 → 1024×1024, 3:4 → 896×1200 (로고는 `unlogo.py`가 크기 비례로 지움).
+
 ### 제한
 - 그림 한 장당 **다시 뽑기 최대 3번**. 그래도 안 되면 프롬프트를 사용자와 다시 정한다.
 - 페이지가 응답하지 않거나 같은 조작이 2~3번 실패하면 멈추고 보고한다 (기다리기만 하지 않음).
