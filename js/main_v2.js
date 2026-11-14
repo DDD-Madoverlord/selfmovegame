@@ -15,6 +15,7 @@ import { registerV2Parts } from './engine_v2/partsExtra_v2.js';
 import { registerAllSets2 } from './engine_v2/sets2/index.js';
 import { runLoading } from './ui_v2/loading_v2.js';
 import { showTitle, skipTitle } from './ui_v2/title_v2.js';
+import { playLogoIntro } from './ui_v2/logoIntro_v2.js';
 import { maybePromptAccount } from './ui_v2/account_v2.js';
 import { mountTuneTab } from './ui_v2/tunePanel_v2.js';
 import { shouldPlayIntro, playStoryIntro, introZoneOf } from './ui_v2/storyIntro_v2.js';
@@ -258,7 +259,14 @@ export function initGameRouterV2() {
     TOUCH_FIRST.addEventListener?.('change', fitScreens);   // 태블릿 겸용 노트북에서 키보드를 떼고 붙일 때
     settings.subscribe(key => { if (key === 'layout') fitScreens(); });
     // 캐릭터·사운드 미리 받기 (메인 화면은 뒤에서 바로 준비) → 시작 화면(D-119 1번, 자동 검사는 ?skipTitle=1로 건너뜀) → 앱이면 새 버전 확인 (D-074)
-    runLoading().then(() => (skipTitle() ? null : showTitle())).then(() => { if (isApp()) checkForUpdate({ silent: true }); });
+    // 제작팀 로고 영상은 로딩과 같이 재생 — 둘 다 끝나면 시작 화면을 깔고 로고 덮개를 걷음
+    const logo = skipTitle() ? null : playLogoIntro();
+    runLoading().then(() => logo).then(dismissLogo => {
+        if (skipTitle()) return null;
+        const title = showTitle();
+        if (dismissLogo) dismissLogo();
+        return title;
+    }).then(() => { if (isApp()) checkForUpdate({ silent: true }); });
     window.madOverlordGameV2 = new GameRouterV2();
     mountTuneTab();   // 밸런스 조절 탭 (시험용, D-127 — 시험 모드·?tune=1·값이 바뀌어 있을 때만 보임)
 }

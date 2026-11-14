@@ -16,7 +16,37 @@ def open_page(ctx, query='', touch=False, viewport=(1300, 740)):
     return g
 
 
+def check_logo(ctx, viewport, shape):
+    """제작팀 로고 영상: 로딩과 같이 뜨고, 끝나면 시작 화면으로 (누르면 건너뜀)"""
+    g = ctx.game(fresh=True, viewport=viewport)
+    g.page.goto(f'{g.base}/index.html?openGroups=0&t={time.time()}')
+    g.page.click('#btn-select-v2')
+    g.page.wait_for_selector('.v2-logo-intro video', timeout=10000)
+    g.page.wait_for_function("document.querySelector('.v2-logo-intro video')?.currentTime > 0.8", timeout=6000)   # 로딩과 겹치면 시작이 1초쯤 늦음
+    st = g.js("""const v = document.querySelector('.v2-logo-intro video');
+        return { shape: v.dataset.shape, src: v.getAttribute('src'), t: v.currentTime, w: v.videoWidth, h: v.videoHeight, muted: v.muted, title: !!document.querySelector('.v2-title') };""")
+    ctx.check(st['shape'] == shape and shape in st['src'] and st['t'] > 0 and st['w'] > 0 and st['muted'] and not st['title'],
+              f'로고 영상({shape}): 켜자마자 재생 · 소리 없음 · 그동안 시작 화면은 아직 없음', str(st))
+    g.shot(f'title_logo_{shape}')
+    return g
+
+
 def run(ctx):
+    # ===== 0. 제작팀 로고 영상 (DDD) =====
+    g = check_logo(ctx, (1300, 740), 'landscape')
+    g.page.wait_for_selector('.v2-title', timeout=12000)
+    g.wait(600)
+    ctx.check(g.js("return !document.querySelector('.v2-logo-intro');"), '영상이 끝나면 로고가 걷히고 시작 화면')
+    g = check_logo(ctx, (420, 800), 'portrait')
+    g.page.wait_for_selector('.v2-loading', state='detached', timeout=30000)
+    t0 = time.time()
+    g.page.mouse.click(200, 300)
+    g.page.wait_for_selector('.v2-title', timeout=3000)
+    ctx.check(time.time() - t0 < 2, '로딩이 끝난 뒤 화면을 누르면 영상을 건너뛰고 바로 시작 화면')
+    g.js("document.querySelector('.v2-logo-intro')?.remove(); const { playLogoIntro } = await import('/js/ui_v2/logoIntro_v2.js'); const o = HTMLMediaElement.prototype.play; HTMLMediaElement.prototype.play = () => Promise.reject(new Error('blocked')); window.__logoT = performance.now(); playLogoIntro().then(d => { window.__logoMs = performance.now() - window.__logoT; d(); HTMLMediaElement.prototype.play = o; });")
+    g.wait(600)
+    ctx.check((g.js("return window.__logoMs;") or 9999) < 300, '자동 재생이 막히면 기다리지 않고 바로 넘어감 (게임 시작을 막지 않음)')
+
     # ===== 1. 처음 실행: 시작 화면 → 약관 동의 → 메뉴 =====
     g = open_page(ctx)
     st = g.js("""const t = document.querySelector('.v2-title');
