@@ -5,6 +5,7 @@
      reticle : 표적 조준 고리 (줄어들며 고정 — 표적 지정 포격 예고 표식)                          { r, color }
      travel  : x,y → to 로 날아가는 작은 뼛가시 (가시 폭풍)                                       { arc, len, w, color, tip }
      drone   : 떠다니는 수리 드론 그림(art/repair_drone) + 1초마다 치료 광선                        { size, ox, oy, phase, tx, ty, color }
+   D-137 (서리의 무희): snowFall(눈 내림·눈보라)
    D-128 (8차): petalVortex(꽃잎 회오리)
    D-127 (7차): threadPath(붉은 실 — 적을 따라감) · threadWrap(실 감기) · candleGlow(촛불 빛) · rainFall(하늘에서 내리는 빛비)
    D-122 (5차): lob(불씨·포탄·용 비늘 포물선) · heartPulse(심장 고동) · riftCut(차원 절단 틈) · afterimage(캐릭터 잔상) · dashStreak(대시 자국)
@@ -1099,7 +1100,8 @@ export const EXTRA_DRAW = {
     },
 
     // ---- D-128 (2026-11-14 밤, 봉합 성녀 2차) ----
-    // 꽃잎 회오리: 꽃잎들이 몸 둘레를 타원으로 돌며 위아래로 퍼짐 (앞쪽 반 바퀴는 진하고 크게, 뒤쪽은 옅게) + 바닥 소용돌이 빛  { rx, h, count, color }
+    // 꽃잎 회오리: 꽃잎들이 몸 둘레를 타원으로 돌며 위아래로 퍼짐 (앞쪽 반 바퀴는 진하고 크게, 뒤쪽은 옅게) + 바닥 소용돌이 빛  { rx, h, count, color, backColor, hiColor }
+    //   (서리의 무희 눈보라 춤은 같은 그림을 눈송이 색으로 씀, D-137)
     petalVortex(ctx, x, y, it, u, s, time) {
         const rx = (it.rx || 120) * s, H = (it.h || 170) * s, c = it.color || '255, 70, 100';
         const left = it.remaining ? it.remaining() : it.dur - it.t;
@@ -1118,12 +1120,55 @@ export const EXTRA_DRAW = {
             ctx.save();
             ctx.translate(px, py + Math.sin(ang) * r * 0.18);
             ctx.rotate(ang * 1.7 + i);
-            ctx.fillStyle = `rgba(${front ? c : '170, 30, 60'}, ${0.9 * a * k})`;
+            ctx.fillStyle = `rgba(${front ? c : (it.backColor || '170, 30, 60')}, ${0.9 * a * k})`;
             ctx.beginPath(); ctx.ellipse(0, 0, 6 * s * k, 3.4 * s * k, 0, 0, TAU); ctx.fill();
-            ctx.fillStyle = `rgba(255, 190, 205, ${0.6 * a * k})`;
+            ctx.fillStyle = `rgba(${it.hiColor || '255, 190, 205'}, ${0.6 * a * k})`;
             ctx.beginPath(); ctx.ellipse(-1.5 * s, -0.8 * s, 2.6 * s * k, 1.3 * s * k, 0, 0, TAU); ctx.fill();
             ctx.restore();
         }
+        ctx.restore();
+    },
+
+    // ---- D-137 (2026-11-16, 서리의 무희) ----
+    // 눈보라·눈 내림: top(화면 y)부터 바닥(y)까지 w 너비에 눈송이가 흔들리며 내림. wind(초당 px)로 비스듬히 휘몰아침,
+    //   storm이면 굵은 눈발 줄무늬도 섞임. 위엔 옅은 눈구름 띠, 양옆 10%는 옅게  { w, count, top, wind, speed, color, storm, cloud, dim, flake }
+    snowFall(ctx, x, y, it, u, s, time) {
+        const W = (it.w || 600) * s, top = it.top ?? 0, H = y - top, c = it.color || '235, 245, 255';
+        const left = it.remaining ? it.remaining() : it.dur - it.t;
+        const a = Math.min(1, it.t / 0.6) * Math.min(1, Math.max(0, left) / 0.8) * (it.alpha ?? 1);
+        if (a <= 0.01 || H <= 0) return;
+        const x0 = x - W / 2, wind = (it.wind ?? 40) * s, sp = (it.speed ?? 0.35);
+        const edge = px => Math.max(0, Math.min(1, (px - x0) / (W * 0.1), (x0 + W - px) / (W * 0.1)));
+        ctx.save();
+        if (it.dim) {   // dim: 하늘이 어두워짐 (극야·영겁의 겨울) — 보통 섞기로 짙은 남색을 덮음, 양옆은 옅게
+            const g = ctx.createLinearGradient(x0, 0, x0 + W, 0);
+            g.addColorStop(0, 'rgba(10, 20, 50, 0)'); g.addColorStop(0.15, `rgba(10, 20, 50, ${it.dim * a})`);
+            g.addColorStop(0.85, `rgba(10, 20, 50, ${it.dim * a})`); g.addColorStop(1, 'rgba(10, 20, 50, 0)');
+            ctx.fillStyle = g;
+            ctx.fillRect(x0, top, W, H);
+        }
+        ctx.globalCompositeOperation = 'lighter';
+        if (it.cloud !== false) for (let i = 0; i < 7; i++) {
+            const cx = x0 + W * (i + 0.5) / 7 + Math.sin(time * 0.4 + i) * 24 * s;
+            ellipseGlow(ctx, cx, top + 16 * s, W / 7 * 1.15, 50 * s, `rgba(${it.cloudColor || '180, 210, 240'}, ${0.22 * a * edge(cx)})`);
+        }
+        const n = it.count || 80;
+        for (let i = 0; i < n; i++) {
+            const f = (time * sp * (0.7 + hash(i, 81) * 0.6) + hash(i, 82)) % 1;
+            let px = x0 + W * hash(i, 83) + wind * f * (H / 300) + Math.sin(time * 2.2 + i) * 9 * s;
+            px = x0 + (((px - x0) % W) + W) % W;
+            const py = top + H * f, e = edge(px);
+            if (e <= 0) continue;
+            const r = (it.flake || 1) * (1.4 + hash(i, 84) * 2.8) * s;
+            if (it.storm && i % 3 === 0) {   // 눈발 줄
+                ctx.strokeStyle = `rgba(${c}, ${0.35 * a * e})`;
+                ctx.lineWidth = r * 0.8;
+                ctx.beginPath(); ctx.moveTo(px - wind * 0.06, py - 14 * s); ctx.lineTo(px, py); ctx.stroke();
+            }
+            ctx.fillStyle = `rgba(${c}, ${(0.55 + 0.4 * hash(i, 85)) * a * e})`;
+            ctx.beginPath(); ctx.arc(px, py, r, 0, TAU); ctx.fill();
+        }
+        if (it.ground !== false) ellipseGlow(ctx, x, y, W * 0.5, 22 * s, `rgba(${c}, ${0.16 * a})`);
         ctx.restore();
     }
 };

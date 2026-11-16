@@ -13,6 +13,27 @@ import { monsterControllerV2 } from '../monster_v2.js';
 import { sound } from '../audio/sound_v2.js';
 import { aimAt as aimOf } from '../bases_v2.js';
 import { ENEMY_ART } from '../enemyArt_v2.js';
+
+// 소환물 전용 그림 (적 그림을 빌리지 않는 것, D-137 보완): 틀은 ENEMY_ART와 같음 — 왼쪽을 보게 구워 둠(소환물 CSS가 좌우를 뒤집음)
+//   frost_spirit: 서리 정령 (tools/images/build_frost_spirit.py — Gemini 한 장으로 둥실 떠다님 16칸 · 얼음 조각 내밀기 12칸)
+const KIT_ALLY_ART = {
+    frost_spirit: { frameWidth: 180, frameHeight: 190, anchorX: 90,
+        walk: { src: 'assets/sprites/rig/frost_spirit/frost_spirit_walk.webp', frames: 16, duration: 1.6 },
+        attack: { src: 'assets/sprites/rig/frost_spirit/frost_spirit_attack.webp', frames: 12, duration: 0.8 } },
+    //   glacier_golem: 빙하 거인 (tools/images/build_glacier_golem.py — Gemini 2칸으로 쿵쿵 걷기 16칸 · 두 주먹 내려치기 14칸)
+    glacier_golem: { frameWidth: 300, frameHeight: 300, anchorX: 150,
+        walk: { src: 'assets/sprites/rig/glacier_golem/glacier_golem_walk.webp', frames: 16, duration: 1.4 },
+        attack: { src: 'assets/sprites/rig/glacier_golem/glacier_golem_attack.webp', frames: 14, duration: 1.0 } }
+};
+let kitAllyStyles = false;
+function ensureKitAllyStyles() {
+    if (kitAllyStyles || typeof document === 'undefined') return;
+    kitAllyStyles = true;
+    const el = document.createElement('style');
+    el.textContent = Object.entries(KIT_ALLY_ART).map(([id, a]) => ['walk', 'attack'].filter(k => a[k]).map(k =>
+        `@keyframes v2-${id}-${k} { from { background-position-x: 0; } to { background-position-x: -${a.frameWidth * a[k].frames}px; } }`).join('\n')).join('\n');
+    document.head.appendChild(el);
+}
 import { ensureEnemyStyles } from '../enemies_v2.js';
 import { SETS } from '../sets_v2.js';
 import { KIT_PASSIVES, runKitStep, spr, fxOf } from '../skillKit_v2.js';
@@ -51,6 +72,8 @@ export const KitMethods = {
     /** 전투 시작 (setupGrowth 뒤): 패시브·세트 효과 정리 */
     setupKit(equippedObjs) {
         this.kitBuffs = {};
+        this.fx.vfx.catcher = () => this.kitMirrorX();   // 되돌리는 거울: 적 탄이 거울 자리에서 막혀 되받아쳐짐 (D-137)
+        this.fx.vfx.onCatch = (pr, x, y) => this.kitMirrorCatch(pr, x, y);
         this.kitZones = [];
         this.kitWaves = [];
         this.kitXform = null;
@@ -233,6 +256,7 @@ export const KitMethods = {
         if (back && this.setFxReady('kitReflect', 0.4)) this.kitStatus(src, back);
         // 원거리 피해 되돌림 (반사 수정막): 한 방 원거리는 가장 가까운 적에게 그대로
         if (!src && dt === 0 && Object.values(this.kitBuffs).some(b => b.mods.rangedReflect)) {
+            if (this.kitCatching) { this.kitCaught += amount; return 0; }   // 거울에 막힌 탄: 피해는 kitMirrorCatch가 되받아친 탄으로 줌
             const t = this.nearestEnemy(400);
             if (t) this.dealDamageToEnemy(t, amount, false, { knock: 0.4 });
             if (this.setFxReady('kitMirror', 0.25)) this.fx.play(KIT_FX.block, this.monsterX + 60, 130);
@@ -485,6 +509,38 @@ export const KitMethods = {
             return true;
         });
     },
+    /** 되돌리는 거울 자리 (원거리 되돌림 버프가 있을 때만): 주인공 앞 mirrorDx px (vfxPlayer catcher, D-137) */
+    kitMirrorX() {
+        const m = Object.values(this.kitBuffs).find(b => b.mods.rangedReflect)?.mods;
+        return m ? this.monsterX + (m.mirrorDx ?? 100) : null;
+    },
+    /** 거울에 막힌 적 탄: 도착 처리(피해·감속·맞는 그림)를 막아 둔 채 불러 피해만 모으고, 그 탄을 가장 가까운 적에게 되받아침 */
+    kitMirrorCatch(pr, x, y) {
+        if (!this.isActive) return;
+        const saved = ['applyPlayerSlow', 'applyPlayerStun', 'createDamagePopup'], fx = this.fx, play = fx.play;
+        this.kitCatching = true;
+        this.kitCaught = 0;
+        saved.forEach(k => { this[k] = () => {}; });
+        fx.play = () => {};
+        try {
+            const [tx, ty] = pr.to ? pr.to() : [x, y];
+            pr.onArrive(tx, ty);
+        } catch (err) { console.warn(err); } finally {
+            saved.forEach(k => delete this[k]);
+            fx.play = play;
+            this.kitCatching = false;
+        }
+        const amount = this.kitCaught, mods = Object.values(this.kitBuffs).find(b => b.mods.rangedReflect)?.mods || {};
+        const yb = fx.H - y;
+        fx.play(mods.mirrorFx || KIT_FX.block, x, yb);
+        const t = this.nearestEnemy(400);
+        if (!t || amount <= 0) return;
+        fx.launchOrb({ x, bottom: yb }, () => ({ x: aimOf(t).x, b: aimOf(t).b }), mods.mirrorColor || '170, 230, 255', 0.22, () => {
+            if (!this.isActive || !this.enemies.includes(t)) return;
+            this.dealDamageToEnemy(t, amount, false, { knock: 0.4 });
+            if (mods.mirrorHit) fx.play(mods.mirrorHit, aimOf(t).x, aimOf(t).b);
+        }, null);
+    },
     /** 강철 방벽 오른쪽 끝 (그림이 있으면 그림 오른쪽 끝 — 판정 폭 46px보다 그림이 넓음) */
     kitWallEdge(z) {
         return z.art ? z.x + (z.artDx ?? 0) + (z.art.w ?? z.w) - 12 : z.x + z.w;
@@ -581,15 +637,16 @@ export const KitMethods = {
     spawnKitAlly(x, o) {
         if (!this.domEnemies) return;
         ensureEnemyStyles();
-        const art = ENEMY_ART[o.art] || ENEMY_ART.guard;
+        ensureKitAllyStyles();
+        const art = ENEMY_ART[o.art] || KIT_ALLY_ART[o.art] || ENEMY_ART.guard;
         const bases = this.enemies.filter(e => e.isBuilding);
         if (bases.length) x = Math.min(x, Math.min(...bases.map(e => e.x)) - 40);
         const el = document.createElement('div');
         el.className = 'ally-minion v2-kit-ally';
-        const id = o.art in ENEMY_ART ? o.art : 'guard';
+        const id = o.art in ENEMY_ART || o.art in KIT_ALLY_ART ? o.art : 'guard';
         el.style.cssText = `left:${x}px;--w:${art.frameWidth}px;--h:${art.frameHeight}px;--k:${o.scale || 1};`
-            + `--walk:url('${art.walk.src}');--walk-anim:v2-${id}-walk ${art.walk.duration}s steps(${art.walk.frames}) infinite;`
-            + `--atk:url('${(art.attack || art.walk).src}');--atk-anim:v2-${id}-${art.attack ? 'attack' : 'walk'} ${(art.attack || art.walk).duration}s steps(${(art.attack || art.walk).frames}) infinite;`
+            + `--walk:url('${art.walk.src}');--walk-anim:v2-${id}-walk calc(${art.walk.duration}s / var(--v2-speed, 1)) steps(${art.walk.frames}) infinite;`
+            + `--atk:url('${(art.attack || art.walk).src}');--atk-anim:v2-${id}-${art.attack ? 'attack' : 'walk'} calc(${(art.attack || art.walk).duration}s / var(--v2-speed, 1)) steps(${(art.attack || art.walk).frames}) infinite;`
             + `--ally-filter:${o.filter || 'none'};bottom:${ART_FOOT_B}px`;
         const hpBar = document.createElement('div');
         hpBar.className = 'ally-hp';
@@ -598,8 +655,13 @@ export const KitMethods = {
         el.appendChild(hpBar);
         this.domEnemies.appendChild(el);
         const maxHp = Math.round(this.maxPlayerHp * (o.hp ?? 0.15));
+        // 내려치기 소환물(kitSlam): 공격 그림 한 바퀴(초)마다 주먹이 땅에 닿는 순간(at = 한 바퀴 중 비율) 범위 효과 — 게임 속도는 CSS --v2-speed로 맞춤
+        if (o.slam) o = { ...o, slam: { period: (art.attack || art.walk).duration, ...o.slam } };
         const ally = { id: `kit_${Date.now()}_${Math.random()}`, kind: 'kit', x, hp: maxHp, maxHp, dps: this.playerDps * (o.dps ?? 0.25),
-            speed: this.playerSpeed * (o.speed ?? 0.6), dom: el, hpBar, kitLife: o.life ?? 10, kitHit: o.hit || null, kitHitT: 0, kitBlast: o.blast || null };
+            speed: this.playerSpeed * (o.speed ?? 0.6), dom: el, hpBar, kitLife: o.life ?? 10, kitHit: o.hit || null, kitHitT: 0, kitBlast: o.blast || null,
+            kitShoot: o.shoot || null, kitSlam: o.slam || null, kitCx: art.anchorX ?? 38, kitScale: o.scale || 1,   // kitCx: 그림 가운데 (소환물 CSS는 가운데 아래 기준으로 키움)
+            // 넓은 소환물 그림(KIT_ALLY_ART — 서리 정령 180 · 빙하 거인 300)은 왼쪽 끝이 아니라 가운데에서 적까지 잼 (allies.js, D-140 — 거인이 적과 겹친 채 걷기만 함)
+            kitReach: KIT_ALLY_ART[o.art] ? (art.anchorX ?? 38) - 38 : 0 };
         this.allies.push(ally);
         if (o.vfx) this.fx.play(o.vfx, x + 38, FOOT_B);
         if (o.label) this.createDamagePopup(x, 180, o.label, false);
@@ -610,6 +672,7 @@ export const KitMethods = {
             if (a.kind !== 'kit') continue;
             a.kitLife -= dt;
             if (a.kitLife <= 0) { this.removeAlly(a); continue; }
+            if (a.kitSlam) this.tickKitSlam(a, dt);
             if (a.kitHit && a.attacking) {
                 a.kitHitT -= dt;
                 if (a.kitHitT <= 0) {
@@ -619,6 +682,47 @@ export const KitMethods = {
                 }
             }
         }
+    },
+    /** 내려치기 소환물 (빙하 거인, D-140): slam { period, at, dx, radius, status, fx(땅 내려침), frozenFx?, dmg?(× dps × period, 맞붙은 적 말고 둘레 적), shake? }
+     *  공격 동작을 시작하면 at × period 뒤 첫 내려침, 그 뒤 period마다 — 주먹 자리(그림 가운데 + dx) 둘레 radius 안 적 모두 상태 + 피해 */
+    tickKitSlam(a, dt) {
+        const sl = a.kitSlam;
+        if (!a.attacking) { a.kitSlamT = null; return; }
+        if (a.kitSlamT == null) a.kitSlamT = sl.period * sl.at;
+        a.kitSlamT -= dt;
+        if (a.kitSlamT > 0) return;
+        a.kitSlamT += sl.period;
+        const k = a.kitScale ?? 1, x = a.x + a.kitCx + (sl.dx ?? 0) * k;
+        if (sl.fx) this.fx.play(sl.fx, x, FOOT_B, { scale: k });
+        if (sl.shake) this.director.shake(...sl.shake);
+        const near = this.enemies.filter(e => Math.abs(aimOf(e).x - x) <= sl.radius * k);
+        const main = near.reduce((m, e) => (!m || Math.abs(aimOf(e).x - x) < Math.abs(aimOf(m).x - x) ? e : m), null);
+        near.forEach(e => {
+            if (sl.dmg && e !== main) this.dealDamageToEnemy(e, a.dps * sl.period * sl.dmg * this.allyDmgMul(), false, { knock: 0.3, source: 'ally' });
+            if (!this.enemies.includes(e)) return;
+            if (sl.status) this.kitStatus(e, sl.status);
+            if (sl.frozenFx && isUnit(e)) this.fx.play(sl.frozenFx, aimOf(e).x, FOOT_B);
+        });
+    },
+    /** 원거리 소환물 (allies.js tickAllies, D-140): shoot { range, every, first?, speed?(px/초), from?[dx, 높이], fly(초) → fx, hit?(fx), status? }
+     *  every초마다 가장 가까운 적에게 날아가는 그림 → 닿으면 피해(dps × every) + 상태 */
+    kitAllyShoot(a, t, dt) {
+        const sh = a.kitShoot;
+        a.kitShootT = (a.kitShootT ?? sh.first ?? 0.25) - dt;
+        if (a.kitShootT > 0) return;
+        a.kitShootT = sh.every;
+        const from = [a.x + a.kitCx + (sh.from?.[0] ?? 0), FOOT_B + (sh.from?.[1] ?? 60)];
+        const to = [aimOf(t).x, aimOf(t).b];
+        const dur = Math.max(0.12, Math.min(0.6, Math.hypot(to[0] - from[0], to[1] - from[1]) / (sh.speed ?? 700)));
+        if (sh.fly) this.fx.play(sh.fly(dur), ...from, { to });
+        const dmg = a.dps * sh.every * this.allyDmgMul() * this.supportAttackMul();
+        this.schedule(dur, () => {
+            if (!this.enemies.includes(t)) return;
+            this.dealDamageToEnemy(t, dmg, false, { knock: 0.15, source: 'ally' });
+            if (!this.enemies.includes(t)) return;
+            if (sh.hit) this.fx.play(sh.hit, aimOf(t).x, aimOf(t).b);
+            if (sh.status) this.kitStatus(t, sh.status);
+        });
     },
     /** 아군이 사라질 때 (allies.js removeAlly): 소환물 폭발 · 다시 소환 (군단 보급) */
     kitOnAllyDown(ally) {

@@ -105,7 +105,7 @@ export const AllyMethods = {
             let minAllyDist = Infinity;
 
             this.enemies.forEach(enemy => {
-                const dist = enemy.x - ally.x;
+                const dist = enemy.x - ally.x - (ally.kitReach || 0);
                 if (dist >= -35 && dist < minAllyDist) {
                     minAllyDist = dist;
                     closestEnemyToAlly = enemy;
@@ -115,11 +115,14 @@ export const AllyMethods = {
             // 거점을 이미 지나친 아군(거점이 나중에 생겨 소환 자리보다 앞에 있게 됨 등)은 더 가지 않고 거점을 침 —
             // 바로 앞에 붙은 적이 있으면 그 적이 먼저 (11-03 QA: 거점 공격을 못 하고 계속 전진)
             if (!(closestEnemyToAlly && !closestEnemyToAlly.isBuilding && minAllyDist <= 65)) {
-                const passed = this.enemies.find(e => e.isBuilding && e.x - ally.x < -35);
+                const passed = this.enemies.find(e => e.isBuilding && e.x - ally.x - (ally.kitReach || 0) < -35);
                 if (passed) { closestEnemyToAlly = passed; minAllyDist = 0; }
             }
 
-            const hitRange = (closestEnemyToAlly && closestEnemyToAlly.isBuilding) ? 110 : 65;
+            // 원거리 소환물(kitShoot — 서리 정령 얼음 화살, D-140)은 사거리에서 멈춰 쏨
+            const shoot = ally.kitShoot;
+            const hitRange = shoot ? Math.max(shoot.range, closestEnemyToAlly?.isBuilding ? 110 : 0)
+                : (closestEnemyToAlly && closestEnemyToAlly.isBuilding) ? 110 : 65;
             // 싸우는 중이면 조금 밀려나도 계속 · 시작한 공격 동작은 잠깐 끝까지 (ALLY_FIGHT — 공격·걷기가 매 순간 바뀌던 것, 11-08 QA)
             const fighting = !!closestEnemyToAlly && minAllyDist <= hitRange + (ally.attacking ? ALLY_FIGHT.stick : 0);
             if (ally.atkHold > 0) ally.atkHold -= dt;
@@ -131,6 +134,8 @@ export const AllyMethods = {
             }
             if (swinging && !fighting) {
                 // 휘두르던 동작을 마저 끝냄 (제자리)
+            } else if (fighting && shoot) {
+                this.kitAllyShoot(ally, closestEnemyToAlly, dt);
             } else if (fighting) {
                 if (!ally.supportOwner || this.support?.active?.elapsed < (this.support?.active?.exitAt ?? SUPPORT.exitAt)) {
                     const mul = ally.supportOwner ? 1 : this.allyDmgMul() * this.supportAttackMul();

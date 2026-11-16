@@ -244,6 +244,16 @@ export class VfxPlayer {
                     this.play(BLOCK_FX, wall, pr.y);
                 }
             }
+            // 되돌리는 거울(얼음 거울·반사 수정막, D-137): 적 쪽에서 날아온 탄이 거울 자리에 닿으면 멈추고 onCatch가 되받아침
+            //   (주인공까지 날아가 맞는 그림·도착 효과가 나오지 않게 — 도착 처리는 onCatch가 막아 둔 채 불러 피해만 되돌림)
+            const mirror = this.catcher ? this.catcher() : null;
+            if (mirror != null && !pr.done && BLOCKABLE.has(pr.kind) && pr.onArrive) {
+                pr.fromX ??= pr.from ? pr.from[0] : pr.x;
+                if (pr.fromX > mirror + 4 && pr.x != null && pr.x <= mirror) {
+                    pr.done = true;
+                    this.onCatch?.(pr, mirror, pr.y);
+                }
+            }
             if (pr.owner) {
                 for (let i = first; i < this.parts.length; i++) this.parts[i].owner = pr.owner;
                 // 적중 처리 중 철수/승리가 시작됐다면 방금 생긴 꼬리 입자도 제거한다.
@@ -976,6 +986,7 @@ export const VFX_SHEETS = {
     lava_burst: { src: 'assets/sprites/vfx/lava_burst.webp', frames: 9 },           // 화산 분화 용암탄 (바닥 기준)
     swamp_bubble: { src: 'assets/sprites/vfx/swamp_bubble.webp', frames: 9 },       // 늪 삼키기 진흙 거품 (바닥 기준)
     tidal_wave: { src: 'assets/sprites/vfx/tidal_wave.webp', frames: 9 },           // 해일 파도 (바닥 기준, 오른쪽으로 덮침)
+    frost_wave: { src: 'assets/sprites/vfx/frost_wave.webp', frames: 9 },           // 냉기 파도 — tidal_wave를 얼음빛으로 (D-139, tools/images/build_frost_wave.py)
     meteor_red: { src: 'assets/sprites/vfx/meteor_red.webp', frames: 9 },           // 대멸종 운석 충돌 (바닥 기준)
     breath_gold: { src: 'assets/sprites/vfx/breath_gold.webp', frames: 9 },         // 용왕의 숨결 금빛 불길 (입 기준, 오른쪽으로)
     // 2차 세트 대표 시트 (D-071) — 합성괴인
@@ -997,6 +1008,8 @@ export const VFX_SHEETS = {
     spirit_set: { src: 'assets/sprites/vfx/spirit_set.webp', frames: 6 },          // 영혼 독수리·곰·뱀·늑대 · 별똥 작살 · 물 닻 (한 칸씩 그림, D-126 Gemini)
     saint_set: { src: 'assets/sprites/vfx/saint_set.webp', frames: 6 },            // 금종 · 촛불 · 약병 · 실 고치 · 재봉 바늘 · 대리석 손 (불투명 물건 그림 — blend 'normal', D-127 Gemini)
     saint_set2: { src: 'assets/sprites/vfx/saint_set2.webp', frames: 6 },           // 붉은 나비 · 금빛 바늘 · 장미 넝쿨 · 큰 장미 · 금 가위 · 금실 천 (불투명 — blend 'normal', D-128 Gemini)
+    frost_set: { src: 'assets/sprites/vfx/frost_set.webp', frames: 6 },            // 얼음 감옥 블록 · 큰 눈꽃 · 얼음 창 · 흑조 · 얼음 별 · 빙하 덩어리 (불투명 — blend 'normal', D-137 Gemini)
+    ice_wolf: { src: 'assets/sprites/vfx/ice_wolf.webp', frames: 2 },              // 얼음늑대 전신: 달리기 · 덤비기 (불투명 — blend 'normal', D-137 Gemini)
     // 2차 세트 대표 시트 (D-071) — 타락 히어로
     eclipse_sun: { src: 'assets/sprites/vfx/eclipse_sun.webp', frames: 9 },         // 일식 검은 해 + 보라 코로나 (가운데 기준)
     ghost_cavalry: { src: 'assets/sprites/vfx/ghost_cavalry.webp', frames: 9 },     // 기사단 돌격 흰·금 유령 기사 (왼쪽에서 오른쪽으로)

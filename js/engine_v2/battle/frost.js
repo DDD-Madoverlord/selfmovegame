@@ -15,6 +15,26 @@ import { monsterControllerV2 } from '../monster_v2.js';
 import { FROST_VFX, ICE, MIST } from '../vfx/frostVfx.js';
 import { aimAt as aimOf } from '../bases_v2.js';
 import { FROST, FOOT_B } from './tuning.js';
+import { spr, fxOf } from '../skillKit_v2.js';
+import { ICE_C, FROST_W, SNOW_C, ICE_PRISON, ICE_BREAK, ICE_SPROUT, ICE_HIT, FS } from '../vfx/iceFx.js';
+
+// 눈보라 춤 (D-137, 2026-11-16 피드백: 바닥 효과뿐이라 설명과 안 맞고 약함): 무희 둘레에 눈보라가 휘몰아침 —
+//   눈송이 회오리(몸 둘레를 돌며 오르내림) + 눈꽃 고리 소용돌이 + 바람에 휘날리는 눈발 + 큰 눈꽃이 머리 위에서 돎, 바닥엔 서리 안개
+const BLIZZARD = (sec, w) => fxOf(
+    { type: 'petalVortex', at: 0, dur: sec, rx: w * 0.5, h: 210, count: 70, color: SNOW_C, backColor: '120, 170, 220', hiColor: '255, 255, 255' },
+    spr('eternal_winter', w * 1.15, { dur: sec, frameRange: [3, 5], loopSec: 0.8, pingPong: true, dy: -95, alpha: 0.55, squash: 0.55, fadeIn: 0.3, fadeOut: 0.5 }),
+    { type: 'snowFall', at: 0, dur: sec, w: w * 1.3, count: 60, top: -10, wind: 260, speed: 0.9, storm: true, cloud: false, alpha: 0.8 },
+    FS(1, 90, { dur: sec, dy: -200, spin: 2.2, alpha: 0.8, popIn: 0.3, fadeOut: 0.5 }),
+    { type: 'mist', at: 0, r: w * 0.45, h: 14, life: sec, drift: 18, color: '110, 160, 200' },
+    { type: 'ring', at: 0, dur: 0.5, r: w * 0.6, ground: true, color: FROST_W, width: 5 });
+const BLIZZARD_TICK = fxOf(spr('ice_burst', 80, { frameRange: [3, 7], dur: 0.35 }),
+    { type: 'motes', at: 0, count: 4, spread: 12, rise: [10, 40], life: [0.3, 0.5], size: 2, color: FROST_W });
+// 영원한 안식 (D-137 피드백: 얼음이 바닥을 따라 나아가며, 맞은 적은 얼음에 갇힘): 무희 발밑 서리 문양 → 얼음 결정 줄기가 땅을 따라
+//   앞으로 솟으며 달려가고, 닿은 적마다 반투명 얼음 감옥에 갇힘 → 한꺼번에 깨짐
+const REST_CALL = fxOf({ type: 'rune', at: 0, dur: 0.85, r: 80, color: FROST_W, spin: 0.6 },
+    { type: 'ring', at: 0, dur: 0.6, r: 200, ground: true, color: ICE_C, width: 6 },
+    { type: 'glow', at: 0, dur: 1, r: 120, color: ICE_C });
+const REST_SPEED = 900, REST_STEP = 34;
 
 const solid = e => e.isBuilding || e.isBarricade;
 const hitX = e => (solid(e) ? e.x + 12 : aimOf(e).x);
@@ -95,9 +115,8 @@ export const FrostMethods = {
     // ---- 몸통 스킬: 눈보라 춤 ----
     blizzardDance() {
         this.blizzard = { t: FROST.blizzardSec, tick: 0 };
-        const cx = () => this.frontX() + FROST.blizzardDx;
-        this.fx.play(FROST_VFX.blizzardOpen, cx(), FOOT_B);
-        this.fx.setAura('blizzard', FROST_VFX.blizzardField, () => [cx(), FOOT_B]);
+        const z = FROST.blizzardZone, cx = () => this.frontX() + (z[0] + z[1]) / 2;
+        this.fx.play(BLIZZARD(FROST.blizzardSec, z[1] - z[0]), cx(), FOOT_B, { follow: () => [cx(), FOOT_B], alive: () => !!this.blizzard });
     },
 
     inBlizzard(e) {
@@ -107,24 +126,33 @@ export const FrostMethods = {
 
     endBlizzard() {
         this.blizzard = null;
-        this.fx.setAura('blizzard', null);
     },
 
     // ---- 머리 필살기: 영원한 안식 ----
     eternalRest(range) {
-        this.fx.play(FROST_VFX.eternalCall, this.monsterX + 35, FOOT_B);
-        this.enemiesInRange(this.playerRange + range).slice(0, FROST.restMax).forEach((e, i) => this.schedule(0.1 + i * 0.06, () => {
+        const x0 = this.monsterX + 60;
+        this.fx.play(REST_CALL, this.monsterX + 35, FOOT_B);
+        const list = this.enemiesInRange(this.playerRange + range).slice(0, FROST.restMax);
+        const reach = list.length ? Math.max(...list.map(hitX)) + 40 : x0 + range;
+        for (let x = x0, k = 0; x <= reach; x += REST_STEP, k++) {   // 땅을 따라 나아가는 얼음 줄기
+            this.schedule(0.1 + (x - x0) / REST_SPEED, () => this.isActive && this.fx.play(ICE_SPROUT(k % 2 ? 100 : 124), x, FOOT_B));
+        }
+        const at = e => 0.1 + Math.max(0, hitX(e) - x0) / REST_SPEED;
+        const breakAt = (list.length ? Math.max(...list.map(at)) : 0.1) + FROST.restSec;
+        list.forEach((e, i) => this.schedule(at(e), () => {
             if (!this.isActive || !this.enemies.includes(e)) return;
-            this.fx.play(FROST_VFX.encase, hitX(e), FOOT_B);
+            const hold = breakAt - at(e);
+            this.fx.play(ICE_PRISON(hold, solid(e) ? 190 : 150), hitX(e), FOOT_B, { follow: () => [hitX(e), FOOT_B], alive: () => this.enemies.includes(e) });
             if (!solid(e) && !e.boss) {
-                this.stunEnemy(e, FROST.restSec + 0.1);
-                e.frozenT = FROST.restSec + 0.1;
+                this.stunEnemy(e, hold + 0.1);
+                e.frozenT = hold + 0.1;
                 e.chill = 0;
                 this.updateEnemyFilter(e);
             }
-            this.schedule(FROST.restSec, () => {   // 한꺼번에 깨짐 (얼어 있으면 빙판 걸음 보너스도 받음)
+            this.schedule(hold, () => {   // 한꺼번에 깨짐 (얼어 있으면 빙판 걸음 보너스도 받음)
                 if (!this.isActive || !this.enemies.includes(e)) return;
-                this.fx.play(FROST_VFX.shatter, hitX(e), FOOT_B);
+                this.fx.play(ICE_BREAK(solid(e) ? 210 : 180), hitX(e), FOOT_B);
+                if (i === 0) this.director?.shake?.(8, 300);
                 this.dealDamageToEnemy(e, this.unit() * (solid(e) ? FROST.restBaseDmg : FROST.restDmg), false, { knock: 1, stop: i === 0 });
             });
         }));
@@ -149,16 +177,13 @@ export const FrostMethods = {
         this.blizzard.t -= dt;
         this.blizzard.tick -= dt;
         const tick = this.blizzard.tick <= 0;
-        if (tick) {
-            this.blizzard.tick = FROST.blizzardTick;
-            this.fx.pulseAura('blizzard');
-        }
+        if (tick) this.blizzard.tick = FROST.blizzardTick;
         [...this.enemies].forEach(e => {
             if (!this.inBlizzard(e)) return;
             this.dealDamageToEnemy(e, this.unit() * FROST.blizzardDps * dt, false, { dot: true });
             if (tick && this.enemies.includes(e)) {
                 this.applyChill(e, 1);
-                this.fx.play(FROST_VFX.blizzardTick, hitX(e), FOOT_B);
+                this.fx.play(BLIZZARD_TICK, hitX(e), aimOf(e).b);
             }
         });
         if (this.blizzard.t <= 0) this.endBlizzard();
