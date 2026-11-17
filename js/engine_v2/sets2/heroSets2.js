@@ -197,7 +197,8 @@ function soulDrain(b, ctx, s) {
 // ---- D-122 (2026-11-14 5차): 마왕 ----
 // 마검 연무: 예전엔 고른 적 발밑에 베기 그림만 5번 → 캐릭터가 사라져 적들 사이를 지그재그로 오가며(붉은 잔상 + 대시 자국) 5번 베고 제자리로
 /** 캐릭터 그림(리그 캔버스)을 찍어 이펙트 좌표로: { img, glowImg(진홍 실루엣), cx(가운데 x), top, w, h } */
-function heroSnap(b) {
+/** 지금 캐릭터 그림을 떠서 잔상으로 씀 (img + 한 색으로 칠한 glowImg). rgb = 잔상 빛 색 — 성간 방랑자 차원 도약(mechSets2, D-143)도 씀 */
+export function heroSnap(b, rgb = 'rgb(255, 40, 70)') {
     const c = monster.spriteCanvas, f = b.fx.canvas;
     if (!c || !f || !c.width) return null;
     const r = c.getBoundingClientRect(), fr = f.getBoundingClientRect();
@@ -211,7 +212,7 @@ function heroSnap(b) {
     const g = glowImg.getContext('2d');
     g.drawImage(c, 0, 0);
     g.globalCompositeOperation = 'source-in';
-    g.fillStyle = 'rgb(255, 40, 70)';
+    g.fillStyle = rgb;
     g.fillRect(0, 0, c.width, c.height);
     return { img, glowImg, cx: (r.left - fr.left + r.width / 2) * k, top: (r.top - fr.top) * k, w: r.width * k, h: r.height * k };
 }

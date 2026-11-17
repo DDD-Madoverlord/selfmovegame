@@ -3,7 +3,7 @@
 - 거점이 있을 때 다른 적이 불러낸 적·3열 대열이 거점 자리·뒤에 생기던 것 → 거점 앞에서만
 - 차원 도약: 시간 균열이 떠난 자리(주인공 뒤)에 남아 적이 밟을 일이 없던 것 → 도착한 자리 앞쪽 + 받는 피해 +15%
 - 실 그물 걸음: 실이 걸은 자리(뒤)에 남던 것 → 앞쪽 바닥에 깔려 다가오는 적이 느려짐
-- 잠항: 3초 숨기 → 1.2초 숨었다가 바로 솟구쳐 기절"""
+- 잠항: 3초 숨기 → 1.2초 숨었다가 바로 솟구쳐 기절 → (D-146) 상어 급강하: 뛰어올라(피해 무시) 1초 뒤 앞으로 내리꽂혀 기절"""
 
 CLEAR = """b.autoSkills = false; b.spawnInterval = 999;
     b.enemies.filter(e => !e.isBuilding).forEach(e => e.dom?.remove()); b.enemies = b.enemies.filter(e => e.isBuilding);"""
@@ -81,13 +81,15 @@ def run(ctx):
         await new Promise(r => setTimeout(r, 700));
         const z = b.kitZones.find(k => k.tag === 'rift');
         const e0 = b.enemies.filter(e => !e.isBuilding).sort((p, q) => p.x - q.x)[0];
-        return { used, moved: Math.round(b.monsterX - x0), front: b.frontX(), z: z && { x: Math.round(z.x), w: z.w, t: +z.t.toFixed(1), vuln: z.vuln },
+        return { used, moved: Math.round(b.monsterX - x0), front: b.frontX(), z: z && { x: Math.round(z.x), w: z.w, t: +z.t.toFixed(1), vuln: z.vuln, field: z.field },
+            art: b.fx.vfx.items.some(it => it.fieldStyle === 'timeRift') && b.fx.vfx.items.some(it => it.type === 'afterimage' || it.sheet === 'time_stop'),
             slow: e0.slowT > 0, vuln: e0.kitVulnT > 0, vulnAmt: e0.kitVuln };""")
     z = st['z'] or {}
     ctx.check(st['used'] and st['moved'] > 100 and st['z'] and z['x'] + z['w'] > st['front'] + 150 and z['x'] >= st['front'] - 60,
               '차원 도약: 시간 균열이 도착한 자리 앞쪽에 깔림 (예전엔 떠난 자리 = 주인공 뒤)', str(st))
     ctx.check(st['slow'] and st['vuln'] and abs((st['vulnAmt'] or 0) - 0.15) < 0.001,
               '차원 도약: 균열 안의 적은 감속 + 받는 피해 +15%', str(st))
+    ctx.check(z.get('field') == 'timeRift' and st['art'], '차원 도약: 청록 시계 마법진 시간 균열 + 잔상 그림 (D-143)', str(st))
     g.shot('qa1116_warp_rift', '#screen-battle-v2')
     g.js(BACK)
     g.wait(400)
@@ -101,7 +103,8 @@ def run(ctx):
         b.kitOnStep();
         const z = b.kitZones.filter(k => k.tag === 'web').at(-1);
         const front = b.frontX();
-        const info = { walked, dx: Math.round(z.x - front), w: z.w, sec: z.sec };
+        const info = { walked, dx: Math.round(z.x - front), w: z.w, sec: z.sec, net: b.kitZones.some(k => k.tag === 'web' && k.field === 'threadNet')
+            && b.fx.vfx.items.some(it => it.fieldStyle === 'threadNet') };
         b.spawnMinion(); const e = b.enemies.filter(o => !o.isBuilding).at(-1);
         e.x = z.x + z.w - 60; e.speed = 30; e.dps = 0; e.hp = e.maxHp = 900000; e.dom.style.left = e.x + 'px';
         await new Promise(r => setTimeout(r, 400));
@@ -109,25 +112,26 @@ def run(ctx):
     ctx.check(st['walked'] >= 1 and st['dx'] == 60 and st['w'] == 240 and st['sec'] == 4,
               '실 그물 걸음: 걷는 동안 걸음마다 앞쪽 60~300px 바닥에 실 그물 4초 (예전엔 뒤쪽 60px · 2초)', str(st))
     ctx.check(st['slow'] and st['ahead'], '실 그물 걸음: 앞에서 다가오는 적이 그물을 밟으면 느려짐', str(st))
+    ctx.check(st['net'], '실 그물 걸음: 바닥에 붉은 실 그물 그림 (D-143)', str(st))
     g.js(BACK)
     g.wait(400)
 
-    # ---- 잠항: 1.2초 숨었다가(피해 무시) 솟구쳐 기절 ----
+    # ---- 상어 급강하 (예전 잠항, D-146): 뛰어올라(피해 무시) 1초 뒤 앞으로 내리꽂혀 기절 ----
     g.battle(SET('chimera', 'w'), wait_ms=1800)
     g.js(CLEAR)
     g.place_enemies(n=2, gap=60, first=200, hp=900000, speed=0, dps=0)
     st = g.js("""gameTime.speed = 1;
-        const es = b.enemies.filter(e => !e.isBuilding);
+        const es = b.enemies.filter(e => !e.isBuilding); const x0 = b.monsterX;
         b.skillCd.body = 0; const used = b.useSkill('body');
         await new Promise(r => setTimeout(r, 600));
         const hp0 = b.playerHp; b.damagePlayer(500, 0);
         const during = { invuln: b.kitFlag('invuln'), took: Math.round(hp0 - b.playerHp), stun: es.some(e => e.stunT > 0) };
         await new Promise(r => setTimeout(r, 1300));
-        return { used, during, after: { invuln: b.kitFlag('invuln'), stun: es.every(e => e.stunT > 0), hit: es.every(e => e.hp < e.maxHp) }, cd: Math.round(b.skillCd.body) };""")
+        return { used, during, after: { invuln: b.kitFlag('invuln'), stun: es.every(e => e.stunT > 0), hit: es.every(e => e.hp < e.maxHp), moved: Math.round(b.monsterX - x0) }, cd: Math.round(b.skillCd.body) };""")
     ctx.check(st['used'] and st['during']['invuln'] and st['during']['took'] == 0 and not st['during']['stun'],
-              '잠항 0.6초 때: 땅속(피해 무시), 아직 솟구치지 않음', str(st))
-    ctx.check(not st['after']['invuln'] and st['after']['stun'] and st['after']['hit'],
-              '잠항 1.9초 때: 이미 솟구쳐 앞 적들이 피해 + 기절 (예전엔 3초 뒤)', str(st))
-    ctx.check(8 <= st['cd'] <= 11, '잠항 쿨다운 12초 (쓴 뒤 1.9초 → 약 10초 남음)', str(st))
+              '상어 급강하 0.6초 때: 공중(피해 무시), 아직 내리꽂히지 않음', str(st))
+    ctx.check(not st['after']['invuln'] and st['after']['stun'] and st['after']['hit'] and st['after']['moved'] > 0,
+              '상어 급강하 1.9초 때: 앞으로 내리꽂혀 앞 적들이 피해 + 기절', str(st))
+    ctx.check(8 <= st['cd'] <= 11, '상어 급강하 쿨다운 12초 (쓴 뒤 1.9초 → 약 10초 남음)', str(st))
     g.js(BACK)
     g.wait(300)

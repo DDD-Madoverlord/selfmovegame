@@ -20,6 +20,10 @@ export const IMAGE_FIELDS = {
     // D-118: 플라즈마 융단 뒤 타는 바닥 — power_aura 불꽃 칸을 청백으로 (연기 시트 plasma_white 대신)
     plasmaBurn: { sheet: 'power_aura', frameRange: [5, 7], hue: 185, span: 125, h: 150, anchorY: 0.93, loopSec: 0.9, alpha: 0.9, base: 'plasma' },
     // D-118: 소용돌이 — eternal_winter 소용돌이 칸을 바닥에 눕힘 (squash) (물방울 water_burst 대신)
+    // D-143: 시간 균열 (차원 도약 도착 장판) — time_stop 시계 마법진을 청록으로 돌려 바닥에 눕히고 천천히 거꾸로 돎 + 청록 균열 바닥(rift)
+    timeRift: { sheet: 'time_stop', frameRange: [1, 3], hue: -80, span: 1000, h: 250, squash: 0.36, spin: -0.7, anchorY: 0.5, loopSec: 2.4, alpha: 0.9, layer: 'ground', base: 'rift' },
+    // D-143: 실 그물 (붉은 실 재봉사 다리 패시브 '실 그물 걸음') — 보라 거미줄 web_purple을 붉은 실빛으로 돌려 바닥에 깖
+    threadNet: { sheet: 'web_purple', frameRange: [3, 6], hue: 75, span: 1000, h: 120, anchorY: 0.85, loopSec: 2.2, alpha: 0.85, layer: 'ground' },
     vortex: { sheet: 'eternal_winter', frameRange: [4, 6], hue: -15, span: 1000, h: 230, squash: 0.42, spin: 4.2, anchorY: 0.5, loopSec: 0.75, alpha: 0.95, layer: 'ground' }
 };
 
@@ -50,7 +54,7 @@ export function imageField(style, w, sec) {
             height: Math.min(p.h, Math.max(100, w * 1.3)) * (count === 1 ? 1 : 1 + 0.08 * Math.sin(i * 2.4 + 0.6)),
             anchorY: p.anchorY, dx: -w / 2 + tile * (i + 0.5), dur: sec, loopSec: p.loopSec, ...(p.squash ? { squash: p.squash, spin: p.spin || 0 } : {}),
             pingPong: true, phase: i * 0.29, alpha: p.alpha, layer: p.layer || 'front',
-            dispersion: ['rift', 'moon', 'seal', 'web', 'vortex'].includes(style) ? 'rune' : 'cloud',
+            dispersion: ['rift', 'moon', 'seal', 'web', 'vortex', 'timeRift', 'threadNet'].includes(style) ? 'rune' : 'cloud',
             softEdges: 0.14, fadeIn: 0.14, fadeOut: 0.45 });
     }
     return { layers };

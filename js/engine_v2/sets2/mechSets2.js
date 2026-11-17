@@ -7,7 +7,9 @@
    ========================================================================== */
 
 import { packOf, V, fxOf, spr } from './common.js';
-import { kitHit, pickTargets, enemiesNear } from '../skillKit_v2.js';
+import { imageField as imageFieldFx } from '../vfx/imageEffects.js';
+import { kitHit, pickTargets, enemiesNear, runKitStep } from '../skillKit_v2.js';
+import { heroSnap } from './heroSets2.js';
 import { aimAt } from '../bases_v2.js';
 import { monsterControllerV2 as monster } from '../monster_v2.js';
 import { FOOT_B } from '../battle/tuning.js';
@@ -175,6 +177,47 @@ const METEOR_HIT = fxOf(spr('meteor_cyan', 290, { anchorY: 0.86, dur: 0.8, frame
 const RIFT = (gap, swing) => fxOf(spr('slash_violet', swing, { dur: 0.3, frameRange: [1, 4], hue: -95, dx: 30, glow: 1.2 }),
     { type: 'riftCut', at: 0.02, dur: 0.85, color: STAR, gap },
     { type: 'sparks', at: 0.04, count: 10, speed: 340, angle: 0, cone: 0.35, color: STAR });
+
+// 차원 도약 (D-143): 예전엔 떠난 자리·도착한 자리에 초록 빛기둥(소환진 색 돌림) + 도착 앞쪽에 금빛 소환진 장판이라 '차원 도약 · 시간 균열'로 안 보임
+//   → 떠난 자리에 청록 차원문이 열리며 몸이 빛으로 흩어짐 → 지나온 길에 청록 잔상 3개 + 빛 줄기 → 도착한 자리 차원문에서 튀어나옴(번쩍·고리)
+//   → 앞쪽 바닥에 시간 균열: 청록 시계 마법진이 열리며 깨지듯 퍼지고(time_stop) 바닥에 눕혀 5초간 거꾸로 돎(imageEffects timeRift),
+//     안의 적에게는 0.6초마다 시계 고리 + 느린 빛 알갱이, 지나며 맞은 적은 청록 베기
+const WARP_OUT = fxOf(spr('summon_portal', 170, { anchorY: 0.76, hue: 150, dur: 0.55, frameRange: [1, 5], glow: 1.2 }),
+    { type: 'flash', at: 0, dur: 0.2, r: 90, color: STAR, dy: 60 },
+    { type: 'motes', at: 0, count: 16, spread: 60, rise: [40, 140], life: [0.4, 0.8], size: 2.6, color: STAR, dy: 40 });
+const WARP_IN = fxOf(spr('summon_portal', 190, { anchorY: 0.76, hue: 150, dur: 0.6, frameRange: [3, 7], glow: 1.3 }),
+    { type: 'flash', at: 0, dur: 0.22, r: 120, color: STAR, dy: 60 },
+    { type: 'shockwave', at: 0, dur: 0.45, r: 150, width: 8, ground: true, color: STAR },
+    { type: 'sparks', at: 0, count: 12, speed: 320, angle: -1.57, cone: 3.1, color: STAR, dy: 60 });
+const WARP_LINE = to => fxOf({ type: 'dashStreak', at: 0, dur: 0.35, to, w: 18, color: STAR });
+const RIFT_OPEN = fxOf(spr('time_stop', 230, { frameRange: [4, 7], dur: 0.6, hue: -80, squash: 0.45, glow: 1.2 }),
+    { type: 'cracks', at: 0, dur: 1, count: 7, len: 110, color: STAR },
+    { type: 'flash', at: 0, dur: 0.25, r: 110, color: '203, 255, 244' });
+const RIFT_TICK = fxOf(spr('time_stop', 70, { frameRange: [1, 2], dur: 0.6, hue: -80, alpha: 0.75, fadeIn: 0.1, fadeOut: 0.3 }),
+    { type: 'motes', at: 0, count: 3, spread: 20, rise: [6, 18], life: [0.6, 0.9], size: 2, color: STAR, dy: 40 });
+const WARP_HIT = fxOf(spr('slash_violet', 120, { dur: 0.25, frameRange: [1, 4], hue: -95, glow: 1.2 }),
+    { type: 'sparks', at: 0, count: 6, speed: 240, color: STAR });
+function warpJump(b, ctx, s) {
+    const snap = heroSnap(b, 'rgb(120, 255, 235)');
+    const x0 = b.monsterX, chest = FOOT_B + 70;
+    b.fx.play(WARP_OUT, x0 + 50, FOOT_B + 60);
+    runKitStep(b, { do: 'blink', dist: s.dist, dmg: s.dmg, hitVfx: WARP_HIT, arrive: { ...s.arrive, puff: RIFT_TICK, puffEvery: 0.6, puffB: 30 } }, ctx.skill);
+    const x1 = b.monsterX, d = x1 - x0;
+    if (snap && d > 20) [0, 1 / 3, 2 / 3].forEach((f, i) => b.fx.play(fxOf({ type: 'afterimage', at: i * 0.03, dur: 0.45 - i * 0.05,
+        img: snap.img, glowImg: snap.glowImg, w: snap.w, h: snap.h, ox: -snap.w / 2, oy: 0 }), snap.cx + d * f, b.fx.H - snap.top));
+    if (d > 20) b.fx.play(WARP_LINE([x1 + 50, chest]), x0 + 50, chest, { to: [x1 + 50, chest] });
+    b.fx.play(WARP_IN, x1 + 50, FOOT_B + 60);
+    const z = b.kitZones.filter(k => k.tag === s.arrive.tag).pop();
+    if (z) b.fx.play(RIFT_OPEN, z.x + z.w / 2, FOOT_B + 10);
+    b.director?.shake?.(2, 140);
+}
+warpJump.preview = (api, k = 1) => {
+    const x0 = api.CHAR_X, x1 = x0 + 200 * k, g = api.GROUND_Y, chest = g - 70 * k;
+    api.vfx.play(WARP_OUT, x0, g - 60 * k, { scale: k });
+    api.vfx.play(WARP_LINE([x1, chest]), x0, chest, { scale: k, to: [x1, chest] });
+    api.later(0.08, () => api.vfx.play(WARP_IN, x1, g - 60 * k, { scale: k }));
+    api.later(0.15, () => { api.vfx.play(RIFT_OPEN, x1 + 120 * k, g - 10 * k, { scale: k }); api.vfx.play(imageFieldFx('timeRift', 240, 3), x1 + 120 * k, g, { scale: k }); });
+};
 
 function titanStep(b) {
     const list = enemiesNear(b, b.frontX() + 50, 70, true);
@@ -389,10 +432,10 @@ export const MECH_SETS2 = packOf('mech', [
                         fall: METEOR_FALL(0.45), fallDx: -330, fallTo: 12, delay: 0.45, shake: 3 }] },
             mcWarp: { name: '차원 도약', slot: 'body', cd: 14, icon: 'speed', color: '#96fff0', target: 'enemy', range: 200, clip: 'dash',
                 desc: '앞으로 200px 순간 이동 — 도착한 자리에 시간 균열 5초 (안의 적 감속 · 받는 피해 +15%)',
-                steps: [{ at: 0.1, do: 'blink', dist: 200, dmg: 0.8, vfx: V.portal(120, 150, { dur: 0.5, softEdges: 0.16 }),
+                steps: [{ at: 0.1, do: 'custom', fn: warpJump, preview: warpJump.preview, dist: 200, dmg: 0.8,
                     // 균열은 도착한 자리 앞쪽에 (예전엔 떠난 자리 = 주인공 뒤라 앞에서 오는 적이 밟을 일이 없었음 — 디스코드 QA 11-14 홍도도).
                     // 감속은 이동만 느려지므로 이미 붙어 싸우는 적에게도 뜻이 있게 받는 피해 +15%를 더함
-                    arrive: { tag: 'rift', field: 'rift', x: -40, w: 240, sec: 5, slow: true, vuln: 0.15 } }] },
+                    arrive: { tag: 'rift', field: 'timeRift', x: -40, w: 240, sec: 5, slow: true, vuln: 0.15 } }] },
             mcDimensionCut: { name: '차원 절단', slot: 'arm', cd: 9, icon: 'sword', color: '#96fff0', target: 'enemy', range: 400, clip: 'rush',
                 desc: '사거리 400 일직선 베기 → 1초 뒤 같은 줄 두 번째 베기',
                 steps: [{ at: 0.15, do: 'line', dmg: 1.6, pierce: 0.3, decay: 1, knock: 0.4, vfx: RIFT(15, 190), hitVfx: V.xcut(0, 90) },

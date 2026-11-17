@@ -13,6 +13,7 @@
     세트 장비가 기본 선 밖으로 나오는 곳만 넓힘: 앞팔(A 쇠망치, B 산탄총 — 왼쪽 아래로 큼), B 투구 안테나(머리 왼쪽 위)
  3. A의 초록 약병·관은 배경 초록과 비슷해 배경 지우기에서 구멍이 남 → 윤곽선 안에 갇힌 구멍 중 배경색이 아닌 것(r·b가 높은 초록)을 되살림
  4. 저장은 기본과 같이 좌우 반전 (오른쪽을 보게)
+ 5. w(심해 상어 괴인)는 자른 뒤 fix_chimera_w_fin.py로 등지느러미를 머리 한 조각으로 모음 (D-144)
 """
 import json
 import os
@@ -174,6 +175,9 @@ def main():
     letters = sys.argv[1:] or ['a', 'b']   # 2차 세트 (D-071): python tools/rig/cut_chimera_sets.py u c d v w l m
     for v in letters:
         layout['parts'].update(cut_set(v))
+    if 'w' in letters:   # 심해 상어 괴인 등지느러미를 머리 한 조각으로 (D-144 — 날개·몸통·머리 세 동강이라 움직이면 잘려 보였음)
+        import fix_chimera_w_fin
+        layout['parts'] = fix_chimera_w_fin.fix(layout['parts'])
     with open(path, 'w', encoding='utf-8') as f:
         json.dump(layout, f, ensure_ascii=False, indent=2)
     print('rig.json 부위 그림:', len(layout['parts']), '개')

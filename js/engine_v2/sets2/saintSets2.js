@@ -8,7 +8,7 @@
    ========================================================================== */
 
 import { packOf, V, fxOf, spr } from './common.js';
-import { kitHit, pickTargets, enemiesNear } from '../skillKit_v2.js';
+import { kitHit, pickTargets, enemiesNear, runKitStep } from '../skillKit_v2.js';
 import { aimAt } from '../bases_v2.js';
 import { FOOT_B } from '../battle/tuning.js';
 import { monsterControllerV2 as monster } from '../monster_v2.js';
@@ -91,6 +91,22 @@ offerCandles.preview = api => {
     api.vfx.play(CANDLE_FLOOR(3, w), x0 + w * k / 2, api.GROUND_Y, { scale: k });
     for (let i = 0; i < CANDLE_N; i++) api.vfx.play(CANDLE(3, i), x0 + w * k * (i + 0.5) / CANDLE_N, api.GROUND_Y - (i % 2 ? 6 : 0) * k, { scale: k });
 };
+
+// 실 그물 걸음 (붉은 실 재봉사 다리 패시브, D-143): 예전엔 판정만 있고 그림은 0.7초마다 작은 바늘 반짝임뿐이라 그물이 안 보였음
+//   → 걸음마다 발끝에서 붉은 실이 앞쪽 바닥으로 풀려 나가(threadPath) 그 자리에 붉은 실 그물이 펼쳐짐(web_purple 펼침 칸 → 바닥에 깔린 그물 4초, imageEffects threadNet)
+//   그물은 바닥과 같이 뒤로 흐름. 이미 보이는 그물(가운데가 110px 안, 1.5초 넘게 남음)이 있으면 판정만 새로 깔고 그림은 겹쳐 그리지 않음 (걸음마다 그물이 쌓여 붉게 뭉개지지 않게)
+const WEB_LAY = fxOf(spr('web_purple', 230, { frameRange: [0, 3], dur: 0.35, hue: 75, anchorY: 0.85, alpha: 0.9 }),
+    { type: 'motes', at: 0.1, count: 6, spread: 90, rise: [4, 16], life: [0.4, 0.7], size: 2, color: '255, 120, 140' });
+const WEB_SPOOL = sec => fxOf({ type: 'threadPath', at: 0, dur: sec, mode: 'chain', reveal: 0.12, color: BLOOD, w: 1.8, sag: 6 });
+function webStep(b, ctx, s) {
+    const cx = b.frontX() + s.x + s.w / 2;
+    const shown = b.kitZones.some(z => z.tag === s.tag && z.field && z.t > 1.5 && Math.abs(z.x + z.w / 2 - cx) < 110);
+    runKitStep(b, { do: 'zone', tag: s.tag, x: s.x, w: s.w, sec: s.sec, slow: s.slow, ...(shown ? {} : { field: 'threadNet' }) });
+    if (shown) return;
+    const foot = [b.frontX() - 10, FOOT_B + 6];
+    b.fx.play(WEB_SPOOL(0.45), ...foot, { path: () => [foot, [cx - s.w * 0.35, FOOT_B + 4], [cx, FOOT_B + 2]] });
+    b.fx.play(WEB_LAY, cx, FOOT_B);
+}
 
 // 꿰매기 사슬: 예전엔 가는 붉은 번개선뿐 → 재봉 바늘이 적에서 적으로 날아가 꿰뚫고, 지나간 자리에 붉은 실이 남아
 //   묶인 적들을 이은 채(적을 따라감) 속박 시간 동안 남음 + 꿰인 자리 X자 땀
@@ -658,7 +674,7 @@ export const SAINT_SETS2 = packOf('saint', [
         leg: { name: '실 그물 신발', look: '발끝에서 실이 풀려 나오는 신발', desc: '실 그물 걸음: 걸음마다 앞쪽 바닥에 실 그물 (4초) — 다가오는 적이 밟으면 느려짐', stats: { hp: 750, dps: 60, range: 0, speed: 115 },
             // 실 그물은 앞쪽 바닥에 (예전엔 걸은 자리 = 주인공 뒤 60px에 2초라 앞에서 오는 적이 밟을 일이 없었음 — 디스코드 QA 11-14 홍도도).
             // 걷는 동안 그물도 바닥과 같이 뒤로 흐르므로, 멈춰 서면 마지막 걸음의 그물이 앞 60~300px에 남아 다가오는 적을 늦춤 (원거리 세트라 쏠 시간이 늘어남)
-            passive: { name: '실 그물 걸음', desc: '걸음마다 앞쪽 바닥에 실 그물이 4초 남아 다가오는 적이 밟으면 느려짐', step: { do: 'zone', tag: 'web', x: 60, w: 240, sec: 4, slow: true, puff: V.needle(0, 40, { dur: 0.4 }), puffEvery: 0.7 } } },
+            passive: { name: '실 그물 걸음', desc: '걸음마다 앞쪽 바닥에 실 그물이 4초 남아 다가오는 적이 밟으면 느려짐', step: { do: 'custom', fn: webStep, tag: 'web', x: 60, w: 240, sec: 4, slow: true } } },
         skills: {
             stFateThread: { name: '운명의 실타래', slot: 'head', ult: true, cd: 0, icon: 'stitch', color: '#eb2846', target: 'enemy', range: 600, clip: 'cast',
                 desc: '6초간 화면 모든 적을 붉은 실로 이음 — 한 적이 받은 피해의 30%가 이어진 적 모두에게',

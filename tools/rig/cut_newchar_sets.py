@@ -108,11 +108,29 @@ def _grow_legs(**polys):
     return fix
 
 
+def _clip_legs(**rows):
+    """긴 치마가 다리를 덮는 세트: 다리 조각은 치마 끝(줄 y) 아래 신발만 — 위쪽 치마 자락은 몸통에 둠 (걸을 때 치마가 갈라지지 않게).
+    예: _clip_legs(legB=820, legF=830)"""
+    def fix(masks, full):
+        H, W = full.shape[:2]
+        r = np.broadcast_to(np.arange(H)[:, None], (H, W))
+        for leg, y in rows.items():
+            cut_off = masks[leg] & (r < y)
+            masks[leg] &= ~cut_off
+            masks['torso'] |= cut_off
+    return fix
+
+
+ALIGN_HEAD = {('doll', 'w')}   # 도자기 인형 여왕 (D-145): 넓은 무도회 드레스·큰 머리카락 — 얼굴 원 안만으로 맞춤
+
+
 SET_FIX = {
     # 서리 늑대 사냥꾼 설피 (11-12 디스코드 QA '발모양 파츠') — 뒷발 뒤꿈치·설피 뒤쪽, 앞발 설피 앞코가 기본 다리 선 밖
     # (망토 자락 끝은 y 790·834에서 끝나 그 아래만)
     ('frost', 'd'): _grow_legs(legB=[(340, 798), (470, 798), (470, 845), (505, 845), (505, 906), (340, 906)],
                                legF=[(515, 842), (690, 842), (690, 934), (515, 934)]),
+    # 도자기 인형 여왕 (D-145, 11-17 새 그림 — 무도회 드레스): 드레스 자락은 몸통, 다리는 치마 끝 아래 발목·구두만
+    ('doll', 'w'): _clip_legs(legB=795, legF=790),
     ('broadcaster', 'c'): _back_gray_to_torso(380),        # 송신기 배낭 안테나
     ('broadcaster', 'v'): _back_gray_to_torso(400, 178),   # 등에 진 스피커 탑 (왕관 위로 솟음)
     # 해킹 태블릿 팔 — 팔 없는 그림(3번째 시도)이 코트 왼쪽 자락·주머니 배지·모니터 한 점까지 바꿈
@@ -228,7 +246,10 @@ def cut_set(cid, v, layout, show=False):
     base = load(src + cfg['src'][0], cfg)
     full = load(src + f'{cid}_set_{v}_gemini.png', cfg)
     armless = load(src + f'{cid}_set_{v}_armless_gemini.png', cfg)
-    full, p1 = align(full, base)
+    head_rows = None
+    if (cid, v) in ALIGN_HEAD:   # 넓은 치마처럼 몸 윤곽이 기본과 크게 다르면 얼굴로 맞춤
+        head_rows = poly_mask(base.shape[:2], cfg['head_poly'])   # 얼굴 원 안만
+    full, p1 = align(full, base, head_rows)
     H = full.shape[0]
     rows = np.broadcast_to(np.arange(H)[:, None], full.shape[:2])
     body_rows = (rows < cfg['arm'].get('arm_top', cfg['arm']['head_y'])) | (rows > 780)   # 팔이 없는 줄(머리·발)로 맞춤

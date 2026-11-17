@@ -274,11 +274,11 @@
   },
   "w": {
    "name": "Porcelain Doll Queen",
-   "head": "white porcelain tiara with golden cracks",
-   "body": "white porcelain dress with golden seams",
-   "arm": "arm holding a porcelain teapot",
-   "back": "porcelain teacup in the back hand",
-   "leg": "white porcelain shoes"
+   "head": "tall ornate white porcelain crown-tiara with gold filigree and a glowing pink gem",
+   "body": "layered white porcelain ball gown with a frilled lace collar, puffed sleeves, gold kintsugi seams, small pink porcelain roses and a short gold-trimmed cape (nothing on the back)",
+   "arm": "porcelain doll arm with gold joint rings holding a gold-rimmed rose-painted porcelain teapot",
+   "back": "porcelain doll arm holding a matching teacup on a saucer",
+   "leg": "white porcelain heeled shoes with gold buckles"
   },
   "l": {
    "name": "Marionette Emperor",
@@ -446,4 +446,4 @@
    "leg": "silent soft shoes"
   }
  }
-}
+}

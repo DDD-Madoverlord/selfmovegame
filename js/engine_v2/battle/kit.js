@@ -93,7 +93,10 @@ export const KitMethods = {
         this.kitChargeT = 0;
         this.kitChargeFxT = 0;
         this.kitModCache = null;
-        if (monsterControllerV2.spriteCanvas) monsterControllerV2.spriteCanvas.style.opacity = '';   // 광학 위장(반투명)이 판 사이에 남지 않게
+        if (monsterControllerV2.spriteCanvas) {
+            monsterControllerV2.spriteCanvas.style.opacity = '';   // 광학 위장(반투명)이 판 사이에 남지 않게
+            monsterControllerV2.spriteCanvas.style.translate = '';  // 상어 급강하 점프 높이(D-146)도
+        }
         this.kitPassive = KIT_PASSIVES[this.equippedLegId] || null;
         this.kitAttackDef = equippedObjs.arm?.kitAttack || null;
         // 세트 효과 (SETS[id].kit = { 2: { patch, mods, flags, on }, 4: … })

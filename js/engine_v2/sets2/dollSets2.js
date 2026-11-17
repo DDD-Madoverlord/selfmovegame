@@ -264,9 +264,9 @@ export const DOLL_SETS2 = packOf('doll', [
         letter: 'w', tier: 'unique', no: 3, name: '도자기 인형 여왕', style: 'tank', tint: 'saturate(0.3) brightness(1.5) sepia(0.2) drop-shadow(0 0 4px rgba(255, 220, 140, 0.8))',
         bonus: { 2: '티 파티 +2명', 4: '깨진 찻잔 폭발 2배' },
         kit: { 2: { patch: { dlTeaParty: { n: 2 } } }, 4: { patch: { dlTeaParty: { mul: 1 } } } },
-        head: { name: '도자기 티아라', look: '금 균열이 간 흰 도자기 티아라', skill: 'dlTeaParty', desc: '필살기 티 파티: 보통 적 5명을 찻잔 의자에 앉혀 6초 멈춤 → 찻잔이 깨지며 폭발' },
-        body: { name: '도자기 드레스', look: '금빛 이음선의 흰 도자기 드레스', skill: 'dlGoldMend', desc: '금 이음: 4초에 걸쳐 체력 8% 회복 + 보호막 15%' },
-        arm: { name: '찻주전자 팔', look: '도자기 찻주전자를 든 팔', skill: 'dlHotTea', desc: '뜨거운 차: 부채꼴로 뜨거운 차 — 화상 4초' },
+        head: { name: '도자기 티아라', look: '분홍 보석이 박힌 금빛 도자기 왕관', skill: 'dlTeaParty', desc: '필살기 티 파티: 보통 적 5명을 찻잔 의자에 앉혀 6초 멈춤 → 찻잔이 깨지며 폭발' },
+        body: { name: '도자기 드레스', look: '장미 장식 도자기 무도회 드레스와 금빛 망토', skill: 'dlGoldMend', desc: '금 이음: 4초에 걸쳐 체력 8% 회복 + 보호막 15%' },
+        arm: { name: '찻주전자 팔', look: '장미 무늬 도자기 찻주전자를 든 팔', skill: 'dlHotTea', desc: '뜨거운 차: 부채꼴로 뜨거운 차 — 화상 4초' },
         leg: { name: '도자기 구두', look: '흰 도자기 구두', desc: '깨지지 않는 미소: 체력 30% 아래로 떨어지면 판마다 한 번 4초 무적',
             passive: { name: '깨지지 않는 미소', desc: '체력 30% 아래로 떨어지면 판마다 한 번 4초 무적', lastStand: { below: 0.3, sec: 4, label: '깨지지 않는 미소!' } } },
         skills: {

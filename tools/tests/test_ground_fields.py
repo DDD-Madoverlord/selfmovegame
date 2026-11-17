@@ -93,7 +93,7 @@ def run(ctx):
 
     # 실제 파츠 스킬을 사용해, 새 연출이 전투의 타이밍·판정에 연결되는지 확인.
     for char, letter, slot, style in [('kaiju', 'd', 'head', 'swamp'), ('mech', 'v', 'head', 'plasmaBurn'),
-                                     ('mech', 'm', 'body', 'rift'), ('broadcaster', 'v', 'head', 'sonic')]:
+                                     ('mech', 'm', 'body', 'timeRift'), ('broadcaster', 'v', 'head', 'sonic')]:
         g.js("progress.selectStage('2-1');")
         g.battle(tuple(f'{s}_{char}_{letter}' for s in ('head', 'body', 'arm', 'leg')), wait_ms=2800)
         g.place_enemies(n=5, first=170, gap=65, hp=100000, speed=0, dps=0)
@@ -125,7 +125,7 @@ def run(ctx):
     page.goto(f'{g.base}/rig_test.html?embed=1')
     page.evaluate('async () => { await rigTest.ready; rigTest.pause(); }')
     for char, part, style in [('kaiju', 'head_kaiju_d', 'swamp'), ('mech', 'head_mech_v', 'plasmaBurn'),
-                              ('mech', 'body_mech_m', 'rift'), ('broadcaster', 'head_broadcaster_v', 'sonic')]:
+                              ('mech', 'body_mech_m', 'timeRift'), ('broadcaster', 'head_broadcaster_v', 'sonic')]:
         state = page.evaluate("""async ([char, part, style]) => {
             await rigTest.setCharacter(char); rigTest.pause();
             const ok = rigTest.playSkill(part);

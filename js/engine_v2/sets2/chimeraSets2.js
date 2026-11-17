@@ -12,6 +12,35 @@ import { FOOT_B } from '../battle/tuning.js';
 import { monsterControllerV2 as monster } from '../monster_v2.js';
 
 const ORANGE = '255, 150, 40', VENOM = '190, 90, 255', SONIC = '120, 230, 255', BLADE = '200, 180, 255', SEA = '60, 150, 255', GOLD = '255, 210, 90';
+// 상어 급강하 (D-146): 뛰어오를 때 발밑 물보라·물방울 → 내리꽂힐 때 큰 물기둥 + 푸른 충격 고리·바닥 금 + 적마다 상어 이빨
+const DIVE_JUMP = fxOf(spr('water_burst', 170, { anchorY: 0.85, dur: 0.5 }),
+    { type: 'drops', at: 0, count: 10, speed: 260, cone: 1.0, size: 3, color: '150, 210, 255' },
+    { type: 'shockwave', at: 0, dur: 0.35, r: 90, width: 6, ground: true, color: SEA });
+const DIVE_LAND = fxOf(spr('water_burst', 260, { anchorY: 0.85, dur: 0.6, glow: 1.1 }),
+    { type: 'flash', at: 0, dur: 0.18, r: 110, color: '190, 230, 255', dy: 40 },
+    { type: 'shockwave', at: 0, dur: 0.5, r: 230, width: 12, ground: true, color: SEA },
+    { type: 'shockwave', at: 0.06, dur: 0.45, r: 160, width: 6, ground: true, color: '190, 230, 255' },
+    { type: 'cracks', at: 0, dur: 0.9, count: 6, len: 100, color: '120, 190, 255' },
+    { type: 'drops', at: 0, count: 16, speed: 340, cone: 1.4, size: 3.5, color: '150, 210, 255' });
+const DIVE_BITE = fxOf(spr('shark_bite', 170, { dur: 0.45 }));
+const DIVE_FALL = fxOf({ type: 'streaks', at: 0, count: 10, speed: 520, angle: Math.PI / 2, cone: 0.25, len: 46, color: '150, 210, 255', dy: 150 });
+// 전투 리그 캔버스는 위로 80px 남짓뿐이라 soar 동작의 몸 솟음(약 45px)만으로는 점프가 거의 안 보임 → 캔버스째 CSS translate로 띄움
+//   (웅크림 0.22 → 0.5초 최고 h px → 0.82 → 1.0 착지). transform이 아닌 translate 속성이라 기절 떨림·쓰러짐 transform과 안 겹침
+const LEAP = [[0, 0], [0.22, 0], [0.5, -1], [0.82, -1.06], [1.0, 0]];
+function sharkLeap(b, ctx, s) {
+    const c = monster.spriteCanvas;
+    if (!c) return;
+    const at = t => {   // 구간마다 부드럽게 (떨어지는 마지막 구간만 점점 빠르게)
+        const i = Math.min(LEAP.length - 1, Math.max(1, LEAP.findIndex(k => k[0] >= t)));
+        const [t0, v0] = LEAP[i - 1], [t1, v1] = LEAP[i];
+        const u = Math.min(1, Math.max(0, (t - t0) / (t1 - t0)));
+        const e = i === LEAP.length - 1 ? u * u : u * u * (3 - 2 * u);
+        return (v0 + (v1 - v0) * e) * s.h;
+    };
+    for (let t = 0; t <= 1.0; t += 0.033) b.schedule(t, () => { c.style.translate = b.isActive ? `0 ${at(t).toFixed(1)}px` : ''; });
+    b.schedule(1.0, () => { c.style.translate = ''; });
+    b.schedule(0.86, () => { if (b.isActive) b.fx.play(DIVE_FALL, b.frontX() + 40, FOOT_B); });
+}
 
 // ---- D-120 (2026-11-11 피드백) ----
 // 삼두 포효: 스킬 설명(사자 포효 기절 → 독수리 돌풍 밀침 → 뱀 독)이 화면에서 세 박자로 보이게 — 박자마다 이름 + 그 머리다운 그림
@@ -264,10 +293,10 @@ export const CHIMERA_SETS2 = packOf('chimera', [
     // ---- 유니크 ③ 심해 상어 괴인 (속도) ----
     {
         letter: 'w', tier: 'unique', no: 3, name: '심해 상어 괴인', style: 'speed', tint: 'hue-rotate(185deg) saturate(1.2) brightness(0.9)',
-        bonus: { 2: '잠항하는 동안 체력 9% 회복', 4: '사냥의 광란 +3초' },
-        kit: { 2: { patch: { cmSubmerge: { regen: 0.075 } } }, 4: { patch: { cmFrenzy: { sec: 3 } } } },
+        bonus: { 2: '급강하하는 동안 체력 9% 회복', 4: '사냥의 광란 +3초' },
+        kit: { 2: { patch: { cmSubmerge: { regen: 0.082 } } }, 4: { patch: { cmFrenzy: { sec: 3 } } } },
         head: { name: '상어 머리', look: '하얀 이빨 줄의 상어 머리', skill: 'cmFrenzy', desc: '필살기 사냥의 광란: 8초간 체력 낮은 적부터 물어뜯음 (쓰러뜨리면 체력 3%)' },
-        body: { name: '지느러미 몸통', look: '등에 솟은 큰 상어 등지느러미', skill: 'cmSubmerge', desc: '잠항: 1.2초 땅속(피해 무시) → 앞 적 아래에서 솟구쳐 큰 피해 + 1.5초 기절' },
+        body: { name: '지느러미 몸통', look: '등에 솟은 큰 상어 등지느러미', skill: 'cmSubmerge', desc: '상어 급강하: 높이 뛰어올라(공중 동안 피해 무시) 앞 적에게 내리꽂혀 큰 피해 + 1.5초 기절' },
         arm: { name: '톱니 이빨 팔', look: '상어 이빨 톱니 건틀릿', skill: 'cmSawBite', desc: '톱니 물기: 3번 물기 — 5초 방어 -30%' },
         leg: { name: '꼬리 지느러미 다리', look: '지느러미 달린 다리', desc: '사냥 감각: 체력 50% 아래 적에게 피해 +20%',
             passive: { name: '사냥 감각', desc: '체력 50% 아래 적에게 주는 피해 +20%', target: [{ when: 'lowHp', below: 0.5, dmg: 0.2 }] } },
@@ -275,12 +304,19 @@ export const CHIMERA_SETS2 = packOf('chimera', [
             cmFrenzy: { name: '사냥의 광란', slot: 'head', ult: true, cd: 0, icon: 'maul', color: '#3c96ff', target: 'enemy', range: 400, clip: 'lunge', p: { sec: 8 },
                 desc: '8초간 체력 낮은 적부터 차례로 물어뜯음 — 쓰러뜨리면 체력 3% 회복',
                 steps: [{ do: 'custom', fn: frenzy, sec: '$sec', every: 0.5, dmg: 3, heal: 0.03 }, { do: 'buff', key: 'frenzy', sec: '$sec', mods: { move: 0.2 } }] },
-            // 잠항 (디스코드 QA 11-14 홍도도 "3초 숨는 게 의미가 있는지"): 숨는 시간 3초 → 1.2초(짧게 피하고 바로 덮침), 솟구침 피해 2 → 2.5,
-            // 쿨다운 14 → 12초. 2부위 회복은 합계 그대로(초당 3% × 3초 = 9% → 초당 7.5% × 1.2초)
-            cmSubmerge: { name: '잠항', slot: 'body', cd: 12, icon: 'wave', color: '#3c96ff', target: 'self', clip: 'flex', p: { regen: 0 },
-                desc: '1.2초간 땅속으로(피해 무시) → 앞 적 아래에서 솟구쳐 큰 피해 + 1.5초 기절',
-                steps: [{ do: 'buff', key: 'submerge', sec: 1.2, mods: { flags: ['invuln'], regen: '$regen' }, vfx: V.water(0, 160, { anchorY: 0.85 }) },
-                    { at: 1.2, do: 'hit', pick: 'nearest', n: 3, range: 220, dmg: 2.5, status: { stun: 1.5 }, vfx: V.sheet('shark_bite', 170, { dur: 0.45 }) }] },
+            // 상어 급강하 (D-146, 예전 '잠항' — 키는 cmSubmerge 그대로): 11-17 사용자 '땅속으로 들어가는 게 아니라 비상 강하처럼 점프해서 내리꽂으며 타격'.
+            //   예전엔 1.2초 땅속(피해 무시) → 앞 적 아래에서 솟구침. 이제 비상 강하 동작(soar)으로 물보라를 차고 뛰어올라(1.1초 피해 무시)
+            //   1초 뒤 앞으로 130px 내리꽂힘 → 가까운 적 3명 큰 피해 + 1.5초 기절 (수치는 잠항 그대로: 피해 2.5 · 기절 1.5 · 쿨 12).
+            //   2부위 회복은 공중에 있는 1.1초 동안 합계 9% 그대로 (초당 8.2%)
+            cmSubmerge: { name: '상어 급강하', slot: 'body', cd: 12, icon: 'wave', color: '#3c96ff', target: 'enemy', range: 220, clip: 'soar', p: { regen: 0 },
+                desc: '높이 뛰어올라(공중 동안 피해 안 받음) 1초 뒤 앞 적에게 내리꽂혀 물어뜯음 — 큰 피해 + 1.5초 기절',
+                steps: [{ do: 'buff', key: 'sharkDive', sec: 1.1, mods: { flags: ['invuln', 'ownLanding'], regen: '$regen' } },
+                    { do: 'custom', fn: sharkLeap, h: 130 },
+                    { at: 0.2, do: 'fx', on: 'self', x: 10, vfx: DIVE_JUMP },
+                    { at: 1.0, do: 'blink', dist: 130 },
+                    { at: 1.05, do: 'fx', x: 40, vfx: DIVE_LAND },
+                    { at: 1.05, do: 'hit', pick: 'nearest', n: 3, range: 220, dmg: 2.5, status: { stun: 1.5 }, vfx: DIVE_BITE },
+                    { at: 1.05, do: 'shake', power: 7, ms: 280 }] },
             cmSawBite: { name: '톱니 물기', slot: 'arm', cd: 8, icon: 'claw', color: '#3c96ff', target: 'enemy', range: 50, clip: 'smash',
                 desc: '앞 적을 3번 물기 — 5초 방어 -30%',
                 steps: [{ at: 0.35, do: 'hit', times: 3, every: 0.15, dmg: 1, status: { vuln: [5, 0.3] }, vfx: V.sheet('shark_bite', 120, { dur: 0.35 }) }] }

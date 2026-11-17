@@ -146,7 +146,7 @@ export class BattleEngine {
         // 리그 애니메이션 이벤트 → 전장 이펙트 (거대로봇 출격 점프 착지)
         monsterControllerV2.onRigEvent = name => {
             if (!this.isActive) return;
-            if (name === 'land') this.fx.play(MECH_VFX.landing, this.monsterX + 35, FOOT_B);
+            if (name === 'land' && !this.kitFlag?.('ownLanding')) this.fx.play(MECH_VFX.landing, this.monsterX + 35, FOOT_B);   // ownLanding: 스킬이 착지 그림을 따로 그림 (상어 급강하 물기둥, D-146)
             // 동작 효과음: 발걸음(거대 캐릭터 걷기 = stomp, 사람 크기 히어로 = step 가볍게), 점프 분사, 기 모으기
             if (name === 'stomp') sound.play('giant_step');
             else if (name === 'step') sound.play('giant_step', { vol: 0.45, rate: 1.5 });
