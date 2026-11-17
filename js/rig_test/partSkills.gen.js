@@ -335,7 +335,7 @@ export const PART_CATALOG = {
    "kind": "스킬 2",
    "skillName": "차원 도약",
    "cd": 14,
-   "desc": "앞으로 200px 순간 이동 — 떠난 자리에 시간 균열 5초 (적 감속)",
+   "desc": "앞으로 200px 순간 이동 — 도착한 자리에 시간 균열 5초 (안의 적 감속 · 받는 피해 +15%)",
    "kit": true
   },
   {
@@ -2102,8 +2102,8 @@ export const PART_CATALOG = {
    "skill": "cmSubmerge",
    "kind": "스킬 2",
    "skillName": "잠항",
-   "cd": 14,
-   "desc": "3초간 땅속으로(피해 무시) → 앞 적 아래에서 솟구쳐 1.5초 기절",
+   "cd": 12,
+   "desc": "1.2초간 땅속으로(피해 무시) → 앞 적 아래에서 솟구쳐 큰 피해 + 1.5초 기절",
    "kit": true
   },
   {
@@ -3644,7 +3644,7 @@ export const PART_CATALOG = {
    "kind": "패시브",
    "skillName": "실 그물 걸음",
    "cd": "",
-   "desc": "걸은 자리에 실이 2초 남아 밟은 적 느려짐",
+   "desc": "걸음마다 앞쪽 바닥에 실 그물이 4초 남아 다가오는 적이 밟으면 느려짐",
    "kit": true
   },
   {

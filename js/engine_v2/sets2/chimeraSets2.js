@@ -264,10 +264,10 @@ export const CHIMERA_SETS2 = packOf('chimera', [
     // ---- 유니크 ③ 심해 상어 괴인 (속도) ----
     {
         letter: 'w', tier: 'unique', no: 3, name: '심해 상어 괴인', style: 'speed', tint: 'hue-rotate(185deg) saturate(1.2) brightness(0.9)',
-        bonus: { 2: '잠항 동안 초당 3% 회복', 4: '사냥의 광란 +3초' },
-        kit: { 2: { patch: { cmSubmerge: { regen: 0.03 } } }, 4: { patch: { cmFrenzy: { sec: 3 } } } },
+        bonus: { 2: '잠항하는 동안 체력 9% 회복', 4: '사냥의 광란 +3초' },
+        kit: { 2: { patch: { cmSubmerge: { regen: 0.075 } } }, 4: { patch: { cmFrenzy: { sec: 3 } } } },
         head: { name: '상어 머리', look: '하얀 이빨 줄의 상어 머리', skill: 'cmFrenzy', desc: '필살기 사냥의 광란: 8초간 체력 낮은 적부터 물어뜯음 (쓰러뜨리면 체력 3%)' },
-        body: { name: '지느러미 몸통', look: '등에 솟은 큰 상어 등지느러미', skill: 'cmSubmerge', desc: '잠항: 3초 땅속(피해 무시) → 솟구쳐 1.5초 기절' },
+        body: { name: '지느러미 몸통', look: '등에 솟은 큰 상어 등지느러미', skill: 'cmSubmerge', desc: '잠항: 1.2초 땅속(피해 무시) → 앞 적 아래에서 솟구쳐 큰 피해 + 1.5초 기절' },
         arm: { name: '톱니 이빨 팔', look: '상어 이빨 톱니 건틀릿', skill: 'cmSawBite', desc: '톱니 물기: 3번 물기 — 5초 방어 -30%' },
         leg: { name: '꼬리 지느러미 다리', look: '지느러미 달린 다리', desc: '사냥 감각: 체력 50% 아래 적에게 피해 +20%',
             passive: { name: '사냥 감각', desc: '체력 50% 아래 적에게 주는 피해 +20%', target: [{ when: 'lowHp', below: 0.5, dmg: 0.2 }] } },
@@ -275,10 +275,12 @@ export const CHIMERA_SETS2 = packOf('chimera', [
             cmFrenzy: { name: '사냥의 광란', slot: 'head', ult: true, cd: 0, icon: 'maul', color: '#3c96ff', target: 'enemy', range: 400, clip: 'lunge', p: { sec: 8 },
                 desc: '8초간 체력 낮은 적부터 차례로 물어뜯음 — 쓰러뜨리면 체력 3% 회복',
                 steps: [{ do: 'custom', fn: frenzy, sec: '$sec', every: 0.5, dmg: 3, heal: 0.03 }, { do: 'buff', key: 'frenzy', sec: '$sec', mods: { move: 0.2 } }] },
-            cmSubmerge: { name: '잠항', slot: 'body', cd: 14, icon: 'wave', color: '#3c96ff', target: 'self', clip: 'flex', p: { regen: 0 },
-                desc: '3초간 땅속으로(피해 무시) → 앞 적 아래에서 솟구쳐 1.5초 기절',
-                steps: [{ do: 'buff', key: 'submerge', sec: 3, mods: { flags: ['invuln'], regen: '$regen' }, vfx: V.water(0, 160, { anchorY: 0.85 }) },
-                    { at: 3, do: 'hit', pick: 'nearest', n: 3, range: 220, dmg: 2, status: { stun: 1.5 }, vfx: V.sheet('shark_bite', 170, { dur: 0.45 }) }] },
+            // 잠항 (디스코드 QA 11-14 홍도도 "3초 숨는 게 의미가 있는지"): 숨는 시간 3초 → 1.2초(짧게 피하고 바로 덮침), 솟구침 피해 2 → 2.5,
+            // 쿨다운 14 → 12초. 2부위 회복은 합계 그대로(초당 3% × 3초 = 9% → 초당 7.5% × 1.2초)
+            cmSubmerge: { name: '잠항', slot: 'body', cd: 12, icon: 'wave', color: '#3c96ff', target: 'self', clip: 'flex', p: { regen: 0 },
+                desc: '1.2초간 땅속으로(피해 무시) → 앞 적 아래에서 솟구쳐 큰 피해 + 1.5초 기절',
+                steps: [{ do: 'buff', key: 'submerge', sec: 1.2, mods: { flags: ['invuln'], regen: '$regen' }, vfx: V.water(0, 160, { anchorY: 0.85 }) },
+                    { at: 1.2, do: 'hit', pick: 'nearest', n: 3, range: 220, dmg: 2.5, status: { stun: 1.5 }, vfx: V.sheet('shark_bite', 170, { dur: 0.45 }) }] },
             cmSawBite: { name: '톱니 물기', slot: 'arm', cd: 8, icon: 'claw', color: '#3c96ff', target: 'enemy', range: 50, clip: 'smash',
                 desc: '앞 적을 3번 물기 — 5초 방어 -30%',
                 steps: [{ at: 0.35, do: 'hit', times: 3, every: 0.15, dmg: 1, status: { vuln: [5, 0.3] }, vfx: V.sheet('shark_bite', 120, { dur: 0.35 }) }] }

@@ -376,7 +376,7 @@ export const MECH_SETS2 = packOf('mech', [
         bonus: { 2: '차원 도약 쿨다운 -4초', 4: '유성에 쓰러진 적마다 체력 1% 회복' },
         kit: { 2: { patch: { mcWarp: { cd: -4 } } }, 4: { on: [{ when: 'kill', flag: 'meteorUlt', heal: 0.01 }] } },
         head: { name: '항성 관측 헬름', look: '은빛 헬름과 별빛 청록 렌즈', skill: 'mcMeteorShower', desc: '필살기 유성우: 7초간 유성 18개 (큰 범위 + 0.5초 기절)' },
-        body: { name: '워프 코어', look: '가슴에 도는 청록 워프 고리', skill: 'mcWarp', desc: '차원 도약: 앞으로 200px 순간 이동 — 떠난 자리에 시간 균열 5초 (적 감속)' },
+        body: { name: '워프 코어', look: '가슴에 도는 청록 워프 고리', skill: 'mcWarp', desc: '차원 도약: 앞으로 200px 순간 이동 — 도착한 자리에 시간 균열 5초 (안의 적 감속 · 받는 피해 +15%)' },
         arm: { name: '광자 블레이드', look: '팔 끝에서 뻗은 청록 빛 칼날', skill: 'mcDimensionCut', desc: '기본 공격 광자 베기 (중거리 호, 둘레까지) · 차원 절단: 일직선 베기 → 1초 뒤 같은 줄 두 번째 베기',
             rigArm: 'fist', kitAttack: { kind: 'melee', vfx: V.slash(-100, 150), splash: 90, splashMul: 0.6 } },
         leg: { name: '추진 비행 다리', look: '발에 청록 추진 불꽃', desc: '저중력 비행: 장판·밀림 무시, 진격 속도 +10%',
@@ -388,8 +388,11 @@ export const MECH_SETS2 = packOf('mech', [
                     { at: 0.3, do: 'rain', count: 18, every: 0.38, x: [40, 560], radius: 85, dmg: 1.6, status: { stun: 0.5 }, vfx: METEOR_HIT,
                         fall: METEOR_FALL(0.45), fallDx: -330, fallTo: 12, delay: 0.45, shake: 3 }] },
             mcWarp: { name: '차원 도약', slot: 'body', cd: 14, icon: 'speed', color: '#96fff0', target: 'enemy', range: 200, clip: 'dash',
-                desc: '앞으로 200px 순간 이동 — 떠난 자리에 시간 균열 5초 (적 감속)',
-                steps: [{ at: 0.1, do: 'blink', dist: 200, dmg: 0.8, vfx: V.portal(120, 150, { dur: 0.5, softEdges: 0.16 }), leave: { tag: 'rift', field: 'rift', w: 170, sec: 5, slow: true } }] },
+                desc: '앞으로 200px 순간 이동 — 도착한 자리에 시간 균열 5초 (안의 적 감속 · 받는 피해 +15%)',
+                steps: [{ at: 0.1, do: 'blink', dist: 200, dmg: 0.8, vfx: V.portal(120, 150, { dur: 0.5, softEdges: 0.16 }),
+                    // 균열은 도착한 자리 앞쪽에 (예전엔 떠난 자리 = 주인공 뒤라 앞에서 오는 적이 밟을 일이 없었음 — 디스코드 QA 11-14 홍도도).
+                    // 감속은 이동만 느려지므로 이미 붙어 싸우는 적에게도 뜻이 있게 받는 피해 +15%를 더함
+                    arrive: { tag: 'rift', field: 'rift', x: -40, w: 240, sec: 5, slow: true, vuln: 0.15 } }] },
             mcDimensionCut: { name: '차원 절단', slot: 'arm', cd: 9, icon: 'sword', color: '#96fff0', target: 'enemy', range: 400, clip: 'rush',
                 desc: '사거리 400 일직선 베기 → 1초 뒤 같은 줄 두 번째 베기',
                 steps: [{ at: 0.15, do: 'line', dmg: 1.6, pierce: 0.3, decay: 1, knock: 0.4, vfx: RIFT(15, 190), hitVfx: V.xcut(0, 90) },

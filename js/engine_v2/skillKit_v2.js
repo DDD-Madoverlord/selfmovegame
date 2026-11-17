@@ -42,7 +42,7 @@ function resolve(b, ctx, step) {
     const out = {};
     for (const [k, v] of Object.entries(step)) {
         if (Array.isArray(v)) out[k] = v.map(x => val(b, ctx, x));
-        else if (v && typeof v === 'object' && !v.layers && (k === 'status' || k === 'zone' || k === 'mods' || k === 'leave' || k === 'end')) out[k] = resolve(b, ctx, v);
+        else if (v && typeof v === 'object' && !v.layers && (k === 'status' || k === 'zone' || k === 'mods' || k === 'leave' || k === 'arrive' || k === 'end')) out[k] = resolve(b, ctx, v);
         else out[k] = val(b, ctx, v);
     }
     return out;
@@ -255,7 +255,8 @@ const STEP = {
     dash(b, s) {
         b.dashForward(s.dist ?? 160, s.sec ?? 0.3, e => kitHit(b, e, s.dmg || 0, s), s.trail || null, { shove: !!s.shove });
     },
-    /** 순간 이동: 앞으로 dist (거점·앞을 막는 적 앞에서 멈춤 — 적을 뚫고 화면 끝까지 가던 것, 11-08 QA), 떠난 자리에 장판 */
+    /** 순간 이동: 앞으로 dist (거점·앞을 막는 적 앞에서 멈춤 — 적을 뚫고 화면 끝까지 가던 것, 11-08 QA).
+     *  leave = 떠난 자리 장판, arrive = 도착한 자리 장판 (x는 도착한 뒤 앞면 기준 — 적은 늘 앞에서 오므로 떠난 자리는 적이 밟지 않음, 11-14 QA) */
     blink(b, s) {
         const building = b.enemies.find(e => e.isBuilding);
         const wall = b.dashBlocker();
@@ -267,6 +268,7 @@ const STEP = {
         b.monsterX = end;
         monster.setMonsterPosition(end);
         if (s.vfx) b.fx.play(s.vfx, end + 50, FOOT_B + 60);
+        if (s.arrive) b.kitZone(s.arrive);
         if (s.dmg) b.enemies.filter(e => aimAt(e).x > start + 60 && aimAt(e).x < end + 160).forEach(e => kitHit(b, e, s.dmg, s));
     },
     buff(b, s, ctx) {

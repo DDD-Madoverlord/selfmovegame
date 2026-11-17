@@ -76,6 +76,7 @@ def run(ctx):
     # ===== 주간 최고: 새 주에는 0부터 =====
     st = g.js("""const week1 = Date.parse('2026-11-10T03:00:00Z'), week2 = week1 + 7 * 24 * 3600 * 1000;
         progress.special.tower = { best: 12, week: null, weekBest: 0 };
+        progress.special.lastSeenAt = 0;   // 시계 되돌림 막기(specialTime)가 실제 오늘로 당기지 않게 — 날짜가 고정이라 11-16 주부터 두 주가 같은 주로 잡혀 실패했음
         progress.finishTower(13, true, week1); const a = progress.towerWeekBest(week1);
         const b2 = progress.towerWeekBest(week2);
         progress.finishTower(14, true, week2); const c = progress.towerWeekBest(week2);

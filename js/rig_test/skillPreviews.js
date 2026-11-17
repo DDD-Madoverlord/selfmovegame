@@ -188,6 +188,7 @@ export function kitPreview(key, slot) {
                 case 'dash': case 'blink':
                     for (let i = 0; i < 6; i++) api.later(i * 0.05, () => play(v || s.trail, api.CHAR_X + i * (far - api.CHAR_X) / 5, api.GROUND_Y - 40 * k));
                     if (s.leave?.field) field(s.leave, api.CHAR_X + 20 * k);
+                    if (s.arrive?.field) field(s.arrive);   // 도착한 자리 장판 (차원 도약 — 미리보기에선 캐릭터가 제자리라 앞쪽에)
                     break;
                 case 'summon': for (let i = 0; i < Math.min(3, Math.round(valOf(sk, s.n, 1))); i++) play(v || aura, api.CHAR_X + (70 + i * 24) * k, api.GROUND_Y); break;
                 case 'shake': api.shake(Math.min(10, s.power ?? 6), (s.ms ?? 250) / 1000); break;

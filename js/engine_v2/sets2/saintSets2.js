@@ -655,8 +655,10 @@ export const SAINT_SETS2 = packOf('saint', [
         head: { name: '실타래 관', look: '머리 위로 떠도는 붉은 실타래들', skill: 'stFateThread', desc: '필살기 운명의 실타래: 6초간 화면 모든 적을 붉은 실로 이음 — 한 적이 받은 피해의 30%가 이어진 적 모두에게', stats: { hp: 700, dps: 110, range: 40, speed: 10 } },
         body: { name: '실 고치 드레스', look: '실을 겹겹이 감은 드레스', skill: 'stCocoon', desc: '실 고치: 4초간 받는 피해 -60%, 끝나면 실이 사방으로 튀어 피해', stats: { hp: 1700, dps: 90, range: 0, speed: 10 } },
         arm: { name: '긴 재봉 바늘', look: '창처럼 긴 바늘, 실패 달린 팔', skill: 'stStitchChain', desc: '꿰매기 사슬: 바늘이 적 4명을 차례로 꿰뚫고 실로 묶음 + 2초 속박', stats: { hp: 400, dps: 500, range: 280, speed: 0 } },
-        leg: { name: '실 그물 신발', look: '발끝에서 실이 풀려 나오는 신발', desc: '실 그물 걸음: 걸은 자리에 실이 남아 밟은 적 느려짐', stats: { hp: 750, dps: 60, range: 0, speed: 115 },
-            passive: { name: '실 그물 걸음', desc: '걸은 자리에 실이 2초 남아 밟은 적 느려짐', step: { do: 'zone', tag: 'web', x: -50, w: 60, sec: 2, slow: true, puff: V.needle(0, 40, { dur: 0.4 }), puffEvery: 0.7 } } },
+        leg: { name: '실 그물 신발', look: '발끝에서 실이 풀려 나오는 신발', desc: '실 그물 걸음: 걸음마다 앞쪽 바닥에 실 그물 (4초) — 다가오는 적이 밟으면 느려짐', stats: { hp: 750, dps: 60, range: 0, speed: 115 },
+            // 실 그물은 앞쪽 바닥에 (예전엔 걸은 자리 = 주인공 뒤 60px에 2초라 앞에서 오는 적이 밟을 일이 없었음 — 디스코드 QA 11-14 홍도도).
+            // 걷는 동안 그물도 바닥과 같이 뒤로 흐르므로, 멈춰 서면 마지막 걸음의 그물이 앞 60~300px에 남아 다가오는 적을 늦춤 (원거리 세트라 쏠 시간이 늘어남)
+            passive: { name: '실 그물 걸음', desc: '걸음마다 앞쪽 바닥에 실 그물이 4초 남아 다가오는 적이 밟으면 느려짐', step: { do: 'zone', tag: 'web', x: 60, w: 240, sec: 4, slow: true, puff: V.needle(0, 40, { dur: 0.4 }), puffEvery: 0.7 } } },
         skills: {
             stFateThread: { name: '운명의 실타래', slot: 'head', ult: true, cd: 0, icon: 'stitch', color: '#eb2846', target: 'enemy', range: 600, clip: 'cast',
                 desc: '6초간 화면 모든 적을 붉은 실로 이음 — 한 적이 받은 피해의 30%가 이어진 적 모두에게',

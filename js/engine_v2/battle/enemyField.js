@@ -23,6 +23,8 @@ import { HERO, HIT_REACT, ACID, POPUP, FOOT_B, BASE_X, SPAWN_X, ENEMY_REACT } fr
 
 // 축복 성수대 (구역 6): 체력 hp × 스테이지 적 체력 배율, 성수대에서 range px 안 적은 받는 피해 cut 감소 (헌금 기사 오라와 겹치면 곱함)
 export const FONT = { hp: 1000, range: 400, cut: 0.25, x: 900, every: 0.2 };
+// 거점이 서 있을 때 적이 나오는 자리 = 거점 왼쪽 끝에서 BASE_FRONT px 앞. 거점이 설 때 그 뒤에 있던 적은 BASE_SORTIE초에 이 줄 앞으로 나옴
+const BASE_FRONT = 30, BASE_SORTIE = 0.35;
 
 // 적 상태 외형 (우선순위: 기절 > 감속 > 저주) + 체력바 옆 상태 아이콘
 const ENEMY_TINT = {
@@ -44,14 +46,38 @@ export const EnemyMethods = {
     spawnMinion(typeId = null, opts = {}) {
         if (!this.domEnemies) return null;
         const building = this.enemies.find(e => e.isBuilding);
-        const x = opts.x ?? (building ? building.x - 30 : SPAWN_X);
+        // 거점이 서 있으면 적은 거점 앞(왼쪽)에서만 나옴 — 다른 적이 불러낸 적(호루라기·분열)도 거점 자리·뒤로 넘어가지 않게
+        // (디스코드 QA 11-16 홍도도 "적이 거점보다 뒤에 나타남")
+        const line = building ? building.x - BASE_FRONT : Infinity;
+        const x = Math.min(opts.x ?? SPAWN_X, line);
         const type = typeId || pickType(this.stage.enemy.mix);
         const elite = opts.elite ?? Math.random() < (this.stage.elite || 0);
         const first = spawnEnemy(this, type, { x, elite });
         // 대열 (새 기획 구역 1 진압 방패병 3열 횡대): 소환 주기로 나올 때만 같은 종류가 뒤에 squad.gap 간격으로 함께 (보통 병사)
+        // 거점이 있으면 뒤(오른쪽)가 거점 자리라 앞(왼쪽)으로 줄을 섬
         const squad = !typeId && ENEMY_TYPES[type]?.squad;
-        if (squad) for (let i = 1; i < squad.n; i++) spawnEnemy(this, type, { x: x + i * squad.gap, elite: false });
+        if (squad) for (let i = 1; i < squad.n; i++) spawnEnemy(this, type, { x: building ? x - i * squad.gap : x + i * squad.gap, elite: false });
         return first;
+    },
+
+    /** 거점이 서는 순간 그 자리·뒤(오른쪽)에 있던 적은 거점 앞으로 달려 나옴 (BASE_SORTIE초) — 왼쪽부터 차례를 지켜 거점 앞 줄에 섬.
+     *  예전엔 오른쪽 끝(SPAWN_X)에서 걸어오던 적이 거점(BASE_X)보다 뒤에 남아 거점 그림에 겹치거나 뒤에서 나타났음.
+     *  진격이 빠를수록(근거리 이동 ×2) 거점이 일찍 서서 자주 보임 — 디스코드 QA 11-16 홍도도 */
+    sortieFromBase(base) {
+        const line = base.x - BASE_FRONT;
+        const back = this.enemies.filter(e => !e.isBuilding && !e.isBarricade && !e.t?.static && e.x > line).sort((p, q) => p.x - q.x);
+        const gap = Math.min(24, 140 / Math.max(1, back.length));
+        back.forEach((e, i) => { e.sortie = { from: e.x, to: line - (back.length - 1 - i) * gap, t: 0 }; });
+    },
+    /** 거점 앞으로 달려 나오는 적 옮기기 (tickEnemies) — 끝났으면 false */
+    tickSortie(e, dt) {
+        const s = e.sortie;
+        s.t += dt;
+        const u = Math.min(1, s.t / BASE_SORTIE);
+        e.x = s.from + (s.to - s.from) * (1 - (1 - u) * (1 - u));   // 처음 빠르고 끝에서 멈춤
+        if (e.dom) e.dom.style.left = `${e.x}px`;
+        if (u >= 1) e.sortie = null;
+        return u < 1;
     },
 
     /** 소환 주기마다 적 하나 (최대 수까지). EMP 포격 뒤에는 잠시 소환 중단 */
@@ -71,6 +97,7 @@ export const EnemyMethods = {
     /** 적 이동·공격 (기절한 적은 멈춤), 감속·기절 시간 줄이기. frontX: 주인공 앞면 x */
     tickEnemies(dt, frontX) {
         this.enemies.forEach(enemy => {
+            if (enemy.sortie && this.tickSortie(enemy, dt)) return;   // 거점 앞으로 달려 나오는 중 (sortieFromBase)
             if (this.supportHeld(enemy)) return; // 지원 소유의 구속: 주인공 상태 시간을 덮어쓰지 않음
             if (enemy.slowT > 0) {
                 enemy.slowT -= dt;
@@ -713,6 +740,7 @@ export const EnemyMethods = {
             hpBar
         };
         this.enemies.push(base);
+        this.sortieFromBase(base);
         return base;
     },
 
