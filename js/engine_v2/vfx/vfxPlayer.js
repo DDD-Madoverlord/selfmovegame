@@ -1009,6 +1009,9 @@ export const VFX_SHEETS = {
     saint_set: { src: 'assets/sprites/vfx/saint_set.webp', frames: 6 },            // 금종 · 촛불 · 약병 · 실 고치 · 재봉 바늘 · 대리석 손 (불투명 물건 그림 — blend 'normal', D-127 Gemini)
     saint_set2: { src: 'assets/sprites/vfx/saint_set2.webp', frames: 6 },           // 붉은 나비 · 금빛 바늘 · 장미 넝쿨 · 큰 장미 · 금 가위 · 금실 천 (불투명 — blend 'normal', D-128 Gemini)
     frost_set: { src: 'assets/sprites/vfx/frost_set.webp', frames: 6 },            // 얼음 감옥 블록 · 큰 눈꽃 · 얼음 창 · 흑조 · 얼음 별 · 빙하 덩어리 (불투명 — blend 'normal', D-137 Gemini)
+    doll_set: { src: 'assets/sprites/vfx/doll_set.webp', frames: 8 },             // 뒤틀린 인형사 물건 (D-147): 0 깜짝 상자 · 1 무대 막 · 2 발레리나 오르골 인형 · 3 그림자 까마귀 · 4 시계바늘(오른쪽 위, 축 왼쪽 아래) · 5 헝겊·종이 인형 · 6 태엽 열쇠 · 7 조종 십자틀
+    arch_set: { src: 'assets/sprites/vfx/arch_set.webp', frames: 8 },             // 철거의 설계자 물건 (D-148, 흰 배경 Gemini): 0 렌치(왼쪽 위 → 오른쪽 아래) · 1 다이너마이트(불붙은 심지) · 2 크레인 훅 · 3 황금 말뚝(아래를 향함) · 4 불도저 삽날 · 5 시한폭탄 · 6 측량 레이저 수준기 · 7 경고 표지판
+    arch_set_px: { src: 'assets/sprites/vfx/arch_set_px.webp', frames: 8 },       // arch_set 도트판 (D-149, tools/images/pixelate_sheet.py arch_set 8 4) — 캐릭터 도트 그림과 어울리게
     ice_wolf: { src: 'assets/sprites/vfx/ice_wolf.webp', frames: 2 },              // 얼음늑대 전신: 달리기 · 덤비기 (불투명 — blend 'normal', D-137 Gemini)
     // 2차 세트 대표 시트 (D-071) — 타락 히어로
     eclipse_sun: { src: 'assets/sprites/vfx/eclipse_sun.webp', frames: 9 },         // 일식 검은 해 + 보라 코로나 (가운데 기준)
@@ -1259,7 +1262,9 @@ const DRAW = {
         // flap: 날갯짓 — 너비가 |sin|으로 접혔다 펴짐 {speed, min} (나비, D-128)
         const flap = it.flap ? (it.flap.min ?? 0.3) + (1 - (it.flap.min ?? 0.3)) * Math.abs(Math.sin((it.t + (it.flap.seed || 0)) * (it.flap.speed ?? 16))) : 1;
         const w = (it.width ?? it.size ?? 160) * s * (it.orbitBack ? 0.85 : 1) * pop * flap;
-        const h = (it.height ?? it.size ?? 160) * s * (it.orbitBack ? 0.85 : 1) * pop * (it.growIn ? Math.min(1, Math.max(0.02, it.t / it.growIn)) : 1);   // growIn: 길이가 기준점에서 뻗어 나감 (레이저, D-118)
+        // flapY: 위아래로 접혔다 펴짐 — 가로 축으로 도는 물건 (태엽 열쇠 돌리기·까마귀 날갯짓, D-147) {speed, min}
+        const flapY = it.flapY ? (it.flapY.min ?? 0.3) + (1 - (it.flapY.min ?? 0.3)) * Math.abs(Math.sin((it.t + (it.flapY.seed || 0)) * (it.flapY.speed ?? 16))) : 1;
+        const h = (it.height ?? it.size ?? 160) * s * (it.orbitBack ? 0.85 : 1) * pop * flapY * (it.growIn ? Math.min(1, Math.max(0.02, it.t / it.growIn)) : 1);   // growIn: 길이가 기준점에서 뻗어 나감 (레이저, D-118)
         // swing: 기준점(anchor) 둘레로 흔들림 {amp(라디안), speed, decay(초당 줄어듦)} — 울리는 종 (D-127)
         const swing = it.swing ? Math.sin(it.t * (it.swing.speed ?? 7)) * (it.swing.amp ?? 0.3) * Math.exp(-it.t * (it.swing.decay ?? 0)) : 0;
         ctx.save();

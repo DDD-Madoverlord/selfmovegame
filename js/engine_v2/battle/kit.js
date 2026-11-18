@@ -23,7 +23,15 @@ const KIT_ALLY_ART = {
     //   glacier_golem: 빙하 거인 (tools/images/build_glacier_golem.py — Gemini 2칸으로 쿵쿵 걷기 16칸 · 두 주먹 내려치기 14칸)
     glacier_golem: { frameWidth: 300, frameHeight: 300, anchorX: 150,
         walk: { src: 'assets/sprites/rig/glacier_golem/glacier_golem_walk.webp', frames: 16, duration: 1.4 },
-        attack: { src: 'assets/sprites/rig/glacier_golem/glacier_golem_attack.webp', frames: 14, duration: 1.0 } }
+        attack: { src: 'assets/sprites/rig/glacier_golem/glacier_golem_attack.webp', frames: 14, duration: 1.0 } },
+    //   papa_bear: 아빠 곰 (tools/images/build_papa_bear.py — Gemini 3칸으로 뒤뚱 걷기 16칸 · 두 앞발 내려치기 14칸, 6칸째 땅에 닿음, D-147)
+    papa_bear: { frameWidth: 300, frameHeight: 300, anchorX: 150,
+        walk: { src: 'assets/sprites/rig/papa_bear/papa_bear_walk.webp', frames: 16, duration: 1.4 },
+        attack: { src: 'assets/sprites/rig/papa_bear/papa_bear_attack.webp', frames: 14, duration: 1.0 } },
+    //   paper_doll: 종이 분신 (tools/images/build_paper_doll.py — doll_set 5칸 헝겊·종이 인형을 팔랑팔랑 12칸, 공격은 같은 그림을 빠르게, D-147)
+    paper_doll: { frameWidth: 160, frameHeight: 170, anchorX: 80,
+        walk: { src: 'assets/sprites/rig/paper_doll/paper_doll_walk.webp', frames: 12, duration: 0.9 },
+        attack: { src: 'assets/sprites/rig/paper_doll/paper_doll_walk.webp', frames: 12, duration: 0.5 } }
 };
 let kitAllyStyles = false;
 function ensureKitAllyStyles() {
@@ -732,7 +740,8 @@ export const KitMethods = {
         if (!this.isActive) return;
         if (ally.kind === 'kit' || ally.kind === 'chimera' || ally.kind === 'rabbit') this.fx.play(KIT_FX.poof, ally.x + 38, FOOT_B);
         if (ally.kitBlast) {
-            const cx = ally.x + 38;
+            const cx = ally.x + 38 + (ally.kitReach || 0);   // 넓은 그림(KIT_ALLY_ART)은 그림 가운데에서
+            if (ally.kitBlast.fx) this.fx.play(ally.kitBlast.fx, cx, FOOT_B);   // 터지는 그림 (장난감 병정 · 종이 분신, D-147)
             this.enemies.filter(e => Math.abs(aimOf(e).x - cx) <= (ally.kitBlast.radius ?? 90))
                 .forEach(e => this.dealDamageToEnemy(e, this.unit() * ally.kitBlast.dmg, false, { knock: 0.6 }));
         }

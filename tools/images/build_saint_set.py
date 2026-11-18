@@ -1,6 +1,8 @@
 """
 물건 그림 묶음 (봉합 성녀·서리의 무희) (Gemini 한 장 3×2칸) → 6칸 가로 띠 assets/sprites/vfx/<이름>.webp
 
+arch_set (D-148, 철거의 설계자 — 흰 배경 4×2칸, python tools/images/build_saint_set.py arch_set 4 2 256): 0 렌치(왼쪽 위 → 오른쪽 아래) · 1 다이너마이트(불붙은 심지) · 2 크레인 훅(줄무늬 도르래, 고리 아래) · 3 황금 말뚝(아래를 향함) · 4 불도저 삽날 · 5 시한폭탄 · 6 측량 레이저 수준기(삼각대) · 7 경고 표지판
+doll_set (D-147, 4×2칸 — python tools/images/build_saint_set.py doll_set 4 2 256): 0 깜짝 상자 · 1 붉은 무대 막 · 2 발레리나 오르골 인형 · 3 그림자 까마귀(오른쪽) · 4 시계바늘(오른쪽 위를 향함, 축 왼쪽 아래) · 5 흰 헝겊 인형 · 6 하트 태엽 열쇠 · 7 조종 십자틀(청록 실)
 saint_set (D-127): 0 금종 · 1 촛불(금 촛대) · 2 초록 약병 · 3 붉은 실 고치 · 4 재봉 바늘(오른쪽 아래를 향함, 붉은 실) · 5 대리석 손(손바닥 아래, 손가락 오른쪽)
 saint_set2 (D-128): 0 붉은 나비(오른쪽으로 남) · 1 금빛 바늘(아래를 향함) · 2 장미 넝쿨 덤불(바닥이 평평) · 3 큰 진홍 장미 · 4 금 가위(벌어짐) · 5 금실 천 리본(가로)
 frost_set (D-137, 서리의 무희): 0 얼음 감옥 블록(바닥 평평) · 1 큰 눈꽃 · 2 얼음 창(오른쪽을 향함) · 3 흑조(오른쪽으로 남) · 4 얼음 별 표창 · 5 빙하 덩어리
@@ -28,14 +30,33 @@ INSET, FADE = 8, 14
 FLOOR, RAMP = 34.0, 40.0   # 검은 배경 문턱·불투명해지는 폭 (밝기 0~255)
 rgb, _ = load_clean(os.path.join('assets', 'sprites', 'vfx', 'src', f'{NAME}_raw.png'))
 h, w = rgb.shape[:2]
+WHITE_BG = rgb[:6, :6].mean() > 200   # 왼쪽 위 구석이 밝으면 흰 배경 그림
+
+
+def white_alpha(cell):
+    """흰 배경 → 알파: 흰색과의 거리로 배경 후보, 칸 테두리에서 이어진 덩어리만 배경, 가장자리는 1px 부드럽게"""
+    from scipy import ndimage
+    d = 255 - cell.min(axis=2)                  # 흰색에서 얼마나 먼지 (가장 어두운 채널 기준)
+    bg = d < 28
+    lab, _ = ndimage.label(bg)
+    edge = set(np.unique(np.concatenate([lab[0], lab[-1], lab[:, 0], lab[:, -1]]))) - {0}
+    outside = np.isin(lab, list(edge))
+    a = (~outside).astype(np.float32)
+    a = ndimage.gaussian_filter(a, 0.8)       # 가장자리 1px 부드럽게 (흰 테가 남지 않게 조금 안쪽으로)
+    return np.where(outside, 0, 1) * np.clip(a * 1.25 - 0.1, 0, 1)
+
+
 frames = []
 for r in range(ROWS):
     for c in range(COLS):
         x0, x1 = round(w * c / COLS) + INSET, round(w * (c + 1) / COLS) - INSET
         y0, y1 = round(h * r / ROWS) + INSET, round(h * (r + 1) / ROWS) - INSET
         cell = rgb[y0:y1, x0:x1].astype(np.float32)
-        a = np.clip((cell.max(axis=2) - FLOOR) / RAMP, 0, 1)
-        a = a * a * (3 - 2 * a)
+        if WHITE_BG:   # 흰 배경 (arch_set, D-148): 칸 가장자리에서 이어진 거의 흰 곳만 배경 — 물건 안의 흰 빛·하이라이트는 남김
+            a = white_alpha(cell)
+        else:
+            a = np.clip((cell.max(axis=2) - FLOOR) / RAMP, 0, 1)
+            a = a * a * (3 - 2 * a)
         ch, cw = a.shape
         yy = np.minimum(np.arange(ch), np.arange(ch)[::-1])[:, None]
         xx = np.minimum(np.arange(cw), np.arange(cw)[::-1])[None, :]
