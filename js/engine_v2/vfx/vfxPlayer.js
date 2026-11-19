@@ -107,8 +107,16 @@ export class VfxPlayer {
 
     /** 이펙트 재생. opts: { scale, follow: () => [x, y], to: [x, y], alive?: () => boolean (판정 제거 시 함께 정리) } */
     play(def, x, y, opts = {}) {
+        if (!def) return;
+        // { layers } 로 감싸지 않은 한 층({ type, ... })도 받음 — 이펙트 데이터 실수 하나로 전투 루프가 오류로 멈추던 것 (11-19 자정의 종 12번째 폭발).
+        // 실수는 그대로 알리게 오류 기록은 한 번 남김 (검사들이 콘솔 오류를 잡음)
+        let layers = def.layers;
+        if (!Array.isArray(layers)) {
+            layers = def.type ? [def] : [];
+            if (!VfxPlayer.warnedRaw) { VfxPlayer.warnedRaw = true; console.error('vfx: { layers } 없는 이펙트 정의', def.type, def.sheet || ''); }
+        }
         const s = opts.scale || 1;
-        for (const layer of def.layers) {
+        for (const layer of layers) {
             this.items.push({ ...layer, t: -(layer.at || 0), x, y, s, follow: opts.follow || null,
                 to: opts.to || null, ...(opts.path ? { path: opts.path } : {}), started: false, owner: opts.owner, alive: opts.alive });
         }

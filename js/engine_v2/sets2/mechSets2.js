@@ -197,6 +197,7 @@ const RIFT_TICK = fxOf(spr('time_stop', 70, { frameRange: [1, 2], dur: 0.6, hue:
     { type: 'motes', at: 0, count: 3, spread: 20, rise: [6, 18], life: [0.6, 0.9], size: 2, color: STAR, dy: 40 });
 const WARP_HIT = fxOf(spr('slash_violet', 120, { dur: 0.25, frameRange: [1, 4], hue: -95, glow: 1.2 }),
     { type: 'sparks', at: 0, count: 6, speed: 240, color: STAR });
+const RIFT_X = 35, RIFT_W = 240;   // 시간 균열 자리 (도착한 뒤 앞면 기준 왼쪽 끝 · 폭)
 function warpJump(b, ctx, s) {
     const snap = heroSnap(b, 'rgb(120, 255, 235)');
     const x0 = b.monsterX, chest = FOOT_B + 70;
@@ -216,7 +217,8 @@ warpJump.preview = (api, k = 1) => {
     api.vfx.play(WARP_OUT, x0, g - 60 * k, { scale: k });
     api.vfx.play(WARP_LINE([x1, chest]), x0, chest, { scale: k, to: [x1, chest] });
     api.later(0.08, () => api.vfx.play(WARP_IN, x1, g - 60 * k, { scale: k }));
-    api.later(0.15, () => { api.vfx.play(RIFT_OPEN, x1 + 120 * k, g - 10 * k, { scale: k }); api.vfx.play(imageFieldFx('timeRift', 240, 3), x1 + 120 * k, g, { scale: k }); });
+    const cx = x1 + (RIFT_X + 40 + RIFT_W / 2) * k;   // 미리보기는 균열 가운데를 캐릭터 가운데 기준으로 (예전 −40일 때 +120)
+    api.later(0.15, () => { api.vfx.play(RIFT_OPEN, cx, g - 10 * k, { scale: k }); api.vfx.play(imageFieldFx('timeRift', RIFT_W, 3), cx, g, { scale: k }); });
 };
 
 function titanStep(b) {
@@ -435,7 +437,9 @@ export const MECH_SETS2 = packOf('mech', [
                 steps: [{ at: 0.1, do: 'custom', fn: warpJump, preview: warpJump.preview, dist: 200, dmg: 0.8,
                     // 균열은 도착한 자리 앞쪽에 (예전엔 떠난 자리 = 주인공 뒤라 앞에서 오는 적이 밟을 일이 없었음 — 디스코드 QA 11-14 홍도도).
                     // 감속은 이동만 느려지므로 이미 붙어 싸우는 적에게도 뜻이 있게 받는 피해 +15%를 더함
-                    arrive: { tag: 'rift', field: 'timeRift', x: -40, w: 240, sec: 5, slow: true, vuln: 0.15 } }] },
+                    // 자리: 앞면 +35 ~ +275 (예전 −40 ~ +200에서 75px 앞으로 — 발밑에 붙어 있어 다가오는 적이 느려질 구간이 거의 없었음, 디스코드 QA 11-17 성용.
+                    //   붙어 싸우는 적(몸 가운데 = 앞면 +50쯤)은 그대로 안에 들어 받는 피해 +15%는 유지)
+                    arrive: { tag: 'rift', field: 'timeRift', x: RIFT_X, w: RIFT_W, sec: 5, slow: true, vuln: 0.15 } }] },
             mcDimensionCut: { name: '차원 절단', slot: 'arm', cd: 9, icon: 'sword', color: '#96fff0', target: 'enemy', range: 400, clip: 'rush',
                 desc: '사거리 400 일직선 베기 → 1초 뒤 같은 줄 두 번째 베기',
                 steps: [{ at: 0.15, do: 'line', dmg: 1.6, pierce: 0.3, decay: 1, knock: 0.4, vfx: RIFT(15, 190), hitVfx: V.xcut(0, 90) },

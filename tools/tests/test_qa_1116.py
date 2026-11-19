@@ -89,6 +89,8 @@ def run(ctx):
               '차원 도약: 시간 균열이 도착한 자리 앞쪽에 깔림 (예전엔 떠난 자리 = 주인공 뒤)', str(st))
     ctx.check(st['slow'] and st['vuln'] and abs((st['vulnAmt'] or 0) - 0.15) < 0.001,
               '차원 도약: 균열 안의 적은 감속 + 받는 피해 +15%', str(st))
+    ctx.check(st['z'] and 20 <= z['x'] - st['front'] <= 60 and z['w'] == 240,
+              '차원 도약: 균열이 발밑이 아니라 앞면 +35부터 (75px 앞으로 — 다가오는 적이 느려질 구간, 디스코드 QA 11-17)', str(st))
     ctx.check(z.get('field') == 'timeRift' and st['art'], '차원 도약: 청록 시계 마법진 시간 균열 + 잔상 그림 (D-143)', str(st))
     g.shot('qa1116_warp_rift', '#screen-battle-v2')
     g.js(BACK)

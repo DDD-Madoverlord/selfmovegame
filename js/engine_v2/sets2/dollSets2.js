@@ -27,13 +27,16 @@ function goldThread(b, e) {
     if (e.kitMarks >= need) { e.kitMarks = 0; b.kitStatus(e, { puppet: 2 }); }
 }
 
-// 시간 되감기: 3초 전 체력으로 (더 높을 때만) + 팔 스킬 쿨다운 초기화 (4부위: 몸통도)
+// 시간 되감기: 3초 전 체력으로 (더 높을 때만) + 팔 스킬 쿨다운 초기화 (4부위: 시간 되감기 쿨다운 절반)
+// 4부위는 예전 "몸통 스킬도 초기화" — 시간 되감기가 곧 몸통 스킬이라 자기 쿨다운을 0으로 돌려, 자동 스킬이면 0.5초마다 끝없이 다시 씀
+//   (되감기 이펙트가 몸을 늘 덮고 '시간 되감기!' 글자가 쌓이며, 팔 쿨다운도 매번 0이라 시계바늘 회전이 5~6겹 겹침 — 11-19 영상).
+//   같은 "한 번 더"를 끝없이 돌지 않게: 지금 걸린 몸통 쿨다운을 절반으로 (16 → 약 8초, 16초에 두 번)
 function rewind(b) {
     const log = b.kitHpLog || [];
     const past = log.length >= 6 ? log[log.length - 6] : log[0];
     if (past > b.playerHp) b.kitHeal(past - b.playerHp);
     b.skillCd.arm = 0;
-    if (b.kitFlag('rewindBody')) b.schedule(0.05, () => { b.skillCd.body = 0; });
+    if (b.kitFlag('rewindBody')) b.skillCd.body *= 0.5;
     b.fx.play(REWIND, b.monsterX + 38, FOOT_B + 100);
     b.createDamagePopup(b.monsterX + 40, 220, '시간 되감기!', false);
 }
@@ -723,7 +726,7 @@ export const DOLL_SETS2 = packOf('doll', [
     // ---- 레전더리 ② 태엽 시계탑의 마녀 (균형) ----
     {
         letter: 'm', tier: 'legendary', no: 2, name: '태엽 시계탑의 마녀', style: 'balance', tint: 'hue-rotate(100deg) saturate(1.4) brightness(1.05) drop-shadow(0 0 7px rgba(200, 150, 255, 0.85))',
-        bonus: { 2: '자정의 종 폭발 범위 +50%', 4: '시간 되감기가 몸통 스킬도 초기화' },
+        bonus: { 2: '자정의 종 폭발 범위 +50%', 4: '시간 되감기 쿨다운 절반 (16 → 8초)' },
         kit: { 2: { patch: { dlMidnight: { range: 150 } } }, 4: { flags: ['rewindBody'] } },
         head: { name: '시계탑 모자', look: '시계 톱니가 도는 자정 보라 모자', skill: 'dlMidnight', desc: '필살기 자정의 종: 1초마다 종 12번 — 울릴 때마다 화면 적 피해 + 0.3초 멈춤, 12번째에 큰 폭발' },
         body: { name: '톱니 드레스', look: '톱니바퀴가 돌아가는 드레스', skill: 'dlRewind', desc: '시간 되감기: 3초 전 체력으로 되돌림 + 팔 스킬 쿨다운 초기화' },
@@ -736,9 +739,10 @@ export const DOLL_SETS2 = packOf('doll', [
                 desc: '1초마다 종 12번 — 울릴 때마다 화면 적 피해 + 0.3초 멈춤, 12번째에 큰 폭발',
                 steps: [{ at: 0.45, do: 'screen', units: true, dmg: 0.4, status: { stun: 0.3 }, vfx: V.sheet('clock_gear', 90, { dur: 0.4 }), maxFx: 6, repeat: 12, repeatGap: 1 },
                     { at: 0.45, do: 'custom', fn: midnightFx, preview: midnightFx.preview },
-                    { at: 11.6, do: 'hit', pick: 'all', range: '$range', dmg: 3, knock: 1, vfx: spr('clock_gear', 160, { frameRange: [4, 8], dur: 0.6 }) }, { at: 11.6, do: 'shake', power: 7, ms: 300 }] },
+                    // 폭발 이펙트는 fxOf로 감싼 정의여야 함 — spr(...) 한 층만 넣으면 fx.play가 def.layers를 못 읽어 오류 → 전투 루프가 멈춤 (11-19 영상: 12번째 종에서 게임 정지)
+                    { at: 11.6, do: 'hit', pick: 'all', range: '$range', dmg: 3, knock: 1, vfx: fxOf(spr('clock_gear', 160, { frameRange: [4, 8], dur: 0.6 })) }, { at: 11.6, do: 'shake', power: 7, ms: 300 }] },
             dlRewind: { name: '시간 되감기', slot: 'body', cd: 16, icon: 'speed', color: '#c896ff', target: 'self', clip: 'cast',
-                desc: '3초 전 체력으로 되돌림 + 팔 스킬 쿨다운 초기화 (4부위: 몸통도)',
+                desc: '3초 전 체력으로 되돌림 + 팔 스킬 쿨다운 초기화 (4부위: 쿨다운 절반)',
                 steps: [{ at: 0.45, do: 'custom', fn: rewind, preview: api => previewStage(api).play(REWIND, api.CHAR_X, 100) }] },
             dlClockHands: { name: '시계바늘 회전', slot: 'arm', cd: 9, icon: 'whirl', color: '#c896ff', target: 'enemy', range: 220, clip: 'spin',
                 desc: '거대 시계바늘 둘이 앞에서 3초 회전 — 여러 번 피해 + 짧은 멈춤',

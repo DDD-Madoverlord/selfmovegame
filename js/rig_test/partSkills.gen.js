@@ -4731,7 +4731,7 @@ export const PART_CATALOG = {
       kind: "스킬 2",
       skillName: "시간 되감기",
       cd: 16,
-      desc: "3초 전 체력으로 되돌림 + 팔 스킬 쿨다운 초기화 (4부위: 몸통도)",
+      desc: "3초 전 체력으로 되돌림 + 팔 스킬 쿨다운 초기화 (4부위: 쿨다운 절반)",
       kit: true,
     },
     {

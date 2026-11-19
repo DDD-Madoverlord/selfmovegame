@@ -109,7 +109,7 @@ export const MELEE_CLEAVE = { radius: 110, mul: 0.75, dmg: 1.15 };
 // 원거리·근거리 차등 (D-119 4·13번, Q-039 임시 = 사용자 요청 값): 팔 공격 종류로 나눔 (role_v2.js roleOfArm)
 //   move = 진격 속도 배율, taken = 받는 피해 배율(방어력 = 1 − taken), dps = 공격력 배율 — progress_v2.js statsFor가 능력치에 곱함
 export const ROLE = {
-    melee: { move: 2, taken: 0.75, dps: 1.2 },
+    melee: { move: 1.5, taken: 0.75, dps: 1.2 },   // 이동 2 → 1.5 (디스코드 QA 11-17 성용 — 진격이 너무 빨라 판마다 속도 차가 극과 극, D-150)
     ranged: { move: 0.5, taken: 1.2, dps: 0.85 },
     mid: { move: 1, taken: 1, dps: 1 }
 };
@@ -179,7 +179,7 @@ export const SET = {
 // ---- 걸음 맞추기 (Q-008 퀄리티업 Q2) ----
 // 바닥 배경·바닥에 놓인 것(구역·장판·잔해·시체)이 흐르는 빠르기와 걷기 동작 빠르기를 실제 진격 속도에 맞춤:
 //   배율 = (이동 속도 × 진격 배율) ÷ ref, 바닥은 ground 범위로, 걷기 동작은 anim 범위로 자름 (속도 ref = 예전처럼 배경 3초에 한 바퀴)
-export const WALK_SYNC = { ref: 120, ground: [0.35, 3.2], anim: [0.6, 1.9] };   // D-119: 근거리 ×2 · 원거리 ×0.5 속도까지 바닥이 미끄러지지 않게 넓힘
+export const WALK_SYNC = { ref: 120, ground: [0.35, 3.2], anim: [0.6, 1.9] };   // D-119: 근거리 ×2(지금 ×1.5) · 원거리 ×0.5 속도까지 바닥이 미끄러지지 않게 넓힘
 
 // ---- 반응 동작 (Q-008 퀄리티업 Q4, rig/reactions.js) ----
 // 주인공 움찔: 한 방 공격은 hitEvery초에 한 번까지, 계속 맞는 근접 피해는 meleeEvery초마다

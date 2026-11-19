@@ -56,7 +56,7 @@ const TIER_SHORT = { rare: 'R', unique: 'U', legendary: 'L' };
 const setMark = s => (s ? `<span class="v2-setmark" style="--grade:${gradeOf(SET_TIERS[s.tier].minGrade).color}">${TIER_SHORT[s.tier]}${'①②③④'[s.no - 1] || s.no}</span>` : '');
 const COMPARE_ROWS = [['최대 체력', 'hp'], ['초당 피해', 'dps'], ['사거리', 'range'], ['이동 속도', 'speed'], ['방어력 %', 'armor']];   // 능력치 비교 · 휴대폰 카드 안 능력치
 // 원거리·근거리 유형 한 줄 (D-119): 팔 공격 종류로 정해지는 배율
-const ROLE_LINE = { melee: '근거리 · 이동 ×2 · 받는 피해 −25% · 공격 ×1.2 · 넓게 휩쓸기', ranged: '원거리 · 이동 ×0.5 · 받는 피해 +20% · 공격 ×0.85', mid: '중거리 · 보정 없음' };
+const ROLE_LINE = { melee: '근거리 · 이동 ×1.5 · 받는 피해 −25% · 공격 ×1.2 · 넓게 휩쓸기', ranged: '원거리 · 이동 ×0.5 · 받는 피해 +20% · 공격 ×0.85', mid: '중거리 · 보정 없음' };
 const roleLine = st => `<div class="v2-compare__role is-${st.role}"><dt>유형</dt><dd>${ROLE_LINE[st.role] || ''}</dd></div>`;
 const LAB_RIG = { width: 350, height: 400, rootX: 175, rootY: 384, scale: 0.36, fit: { x: 22, y: 16 }, shadow: true, fitCss: true };   // fitCss: 휴대폰 배치 실제 크기에서도 선명하게 (rigAvatar.js _fitRes)
 
