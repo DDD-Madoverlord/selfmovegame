@@ -9,12 +9,38 @@
 // ---- 2-1 파츠 등급 ----
 // upCost: 강화(Lv) 비용 배율 — 높은 등급일수록 단계마다 더 비쌈 (2026-11-03 Trello '등급별 강화 비용 차등', 임시 값 Q-018)
 // maxLevel: 그 등급의 강화 한도 (D-124 파츠 성장 안 C, Q-041 임시) — 계정 한도(열린 난이도 + 숨김 그룹, progress.maxLevel)와 작은 쪽
+// legSpeed: 다리 파츠의 이동 속도 px/초 (회의 ⑤ · D-154 ②, 2026-11-21 — '일반 0.5 / 레어 0.8 / 유니크 1.2 / 레전더리 1.5').
+//   다리 속도는 파츠마다가 아니라 등급이 정함 (예전엔 70~163으로 제각각이라 레전더리 다리가 레어보다 느리기도 했음).
+//   → D-158 (11-22): 기준 100 → 140 (70 / 112 / 168 / 210) — 커먼 근거리 조합이 11-21 전 진격 속도로 돌아옴. 아래 LEG · legRatio
+//   세트 다리는 등급 바닥 값이 파츠 데이터에 들어가고(partsExtra_v2.js registerV2Parts), 등급을 올린 다리는 올린 등급 값(progress.partStats).
+//   근거리 ×1.5 · 원거리 ×1(예전 ×0.5 — Q-052, D-157)(battle/tuning.js ROLE)는 네 부위 속도를 더한 뒤 그대로 곱함
+// startLevel: 그 등급 파츠가 처음부터 갖는 강화 레벨 (회의 ⑦ · D-154 ①) — 상위 등급 새 파츠가 Lv1이면 이전 등급을 한도까지 키운 파츠보다
+//   26~43% 약해서 갈아끼우면 손해였음. 레어 3 · 유니크 5 · 레전더리 6 = 이전 등급 최고(커먼 Lv5 · 레어 Lv7 · 유니크 Lv9)의 92~94%
+// ---- 등급 고유 능력치 (회의 ② · 묶음 B 설계서, Q-053 → D-158, 2026-11-22) — 파츠의 지금 등급이 값을 정함 (등급을 올리면 같이 오름) ----
+//   legRatio  : 다리 이동 속도 = LEG.base × legRatio (회의 0.5 / 0.8 / 1.2 / 1.5 — 기준 100 → 140, 진격 속도 숙제)
+//   atkSpd    : 팔 — 기본 공격 동작 빠르기 (타격 횟수, 스킬 쿨다운은 그대로 · battle/kit.js tickKit)
+//   pierce    : 근거리 팔 — 적 방어의 이 비율을 없는 것으로 (enemyField.js dealDamageToEnemy). 중거리 팔은 절반
+//   rangeBonus: 원거리 팔 — 사거리 + px (progress.statsFor). 중거리 팔은 절반
+//   knockCut  : 몸통 — 적 기술에 밀리는 거리 감소 (player.js knockPlayerBack)
+//   ccCut     : 머리 — 감속 · 기절 · 속박 시간 감소, 옵션 '냉기 저항'과 더해 한도 OPTION_CAPS.ccCut (battle/growth.js ccMul)
+//   값은 밸런스 조절 패널(시험 모드, liveTune_v2.js)에서 바로 바꿔 볼 수 있음
+export const LEG = { base: 140, cap: 240 };   // cap: 진격 속도 상한 (하한 30과 같은 방식, progress.statsFor)
+export const GRADE_TRAIT = { power: 1, atkMax: 1.9 };   // power: 방어 무시 · 사거리 · 넉백 · 상태이상 저항을 한꺼번에 (조절 패널, ×0이면 꺼짐) · atkMax: 버프와 곱한 동작 빠르기 상한
+const grade = g => ({ ...g, get legSpeed() { return Math.round(LEG.base * this.legRatio); } });
 export const GRADES = [
-    { id: 'common', name: '커먼', color: '170, 176, 190', mul: 1.0, options: 0, upCost: 1.0, maxLevel: 5 },
-    { id: 'rare', name: '레어', color: '80, 160, 255', mul: 1.1, options: 1, upCost: 1.3, maxLevel: 7 },
-    { id: 'unique', name: '유니크', color: '186, 104, 255', mul: 1.2, options: 2, upCost: 1.7, maxLevel: 9 },
-    { id: 'legendary', name: '레전더리', color: '255, 150, 40', mul: 1.35, options: 2, upCost: 2.2, maxLevel: 14 }
+    grade({ id: 'common', name: '커먼', color: '170, 176, 190', mul: 1.0, options: 0, upCost: 1.0, maxLevel: 5, startLevel: 1,
+        legRatio: 0.5, atkSpd: 1.0, pierce: 0, rangeBonus: 0, knockCut: 0, ccCut: 0 }),
+    grade({ id: 'rare', name: '레어', color: '80, 160, 255', mul: 1.1, options: 1, upCost: 1.3, maxLevel: 7, startLevel: 3,
+        legRatio: 0.8, atkSpd: 1.05, pierce: 0.15, rangeBonus: 20, knockCut: 0.25, ccCut: 0.1 }),
+    grade({ id: 'unique', name: '유니크', color: '186, 104, 255', mul: 1.2, options: 2, upCost: 1.7, maxLevel: 9, startLevel: 5,
+        legRatio: 1.2, atkSpd: 1.1, pierce: 0.3, rangeBonus: 40, knockCut: 0.5, ccCut: 0.2 }),
+    grade({ id: 'legendary', name: '레전더리', color: '255, 150, 40', mul: 1.35, options: 2, upCost: 2.2, maxLevel: 14, startLevel: 6,
+        legRatio: 1.5, atkSpd: 1.15, pierce: 0.45, rangeBonus: 60, knockCut: 0.75, ccCut: 0.3 })
 ];
+/** 처음 값 (조절 패널의 기본값 · 되돌리기용) */
+export const GRADE_BASE = GRADES.map(g => ({ id: g.id, mul: g.mul, atkSpd: g.atkSpd, pierce: g.pierce, rangeBonus: g.rangeBonus, knockCut: g.knockCut, ccCut: g.ccCut }));
+export const LEG_BASE = { ...LEG };
+export const GRADE_TRAIT_BASE = { ...GRADE_TRAIT };
 // 강화비 곡선 (D-124): 기준값 × 0.6 × 레벨^UP_EXP × 등급 배율 — 예전 레벨^1 (DM이 남아돌아 성장 속도를 조각만 정하던 것, tools/tests/growth_model.py)
 export const UP_EXP = 1.6;
 // 등급 올리기 (D-124): 지금 등급의 강화 한도까지 키운 뒤 조각 + DM + 승급석(스페셜맵 보스 러시) — 예전엔 조각만 (DROP.shardCost)
@@ -75,10 +101,23 @@ export const DROP = {
     },
     // 조각으로 세트 파츠 만들기 (안 가진 부위, 등급 바닥으로 나옴) — 드랍 운이 나빠도 끝이 보이게
     craftCost: { rare: 30, unique: 80, legendary: 200 },
+    // 만들기에도 DM (회의 ⑥ · D-154 ④, 2026-11-21): 조각만 보면 등급 올리기(조각 + DM + 승급석, PROMO)보다 훨씬 싸서 '그냥 만들어짐' → 등급 올리기와 같은 DM
+    craftDm: { rare: 20000, unique: 80000, legendary: 200000 },
     // 판 클리어 드랍 = 파츠 대신 공용 파츠 조각 (11-05 피드백 23번, Q-029 임시 — 만들기 비용의 약 1/10, 커먼은 2)
     //   확률·등급표는 위 그대로 (chance · grades), 보스전 첫 클리어 확정 드랍만 파츠 그대로
-    shardDrop: { common: 2, rare: 3, unique: 8, legendary: 20 }
+    shardDrop: { common: 2, rare: 3, unique: 8, legendary: 20 },
+    // 헬 · 나이트메어 판 클리어 드랍은 조각 대신 (회의 ⑥ · D-154 ③): 상위 등급 파츠는 공용 조각 제작으로만 얻게 했으므로 조각을 더 풀지 않음.
+    //   헬 = DM, 나이트메어 = 승급석 (등급 추첨은 위 grades 그대로, 양만 여기 — Claude가 맡아 정한 임시 값, 측정 뒤 조절)
+    stageDrop: {
+        hell: { kind: 'dm', amount: { unique: 6000, legendary: 15000 } },
+        nightmare: { kind: 'stones', amount: { legendary: 1 } }
+    }
 };
+/** 판 클리어 드랍으로 받는 것 { kind: 'shards' | 'dm' | 'stones', amount } — 난이도와 추첨된 등급으로 */
+export function stageDropOf(difficulty, grade) {
+    const s = DROP.stageDrop[difficulty];
+    return s ? { kind: s.kind, amount: s.amount[grade] ?? 0 } : { kind: 'shards', amount: DROP.shardDrop[grade] ?? 0 };
+}
 // 구역 상성 캐릭터 (추천안 — 구역 이야기와 맞춘 짝)
 export const AFFINITY = { 1: ['mech', 'frost'], 2: ['kaiju', 'doll'], 3: ['hero', 'saint'], 4: ['chimera', 'diver'], 5: ['diver'], 6: ['saint'], 7: ['doll'], 8: ['frost'], 9: ['architect'], 10: ['broadcaster'] };   // 구역 6 = 성녀의 구역 (D-078), 구역 5 = 길잡이의 구역 (새 기획 D-085)
 

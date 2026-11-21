@@ -333,7 +333,7 @@ Object.assign(ENEMY_TYPES, {
     zealot: { name: '광신도', hp: 330, dps: 36, speed: [86, 110], reward: 1 },
     lightmage: {
         name: '빛의 마법사', hp: 270, dps: 0, speed: [64, 78], reward: 1.7,
-        rocket: { range: 300, every: 3.4, dmg: 38, apex: 130, dur: 0.85, color: '255, 230, 140', fx: 'arrowHit', label: null }   // 빛의 화살 곡사
+        rocket: { range: 300, every: 3.4, dmg: 38, apex: 130, dur: 0.85, color: '255, 230, 140', fx: 'arrowHit', label: null, sfx: 'en_holy' }   // 빛의 화살 곡사 (sfx: 새 소리 묶음에서만)
     },
     battlepriest: {
         name: '전투 신관', hp: 340, dps: 0, speed: [56, 66], reward: 2,
@@ -641,6 +641,24 @@ export const ELITE_AFFIXES = {
     volatile: { name: '폭발', color: '255, 140, 40', delay: 1, radius: 150, dmg: 0.04 },
     iron: { name: '강철', color: '200, 205, 215', cut: 0.2 }
 };
+// 속성 효과 배율 (회의 ⑩ — 나이트메어 ×1.25, stage.affixPower): 속성마다 세지는 값. 'x' = 그대로 곱함, '+' = 1을 넘는 부분만 곱함(배율 값)
+const AFFIX_POWER_KEYS = {
+    swift: { speedMul: '+', dpsMul: '+' }, shielded: { shield: 'x' }, thorns: { reflect: 'x', cap: 'x' }, regen: { rate: 'x' },
+    frost: { slow: 'x' }, toxic: { sec: 'x' }, volatile: { dmg: 'x' }, iron: { cut: 'x' }
+};
+const affixCache = new Map();
+/** 속성 값 (효과 배율 반영). power 1이면 ELITE_AFFIXES 그대로 */
+export function eliteAffix(id, power = 1) {
+    const base = ELITE_AFFIXES[id];
+    if (!base || !(power > 0) || power === 1) return base;
+    const key = `${id}:${power}`;
+    if (!affixCache.has(key)) {
+        const out = { ...base };
+        for (const [k, how] of Object.entries(AFFIX_POWER_KEYS[id] || {})) out[k] = how === '+' ? 1 + (base[k] - 1) * power : base[k] * power;
+        affixCache.set(key, out);
+    }
+    return affixCache.get(key);
+}
 
 const ENEMY_CENTER = 38;   // 적 x(왼쪽 끝)에서 몸 가운데까지 — 겨누기·이펙트 기준 (bases_v2.js aimAt)
 const ART_FOOT_B = 58;     // 그림 적의 발 높이 (bottom px)
@@ -772,7 +790,11 @@ export function spawnEnemy(b, typeId, opts = {}) {
             affixes.push(...new Set(opts.affixes.filter(id => Object.hasOwn(ELITE_AFFIXES, id))));
         } else {
             const pool = Object.keys(ELITE_AFFIXES);
-            const count = b.stage.affixCount ?? (b.stage.zone >= 3 ? 2 : 1);   // 난이도별 (difficulty_v2.js affixCountFor)
+            // 속성 개수: 난이도별 [최소, 최대] 사이 무작위 (difficulty_v2.js affixCountFor — 노말 1 · 하드 1 · 헬 2~3 · 나이트메어 3, 회의 ⑩).
+            // 노말 판은 난이도 배율 없이 원래 스테이지를 써서 affixCount가 없음 → 1개
+            const ac = b.stage.affixCount ?? 1;
+            const [lo, hi] = Array.isArray(ac) ? ac : [ac, ac];
+            const count = lo + Math.floor(Math.random() * (hi - lo + 1));
             for (let i = 0; i < count; i++) affixes.push(pool.splice(Math.floor(Math.random() * pool.length), 1)[0]);
         }
     }
@@ -809,17 +831,20 @@ export function spawnEnemy(b, typeId, opts = {}) {
         type: typeId, t, x: opts.x, hp, maxHp: hp,
         dps: t.dps * se.dps * (elite ? ELITE.dps : 1),
         speed: rand(t.speed), isBuilding: false, dom: el, hpBar: bar, art, artKey: artKey || typeId, attacking: false,
-        elite, affixes, boss: !!t.boss, armor: t.armor || 0, knockResist: !!t.knockResist || affixes.includes('iron'),
+        // 하드: 엘리트가 받는 피해 −10% (stage.eliteArmor) — 종류 방어력과 겹쳐 곱함
+        elite, affixes, boss: !!t.boss, armor: elite && b.stage.eliteArmor ? 1 - (1 - (t.armor || 0)) * (1 - b.stage.eliteArmor) : t.armor || 0,
+        knockResist: !!t.knockResist || affixes.includes('iron'),
         reward: (t.reward || 1) * (elite ? ELITE.reward * (1 + ELITE.affixReward * affixes.length) : 1),
         baseFilter: [own ? '' : t.tint, elite ? 'drop-shadow(0 0 5px #ffd24a)' : '',
             affixes.length ? `drop-shadow(0 0 7px rgb(${ELITE_AFFIXES[affixes[0]].color}))` : ''].filter(Boolean).join(' '),
         cd: { skill: Math.random() * 1.5, smite: 0 }
     };
+    const power = b.stage.affixPower || 1;   // 나이트메어: 속성 효과 ×1.25 (eliteAffix)
     if (affixes.includes('swift')) {
-        e.speed *= ELITE_AFFIXES.swift.speedMul;
-        e.dps *= ELITE_AFFIXES.swift.dpsMul;
+        e.speed *= eliteAffix('swift', power).speedMul;
+        e.dps *= eliteAffix('swift', power).dpsMul;
     }
-    if (affixes.includes('shielded')) e.shield = e.maxShield = e.maxHp * ELITE_AFFIXES.shielded.shield;
+    if (affixes.includes('shielded')) e.shield = e.maxShield = e.maxHp * eliteAffix('shielded', power).shield;
     b.updateEnemyFilter(e);
     e.scale = scale;
     b.enemies.push(e);
@@ -834,7 +859,7 @@ export function spawnEnemy(b, typeId, opts = {}) {
 export function updateEnemy(b, e, dt, frontX) {
     const t = e.t;
     const blocked = e.healBlockUntil > b.stats.time || e.purifyUntil > b.stats.time;   // 치유 방해 옵션·정화 파동 (battle/growth.js)
-    const regen = e.affixes?.includes('regen') && !blocked && ELITE_AFFIXES.regen;
+    const regen = e.affixes?.includes('regen') && !blocked && eliteAffix('regen', b.stage.affixPower);
     if (regen && b.stats.time - (e.lastHit || 0) >= regen.delay && e.hp < e.maxHp) {
         e.hp = Math.min(e.maxHp, e.hp + e.maxHp * regen.rate * dt);
         if (e.hpBar) e.hpBar.style.width = `${(e.hp / e.maxHp) * 100}%`;
@@ -844,7 +869,7 @@ export function updateEnemy(b, e, dt, frontX) {
             b.fx.play(ELITE_VFX.regenMotes, e.x + ENEMY_CENTER, FOOT_B + 30);
         }
     }
-    const frost = e.affixes?.includes('frost') && !(e.purifyUntil > b.stats.time) && ELITE_AFFIXES.frost;
+    const frost = e.affixes?.includes('frost') && !(e.purifyUntil > b.stats.time) && eliteAffix('frost', b.stage.affixPower);
     if (frost) {
         e.cd.frostFx = (e.cd.frostFx || 0) + dt;
         if (e.cd.frostFx >= 0.5) {
@@ -1025,6 +1050,15 @@ export function updateEnemy(b, e, dt, frontX) {
     }
     setAttacking(e, true);
     b.damagePlayer(e.dps * dt, dt, e);   // e: 가시 갑옷 되돌림 대상
+    // 새 소리 묶음: 휘두를 때마다 '적 근접' (공격 동작 한 바퀴에 한 번 — 처음엔 동작 가운데쯤에서). 보스는 자기 소리가 있어 뺌
+    if (!e.boss && e.dps > 0 && sound.has('en_melee')) {
+        const swing = e.art?.attack?.duration || 0.8;
+        e.cd.swing = (e.cd.swing ?? swing * 0.5) + dt;
+        if (e.cd.swing >= swing) {
+            e.cd.swing = 0;
+            sound.play('en_melee', { x: b.fx.panX(e.x + ENEMY_CENTER) });
+        }
+    }
 
     if (silenced) return;   // 침묵: 감전·도끼·방패 강타·정의의 일격·서리 같은 특수 공격 없이 근접만
     if (frost && e.dps > 0) {
@@ -1093,7 +1127,7 @@ export function updateEnemy(b, e, dt, frontX) {
 function moveBy(b, e, px) {
     if (e.rootT > 0) return;   // 속박 (저주의 사슬): 제자리에서 공격만
     px *= b.kitEnemyMove ? b.kitEnemyMove(e) : 1;   // 2차 패시브 마왕의 위압: 보통 적 이동 감소 (battle/kit.js)
-    if (e.purifyUntil > b.stats.time && e.affixes?.includes('swift')) px /= ELITE_AFFIXES.swift.speedMul;   // 정화 파동: 가속 해제
+    if (e.purifyUntil > b.stats.time && e.affixes?.includes('swift')) px /= eliteAffix('swift', b.stage.affixPower).speedMul;   // 정화 파동: 가속 해제
     if (e.hasteUntil > b.stats.time) px *= e.hasteMul || 1;   // 혈관 기생충 광폭화 (새 기획 구역 4)
     e.x -= px;
     if (e.dom) e.dom.style.left = `${e.x}px`;
@@ -1160,13 +1194,15 @@ function shootNet(b, e) {
 function lobRocket(b, e) {
     const r = e.t.rocket;
     playOnce(e, 'attack');
-    sound.play('mech_missile_launch', { rate: 0.9, vol: 0.6 });
+    const own = !!r.sfx && sound.has(r.sfx);   // 종류 전용 소리 (새 소리 묶음 — 빛의 마법사): 미사일 발사음 대신
+    if (own) sound.play(r.sfx, { x: b.fx.panX(e.x + ENEMY_CENTER) });
+    else sound.play('mech_missile_launch', { rate: 0.9, vol: 0.6 });
     b.fx.launchMissile({ x: e.x + 6, bottom: 150 }, () => ({ x: b.monsterX + 60, b: FOOT_B + 30 }), () => {
         if (!b.isActive) return;
         b.fx.play(ZONE_VFX[r.fx || 'rocketBlast'], b.monsterX + 60, FOOT_B + 20);
         if (!r.fx) b.director.shake(6, 260);
         b.damagePlayer(r.dmg * b.stage.enemy.dps * b.rangedMul(), 0, null, e);
-    }, { apex: r.apex || 160, dur: r.dur || 1.1, color: r.color || '255, 160, 80' });
+    }, { apex: r.apex || 160, dur: r.dur || 1.1, color: r.color || '255, 160, 80', sfx: own ? null : undefined });
 }
 
 // EMP 드론 (새 기획 구역 1)·주파수 교란기 (구역 10): 전파 방해 — 작은 피해 + 팔·몸통 스킬 쿨다운 늘리기 (자기장 방벽이면 절반, 여러 대가 겹쳐도 한 대만큼)
@@ -1190,6 +1226,7 @@ function empPulse(b, e) {
 function throwNapalm(b, e) {
     const n = e.t.napalm;
     playOnce(e, 'attack');
+    if (!n.kind) sound.play('en_fire', { x: b.fx.panX(e.x + ENEMY_CENTER) });   // 불 던지는 소리 (새 소리 묶음에서만 — 성수 등 다른 장판은 빼고)
     const tx = b.monsterX + 60;
     b.fx.launchOrb({ x: e.x + 4, bottom: 100 }, () => ({ x: tx, b: FOOT_B + 6 }), n.color || '255, 140, 40', 0.4, () => {
         if (!b.isActive) return;

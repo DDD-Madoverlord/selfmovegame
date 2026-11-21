@@ -15,7 +15,7 @@
    allies.js 졸개 공격력(sigAllyMul) · 기본 공격 맞힘(sigOnBasicHit)
    ========================================================================== */
 
-import { SIGNATURE } from './tuning.js';
+import { SIGNATURE, MELEE_FEATURE } from './tuning.js';
 import { progress } from '../progress_v2.js';
 import { characterOfPart } from '../roster_v2.js';
 import { roleOfArm } from '../role_v2.js';
@@ -32,7 +32,16 @@ export const TraitMethods = {
 
     /** 주인공이 적에게 주는 피해 배율 (협력 공격 제외 — enemyField.js dealDamageToEnemy): 고유 특성 × 특성 트리 '주는 피해' (D-125) */
     sigTargetMul(e) {
-        return this.sigCharMul(e) * (1 + (this.treeMods?.dmg || 0));
+        return this.sigCharMul(e) * this.meleeFeatureMul(e) * (1 + (this.treeMods?.dmg || 0));
+    },
+
+    /** 근거리 특징 (묶음 B ③, D-158): 근거리 팔일 때 캐릭터마다 건물형(거점 · 바리케이드 +) / 몬스터형(보통 적 · 엘리트 +, 보스 제외) */
+    meleeFeatureMul(e) {
+        if (this.sigRole !== 'melee') return 1;
+        const type = MELEE_FEATURE.type[this.sigChar];
+        if (type === 'building') return e.isBuilding || e.isBarricade ? 1 + MELEE_FEATURE.building : 1;
+        if (type === 'monster') return isUnit(e) && !e.boss ? 1 + MELEE_FEATURE.monster : 1;
+        return 1;
     },
 
     /** 고유 특성만의 피해 배율 */

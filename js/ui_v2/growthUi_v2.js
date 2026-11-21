@@ -1,7 +1,9 @@
 /* ==========================================================================
    PROJECT: MAD OVERLORD // 강화 외 성장 화면 조각 (v2, Q-006)
    ① 재화 칩 (★ 남은 별 · 파츠 조각 · 스킬 코어) — 메인·연구소 위쪽
-   ② 작전 지원 창 (메인 "작전 지원" 버튼): 전술 모듈 · 파견 · 계정 연구 — 별·DM·조각·코어를 쓰는 곳
+   ② 작전 지원 창 (메인 "작전 지원" 버튼): 협력 출격 · 전술 모듈 · 특성 · 파견 · 계정 연구 · 외형 · 펫 — 별·DM·조각·코어를 쓰는 곳
+   ③ 스페셜맵 카드(specialHtml — 보스 러시 · 파괴 작전 · 오버로드의 탑)는 메인 화면 SPECIAL MAP 탭에 그림 (menu_v2.js, 회의 ⑳ 2026-11-21 —
+      예전엔 이 창의 '스페셜' 탭)
    수치는 engine_v2/growth_v2.js, 저장은 engine_v2/progressGrowth_v2.js.
    ========================================================================== */
 
@@ -53,7 +55,7 @@ let timer = null;
 let onChange = null;
 
 export function openGrowthPanel(startTab = 'modules', changed = null) {
-    tab = startTab;
+    tab = startTab === 'special' ? 'modules' : startTab;   // 스페셜맵은 메인 SPECIAL MAP 탭으로 옮김 (회의 ⑳)
     if (tab === 'coop') { progress.supportHelpSeen = true; progress.save(); }
     onChange = changed;
     if (!panel) {
@@ -111,20 +113,6 @@ function act(name, d) {
     if (name === 'traitChar') { traitChar = d.char; sound.play('ui_tab'); return render(false); }
     if (name === 'openTrait') r = progress.openTraitTier(d.char);
     if (name === 'pickTrait') { progress.pickTrait(d.char, Number(d.tier), Number(d.branch)); sound.play('ui_equip'); return render(); }
-    if (name === 'startTower') {   // 오버로드의 탑 (D-126): 횟수 없음, 다음 층으로
-        const res = progress.startTower();
-        if (!res.success) { toast(res.reason, false); return render(); }
-        closeGrowthPanel();
-        window.madOverlordGameV2.startSpecial(res.stage);
-        return;
-    }
-    if (name === 'startSpecial') {   // 스페셜맵 입장 (D-123): 횟수 1 쓰고 전투로
-        const res = progress.startSpecial(d.mode);
-        if (!res.success) { toast(res.reason, false); return render(); }
-        closeGrowthPanel();
-        window.madOverlordGameV2.startSpecial(res.stage);
-        return;
-    }
     if (name === 'equipSkin') { progress.equipSkin(d.char, d.id || null); sound.play('ui_equip'); return render(); }
     if (name === 'equipModule') { progress.equipModule(Number(d.slot), d.id || null); sound.play('ui_tab'); return render(); }
     if (name === 'upModule') r = progress.upgradeModule(d.id);
@@ -145,8 +133,8 @@ function render(preserveScroll = true) {
     if (!panel) return;
     const scrollTop = preserveScroll ? (panel.querySelector('.v2-growth__body')?.scrollTop || 0) : 0;
     const petUnlocked = progress.stage('1-1', 'normal').cleared || progress.pets.owned.some(id => progress.canUsePet(id));
-    const tabs = [['coop', '협력 출격'], ['special', '스페셜'], ['modules', '전술 모듈'], ['traits', '특성'], ['dispatch', '파견'], ['research', '계정 연구'], ['skins', '외형'], ['pets', '펫']];
-    const body = tab === 'coop' ? supportHtml() : tab === 'dispatch' ? '' : tab === 'research' ? researchHtml() : tab === 'skins' ? skinsHtml() : tab === 'traits' ? traitsHtml() : tab === 'special' ? specialHtml() : tab === 'pets'
+    const tabs = [['coop', '협력 출격'], ['modules', '전술 모듈'], ['traits', '특성'], ['dispatch', '파견'], ['research', '계정 연구'], ['skins', '외형'], ['pets', '펫']];
+    const body = tab === 'coop' ? supportHtml() : tab === 'dispatch' ? '' : tab === 'research' ? researchHtml() : tab === 'skins' ? skinsHtml() : tab === 'traits' ? traitsHtml() : tab === 'pets'
         ? petUnlocked ? petsHtml() : '<p class="v2-growth__hint">노말 1-1을 클리어하면 펫이 열립니다.</p>' : modulesHtml();
     panel.innerHTML = `<div class="v2-growth__box v2-panel">
         <div class="v2-growth__head" data-currency>
@@ -186,8 +174,9 @@ function modulesHtml() {
         <div class="v2-modslots">${slotHtml}</div><div class="v2-modgrid">${cards}</div>`;
 }
 
-/** 스페셜맵 (D-123): 보스 러시 · 파괴 작전, 모드마다 하루 3회 (한국 시간 0시에 다시 채움) */
-function specialHtml() {
+/** 스페셜맵 (D-123): 보스 러시 · 파괴 작전, 모드마다 하루 3회 (한국 시간 0시에 다시 채움) + 오버로드의 탑.
+    메인 화면 SPECIAL MAP 탭이 그림 — 단추(data-act startSpecial · startTower)는 menu_v2.js가 받음 */
+export function specialHtml() {
     if (!progress.specialUnlocked()) return `<p class="v2-growth__hint">노말 ${SPECIAL.unlockStage}를 깨면 스페셜맵이 열립니다.</p>`;
     const dots = mode => Array.from({ length: SPECIAL.daily[mode] }, (_, i) => `<i class="${i < progress.specialLeft(mode) ? 'is-on' : ''}"></i>`).join('');
     const step = progress.nextBossStep(), rw = bossReward(step);

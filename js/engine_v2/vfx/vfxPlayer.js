@@ -65,6 +65,7 @@
      onSfx(name, x): 효과음 연결 지점 (x = 이펙트 자리, 소리 좌우에 씀 — battleFx가 사운드 매니저를 연결)
    ========================================================================== */
 
+import { settings } from '../settings_v2.js';
 import { drawGroundField } from './groundFields.js';
 import { dispersedSheet, drawDispersion } from './spriteDispersion.js';
 import { EXTRA_DRAW, preloadSkillArt } from './skillFx2.js';
@@ -72,6 +73,8 @@ import { EXTRA_DRAW, preloadSkillArt } from './skillFx2.js';
 const WHITE = '255, 255, 255';
 const GROUND_TYPES = new Set(['rune', 'glow', 'cracks', 'mist']);
 const MAX_PARTS = 700;
+const LOW_PARTS = 250;   // 저사양 모드 (설정 lowSpec, 회의 ⑬): 입자를 이만큼만
+const maxParts = () => (settings.get('lowSpec') ? LOW_PARTS : MAX_PARTS);
 const BLOCKABLE = new Set(['orb', 'missile', 'needle']);   // 막는 벽에 막히는 탄 (D-124)
 const BLOCK_FX = { layers: [{ type: 'sparks', at: 0, count: 10, speed: 260, angle: 0, cone: 2.2, color: '255, 220, 140' },
     { type: 'flash', at: 0, dur: 0.12, r: 22, color: '255, 240, 200' }] };   // 입자 상한: 넘으면 오래된 것부터 버림 (스킬이 겹쳐도 프레임 유지)
@@ -228,7 +231,7 @@ export class VfxPlayer {
                     p.dur = p.splatLife;
                     p.vx = p.vy = p.g = 0;
                     // 자식은 얼룩·재분열 없이 끝남. 작은 방울도 같은 700개 상한을 사용한다.
-                    for (let i = 0; i < 2 && this.parts.length < MAX_PARTS; i++) {
+                    for (let i = 0; i < 2 && this.parts.length < maxParts(); i++) {
                         this.parts.push({ kind: 'goo', x: p.x, y: p.y - p.r * 0.3, floor: p.floor,
                             vx: (i ? 1 : -1) * (25 + this.rand() * 35) * p.s, vy: -(40 + this.rand() * 45) * p.s,
                             g: 650 * p.s, drag: 1.8, t: 0, dur: 0.3, r: p.r * 0.28, s: p.s, color: p.color, splat: false, owner: p.owner });
@@ -237,7 +240,7 @@ export class VfxPlayer {
             }
         }
         this.parts = this.parts.filter(p => p.t < p.dur);
-        if (this.parts.length > MAX_PARTS) this.parts.splice(0, this.parts.length - MAX_PARTS);
+        if (this.parts.length > maxParts()) this.parts.splice(0, this.parts.length - maxParts());
 
         const wall = this.barrier ? this.barrier() : null;
         for (const pr of this.projectiles) {
@@ -269,7 +272,7 @@ export class VfxPlayer {
             }
         }
         this.projectiles = this.projectiles.filter(pr => !pr.done);
-        if (this.parts.length > MAX_PARTS) this.parts.splice(0, this.parts.length - MAX_PARTS);
+        if (this.parts.length > maxParts()) this.parts.splice(0, this.parts.length - maxParts());
     }
 
     // 저주 장판: 장판 곳곳에서 기운이 피어오르고, 안에 들어온 대상마다 촉수가 자라남
@@ -322,7 +325,7 @@ export class VfxPlayer {
                     dur: 0.25 + this.rand() * 0.2, drag: 4, color: it.color, s });
             }
         } else if (it.type === 'streaks') {
-            for (let i = 0; i < Math.min(it.count ?? 8, MAX_PARTS); i++) {
+            for (let i = 0; i < Math.min(it.count ?? 8, maxParts()); i++) {
                 const a = this._cone(it);
                 const v = (it.speed ?? 380) * s * (0.65 + this.rand() * 0.7);
                 this.parts.push({ kind: 'streak', x, y, vx: Math.cos(a) * v, vy: Math.sin(a) * v, t: 0,
@@ -331,7 +334,7 @@ export class VfxPlayer {
             }
         } else if (it.type === 'shards' || it.type === 'goo') {
             const shard = it.type === 'shards';
-            for (let i = 0; i < Math.min(it.count ?? 6, MAX_PARTS); i++) {
+            for (let i = 0; i < Math.min(it.count ?? 6, maxParts()); i++) {
                 const a = this._cone({ angle: -Math.PI / 2, cone: 2.6, ...it });
                 const v = (it.speed ?? 190) * s * (0.65 + this.rand() * 0.55);
                 const p = { kind: shard ? 'shard' : 'goo', x, y, vx: Math.cos(a) * v, vy: Math.sin(a) * v,
@@ -357,7 +360,7 @@ export class VfxPlayer {
                 this.parts.push(p);
             }
         } else if (it.type === 'dust') {
-            const n = Math.min(it.count ?? 5, MAX_PARTS);
+            const n = Math.min(it.count ?? 5, maxParts());
             for (let i = 0; i < n; i++) {
                 const dir = it.dir === 'left' ? -1 : it.dir === 'right' ? 1 : (i % 2 ? 1 : -1);
                 this.parts.push({ kind: 'dust', x: x + dir * this.rand() * 8 * s, y, vx: dir * (it.speed ?? 130) * s * (0.6 + this.rand() * 0.6),
@@ -370,7 +373,7 @@ export class VfxPlayer {
         } else if (it.type === 'bolt') {
             it.seed = this.rand() * 10000;
         } else if (it.type === 'flame') {
-            for (let i = 0; i < Math.min(it.count ?? 6, MAX_PARTS); i++) {
+            for (let i = 0; i < Math.min(it.count ?? 6, maxParts()); i++) {
                 const a = this._cone({ angle: 0, cone: 0.3, ...it });
                 const v = (it.speed ?? 420) * s * (0.9 + this.rand() * 0.2);
                 this.parts.push({ kind: 'flame', x, y, vx: Math.cos(a) * v, vy: Math.sin(a) * v,
@@ -380,7 +383,7 @@ export class VfxPlayer {
                     phase: this.rand() * Math.PI * 2, layer: it.layer || 'front' });
             }
         } else if (it.type === 'embers') {
-            for (let i = 0; i < Math.min(it.count ?? 3, MAX_PARTS); i++) {
+            for (let i = 0; i < Math.min(it.count ?? 3, maxParts()); i++) {
                 const a = this._cone({ angle: -Math.PI / 2, cone: 1.8, ...it });
                 const v = (it.speed ?? 100) * s * (0.6 + this.rand() * 0.6);
                 this.parts.push({ kind: 'ember', x, y, vx: Math.cos(a) * v, vy: Math.sin(a) * v,

@@ -98,6 +98,8 @@ class Game:
         self.page.evaluate('() => { window.madOverlordNoIntro = true; }')
         # 피로도(Q-049)도 끔 — 출격을 여러 번 하는 검사가 피로도에 막히지 않게. test_stamina.py만 다시 켬
         self.page.evaluate('() => { window.madOverlordNoStamina = true; }')
+        # 느린 기기 안내(회의 ⑬)도 끔 — 헤드리스 검사는 프레임이 낮아 아무 전투에서나 뜰 수 있음. test_meeting_a.py만 다시 켬
+        self.page.evaluate('() => { window.madOverlordNoPerfHint = true; }')
         self.wait(300)
 
     def reload_v2(self):

@@ -14,12 +14,12 @@ import { monsterControllerV2 } from '../monster_v2.js';
 import { gameTime } from '../gameTime.js';
 import { sound } from '../audio/sound_v2.js';
 import { KAIJU_VFX, BATTLE_VFX, ZONE_VFX, ELITE_VFX } from '../vfx/vfxDefs.js';
-import { spawnEnemy, updateEnemy, pickType, killReward, ENEMY_TYPES, ELITE_AFFIXES } from '../enemies_v2.js';
+import { spawnEnemy, updateEnemy, pickType, killReward, ENEMY_TYPES, ELITE_AFFIXES, eliteAffix } from '../enemies_v2.js';
 import { coach } from '../../ui_v2/coach_v2.js';
 import { icon } from '../../ui_v2/icons.js';
 import { KIT_STATUS_ICON, KIT_STATUS_TINT } from './kit.js';
 import { BASE_STATE, baseArt, baseArtName, baseSize, aimAt as aimOf, dressBase, setBaseState } from '../bases_v2.js';
-import { HERO, HIT_REACT, ACID, POPUP, FOOT_B, BASE_X, SPAWN_X, ENEMY_REACT } from './tuning.js';
+import { HERO, HIT_REACT, ACID, POPUP, FOOT_B, BASE_X, SPAWN_X, ENEMY_REACT, LINE } from './tuning.js';
 
 // 축복 성수대 (구역 6): 체력 hp × 스테이지 적 체력 배율, 성수대에서 range px 안 적은 받는 피해 cut 감소 (헌금 기사 오라와 겹치면 곱함)
 export const FONT = { hp: 1000, range: 400, cut: 0.25, x: 900, every: 0.2 };
@@ -95,6 +95,28 @@ export const EnemyMethods = {
     },
 
     /** 적 이동·공격 (기절한 적은 멈춤), 감속·기절 시간 줄이기. frontX: 주인공 앞면 x */
+    /**
+     * 기준 벽 (회의 ⑲): 프레임 끝에 한 번 — 살아 있는 적(거점 빼고)은 주인공 앞면보다 LINE.back 넘게 뒤로 가 있을 수 없음.
+     * 넘어가는 길이 여럿이라(블랙홀·소용돌이 장판이 바닥과 함께 주인공 뒤로 흘러가 적을 그쪽으로 끌어당김, 끌어당기기 스킬,
+     * 빠른 배속에서 한 프레임에 크게 다가오는 바닥 물체, 돌진으로 지나친 적) 길마다 막지 않고 마지막에 한 번 세움.
+     * stats.lineHolds = 세운 횟수 (검사·진단용)
+     */
+    holdLine() {
+        const wall = this.frontX() - LINE.back;
+        for (const e of this.enemies) {
+            if (e.isBuilding || e.hp <= 0 || !(e.x < wall)) continue;
+            e.x = wall;
+            if (e.dom) e.dom.style.left = `${e.x}px`;
+            this.stats.lineHolds = (this.stats.lineHolds || 0) + 1;
+        }
+    },
+
+    /** 주인공이 갈 수 있는 가장 오른쪽 x: 가장 가까운 거점·바리케이드 앞(LINE.baseGap), 없으면 LINE.maxX */
+    playerMaxX() {
+        const solid = this.enemies.filter(e => e.hp > 0 && (e.isBuilding || e.isBarricade)).reduce((m, e) => Math.min(m, e.x), Infinity);
+        return Math.min(LINE.maxX, solid - LINE.baseGap);
+    },
+
     tickEnemies(dt, frontX) {
         this.enemies.forEach(enemy => {
             if (enemy.sortie && this.tickSortie(enemy, dt)) return;   // 거점 앞으로 달려 나오는 중 (sortieFromBase)
@@ -239,13 +261,18 @@ export const EnemyMethods = {
             damage = 0;
             if (this.stats.time - (enemy.invulPopAt ?? -Infinity) >= 0.8) { enemy.invulPopAt = this.stats.time; this.createDamagePopup(enemy.x, 200, '🛡 무적', false); }
         }
-        if (enemy.armor && damage > 0) damage *= 1 - enemy.armor * (1 - modified.pierce);   // 방패병·보스: 받는 피해 감소 (인형사 가위·협력 인형사 표식은 일부 무시)
+        if (enemy.armor && damage > 0) {
+            const own = !supportSource && react?.source !== 'ally' ? (this.gradeTr?.pierce || 0) : 0;   // 근거리 팔 등급 방어 무시 (D-158) — 주인공 공격만
+            const pierce = 1 - (1 - modified.pierce) * (1 - own);                                         // 원래 무시(인형사 가위 등)와 겹치면 곱해서
+            damage *= 1 - enemy.armor * (1 - pierce);   // 방패병·보스: 받는 피해 감소 (인형사 가위·협력 인형사 표식은 일부 무시)
+            if (react && !react.dot) sound.play('hit_tail_metal', { x: this.fx.panX(enemy.x + 38) });   // 갑옷을 친 뒤 금속 울림 (새 소리 묶음에서만, 0.2초에 한 번)
+        }
         if (enemy.barrierT > 0 && damage > 0) damage *= 1 - enemy.t.barrier.cut;
         if (enemy.blessMul < 1 && damage > 0) damage *= enemy.blessMul;              // 구역 6 축복 (성수대·헌금 기사)
         if (enemy.hidden && damage > 0) damage *= 1 - enemy.t.stealth.cut;          // 그림자 집행자 은신
         if (!supportSource && enemy.frozenT > 0 && damage > 0) damage *= 1 + this.shatterBonus();   // 서리의 무희 다리 '빙판 걸음' (frost.js)
         if (enemy.affixes?.includes('iron') && !purified && damage > 0) {
-            damage *= 1 - ELITE_AFFIXES.iron.cut;
+            damage *= 1 - eliteAffix('iron', this.stage.affixPower).cut;
             if (this.stats.time - (enemy.ironFxAt ?? -Infinity) >= 0.3) {
                 enemy.ironFxAt = this.stats.time;
                 this.fx.play(ELITE_VFX.ironSpark, enemy.x + 38, FOOT_B + 55);
@@ -264,7 +291,7 @@ export const EnemyMethods = {
         }
         const typeThorns = enemy.t && enemy.t.thorns;   // 새 기획 구역 8 화로 방패병: 종류 자체가 근접 화상 반사
         if (!supportSource && ((enemy.affixes?.includes('thorns') && !purified) || typeThorns) && react && !react.dot && damage > 0) {   // 협력 공격은 반사 안 받음
-            const thorns = enemy.affixes?.includes('thorns') && !purified ? ELITE_AFFIXES.thorns : typeThorns;
+            const thorns = enemy.affixes?.includes('thorns') && !purified ? eliteAffix('thorns', this.stage.affixPower) : typeThorns;
             const cut = 1 - (this.gear?.reflectCut || 0);   // 반사 차단 옵션
             this.damagePlayer(Math.min(damage * thorns.reflect, this.maxPlayerHp * thorns.cap) * cut, 0);
             if (this.stats.time - (enemy.thornsFxAt ?? -Infinity) >= 0.3) {
@@ -462,7 +489,9 @@ export const EnemyMethods = {
             return;
         }
         this.stats.kills += 1;
-        sound.play('enemy_die', { x: this.fx.panX(aimOf(enemy).x) });
+        // 새 소리 묶음: 보병 같은 작은 적(엘리트·보스·방패·중장갑 아님)은 '처치 · 소형' — 예전 묶음에서는 모두 enemy_die
+        const small = !enemy.boss && !enemy.elite && !enemy.armor && !enemy.knockResist;
+        sound.play(small && sound.has('kill_small') ? 'kill_small' : 'enemy_die', { x: this.fx.panX(aimOf(enemy).x) });
         this.dropStatues(enemy);    // 열기 주술사: 못 깨운 조각상은 함께 부서짐
         this.onGrowthKill(enemy);   // 스킬 코어 · 핏빛 달 변이 (growth.js)
         this.onSetKill(enemy);      // 레어 세트 4부위 효과 (sets.js — 독안개 산성 옮기기)
@@ -472,7 +501,7 @@ export const EnemyMethods = {
         if (enemy.stitchT > 0) this.addCorpse(enemy);   // 봉합 성녀: 봉합된 채 쓰러지면 시체 (battle/saint.js)
         gameState.addDarkMatter(killReward(this, enemy));
         if (enemy.affixes?.includes('toxic') && !purified) {
-            const toxic = ELITE_AFFIXES.toxic;
+            const toxic = eliteAffix('toxic', this.stage.affixPower);
             const w = toxic.width * (this.mutator?.toxicWidth || 1), sec = toxic.sec * (this.mutator?.toxicMul || 1);   // 맹독 변이
             this.addPuddle(enemy.x + 38 - w / 2, w, sec);
             this.fx.play(ELITE_VFX.toxicCloud, enemy.x + 38, FOOT_B + 10);
@@ -483,7 +512,7 @@ export const EnemyMethods = {
             this.fx.play(ZONE_VFX.gooSplat, enemy.x + 38, FOOT_B + 30, { scale: 1.3 });
         }
         if (enemy.affixes?.includes('volatile') && !purified) {
-            const volatile = ELITE_AFFIXES.volatile;
+            const volatile = eliteAffix('volatile', this.stage.affixPower);
             const x = enemy.x + 38;
             this.fx.play(ELITE_VFX.volatileWarn, x, FOOT_B);
             this.schedule(volatile.delay, () => {

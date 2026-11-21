@@ -100,12 +100,18 @@ def run(ctx):
               "모으는 세트 짝은 '모으는 세트' 묶음으로 맨 앞, 나머지는 등급 순", f'{heads} {[c["name"] for c in cards]}')
 
     # 등급별 강화 비용 (11-03): 같은 파츠·같은 레벨이면 커먼 < 레어 < 유니크 < 레전더리 (배율 1.0 · 1.3 · 1.7 · 2.2, growth_v2.js GRADES upCost)
+    # 회의 ⑦ (11-21): 등급마다 시작 레벨(1 · 3 · 5 · 6)과 한도(5 · 7 · 9 · 14)가 달라 네 등급이 같이 설 수 있는 레벨이 없음 → 겹치는 레벨끼리 견줌
     st = g.js("""const id = 'arm_mech_laser', out = {};
-        for (const gr of ['common', 'rare', 'unique', 'legendary']) { progress.grades[id] = gr; out[gr] = progress.upgradeCost(id); }
-        progress.grades[id] = 'rare';
+        const max0 = progress.maxLevel; progress.maxLevel = () => 14;
+        const at = (gr, lv) => { progress.grades[id] = gr; progress.levels[id] = lv; return progress.upgradeCost(id); };
+        out.c4 = at('common', 4); out.r4 = at('rare', 4); out.r6 = at('rare', 6); out.u6 = at('unique', 6); out.l6 = at('legendary', 6);
+        delete progress.levels[id];
+        out.start = ['common', 'rare', 'unique', 'legendary'].map(gr => { progress.grades[id] = gr; return progress.levelOf(id); });
+        progress.grades[id] = 'rare'; progress.maxLevel = max0;
         return out;""")
-    ctx.check(st['common'] < st['rare'] < st['unique'] < st['legendary'] and abs(st['legendary'] / st['common'] - 2.2) < 0.05,
-              '강화 비용: 등급이 높을수록 비쌈 (레전더리 = 커먼의 약 2.2배)', str(st))
+    ctx.check(st['c4'] < st['r4'] and st['r6'] < st['u6'] < st['l6'] and abs(st['r4'] / st['c4'] - 1.3) < 0.03 and abs(st['l6'] / st['r6'] - 2.2 / 1.3) < 0.03,
+              '강화 비용: 같은 레벨이면 등급이 높을수록 비쌈 (커먼 1.0 · 레어 1.3 · 유니크 1.7 · 레전더리 2.2)', str(st))
+    ctx.check(st['start'] == [1, 3, 5, 6], '시작 레벨: 커먼 1 · 레어 3 · 유니크 5 · 레전더리 6 (회의 ⑦)', str(st['start']))
 
     # 등급 단계 (11-03, growth_v2.js TIER_UNLOCK): 그 캐릭터의 커먼 3개 → 레어 · 레어 4개 → 유니크 · 유니크 5개 → 레전더리
     st = g.js("""const { SLOTS, partsOfCharacter } = await import('/js/engine_v2/roster_v2.js'); const S = await import('/js/engine_v2/sets_v2.js');

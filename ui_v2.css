@@ -1490,6 +1490,28 @@ button.v2-trait { cursor: pointer; }
 .v2-tune__foot { display: flex; flex-wrap: wrap; gap: 6px; padding: 8px 12px; border-top: 1px solid rgba(255, 255, 255, 0.1); }
 .v2-tune__foot button { flex: 1; font: 800 12px var(--v2-font); padding: 8px 6px; border-radius: 4px; cursor: pointer; color: #16120a; background: var(--v2-amber); border: 0; }
 .v2-tune__foot button:disabled { filter: grayscale(1) brightness(0.55); cursor: not-allowed; }
+.v2-tune__body h3 small { font-size: 10px; color: var(--v2-dim); font-weight: 400; margin-left: 6px; }
+/* 등급 묶음 (D-158): 지금 장착 값 · 등급 고정 · 등급 표 */
+.v2-tune__now { margin: 4px 0 8px; padding: 6px 8px; font-size: 11px; line-height: 1.5; color: #cfe9ff; background: rgba(62, 230, 255, 0.06); border: 1px solid rgba(62, 230, 255, 0.18); border-radius: 4px; }
+.v2-tune__now p { margin: 0; }
+.v2-tune__now b { color: #fff; font-variant-numeric: tabular-nums; }
+.v2-tune__force { display: grid; gap: 4px; margin: 4px 0 8px; font-size: 12px; }
+.v2-tune__force small { display: block; font-size: 10px; color: var(--v2-dim); }
+.v2-tune__seg { display: flex; flex-wrap: wrap; gap: 4px; }
+.v2-tune__seg button { flex: 1; min-width: 48px; padding: 4px 2px; font: 700 11px var(--v2-font); color: #fff; background: rgba(255, 255, 255, 0.06); border: 1px solid rgba(255, 255, 255, 0.2); border-radius: 4px; cursor: pointer; }
+.v2-tune__seg button[aria-pressed="true"] { color: #16120a; background: var(--v2-amber); border-color: var(--v2-amber); }
+.v2-tune__gridwrap { overflow-x: auto; }
+.v2-tune__grid { width: 100%; border-collapse: collapse; font-size: 11px; }
+.v2-tune__grid th { font-weight: 700; text-align: center; padding: 2px; }
+.v2-tune__grid tr > th:first-child { text-align: left; width: 92px; font-weight: 400; }
+.v2-tune__grid tr > th:first-child span { display: block; font-size: 11.5px; color: #fff; }
+.v2-tune__grid tr > th:first-child small { display: block; font-size: 9.5px; color: var(--v2-dim); line-height: 1.2; }
+.v2-tune__grid td { padding: 2px; }
+.v2-tune__cell { width: 100%; min-width: 0; box-sizing: border-box; padding: 4px 2px; font: 12px var(--v2-font-num, monospace); text-align: center; color: #fff;
+    background: rgba(255, 255, 255, 0.06); border: 1px solid rgba(255, 255, 255, 0.18); border-radius: 3px; -moz-appearance: textfield; }
+.v2-tune__cell::-webkit-inner-spin-button, .v2-tune__cell::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+.v2-tune__cell.is-changed { color: #ff8a5a; border-color: #ff8a5a; }
+.v2-tune__groupreset { width: 100%; margin: 6px 0 2px; padding: 6px; font: 700 11px var(--v2-font); color: #fff; background: rgba(255, 255, 255, 0.06); border: 1px solid rgba(255, 255, 255, 0.2); border-radius: 4px; cursor: pointer; }
 .v2-tune__toast { position: absolute; left: 12px; right: 12px; bottom: 64px; padding: 8px 10px; font-size: 12px; text-align: center; color: #16120a; background: #8dffb0; border-radius: 4px; }
 .v2-skinlist { display: grid; gap: 8px; }
 .v2-skinrow { --sk: #888; display: grid; grid-template-columns: minmax(96px, 1fr) repeat(3, minmax(88px, 1fr)); gap: 8px; align-items: center;
@@ -1953,21 +1975,35 @@ div.v2-settings__row > span { flex: 1; }
     border: 1px solid rgba(255, 176, 32, 0.2);
 }
 #menu-radar-v2 { position: absolute; inset: 0; width: 100%; height: 100%; }
-.v2-radar__locked {
+/* 저사양 모드 (설정 lowSpec, 회의 ⑬): 화면 전체를 다시 그리게 만드는 흐림 효과를 끔 */
+body.v2-lowspec * { backdrop-filter: none !important; -webkit-backdrop-filter: none !important; }
+/* 느린 기기 안내 (perfHint_v2.js): 전투 화면 위쪽 한 줄 */
+.v2-perfhint { position: absolute; left: 50%; top: 96px; transform: translateX(-50%); z-index: 260; display: flex; align-items: center; gap: 10px;
+    max-width: 92%; padding: 8px 12px; font-size: 13px; color: var(--v2-text); background: rgba(8, 10, 14, 0.94);
+    border: 1px solid var(--v2-amber); border-radius: 6px; box-shadow: 0 0 18px rgba(255, 176, 32, 0.25); }
+.v2-perfhint b { color: var(--v2-amber); }
+.v2-perfhint small { color: var(--v2-dim); font-size: 11px; }
+.v2-perfhint .v2-btn { flex: none; padding: 5px 12px; font-size: 12px; }
+
+/* SPECIAL MAP 탭: 레이더 위에 작전 카드 (보스 러시 · 파괴 작전 · 오버로드의 탑 — 회의 ⑳, 예전 작전 지원 › 스페셜 탭) */
+.v2-radar__special {
     position: absolute;
     inset: 0;
     display: flex;
     flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    gap: 6px;
-    background: rgba(5, 6, 9, 0.75);
+    gap: 8px;
+    padding: 10px 12px;
+    overflow-y: auto;
+    background: rgba(5, 6, 9, 0.82);
     backdrop-filter: blur(2px);
-    color: var(--v2-dim);
 }
-.v2-radar__locked[hidden] { display: none; }
-.v2-radar__locked strong { font-family: var(--v2-font-num); font-size: 20px; letter-spacing: 3px; color: var(--v2-amber); }
-.v2-radar__locked small { font-size: 12px; }
+.v2-radar__special[hidden] { display: none; }
+.v2-radar__special .v2-special { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.v2-radar__special .v2-special__card { padding: 9px 10px; gap: 4px; align-content: start; }
+.v2-radar__special .v2-special__card small { font-size: 11px; line-height: 1.4; }
+.v2-radar__special .v2-special__card button { font: 800 12px var(--v2-font); padding: 5px 12px; border-radius: 4px; cursor: pointer; align-self: end;
+    color: #16120a; background: var(--v2-amber); border: 1px solid var(--v2-amber); }
+.v2-radar__special .v2-special__card button:disabled { filter: grayscale(1) brightness(0.55); cursor: not-allowed; }
 .v2-radar__foot { font-family: var(--v2-font-num); font-size: 11px; letter-spacing: 1px; text-align: center; color: var(--v2-dim); }
 .v2-radar__tabs { display: flex; gap: 12px; }
 /* 구역은 지도를 좌우로 밀어 넘김 (stageMap_v2.js, D-104 — 예전 구역 번호 탭 없앰) */
@@ -2424,6 +2460,7 @@ div.v2-settings__row > span { flex: 1; }
 .v2-partcard__name { font-size: 13px; font-weight: 800; color: color-mix(in srgb, rgb(var(--grade)) 60%, #fff); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .v2-partcard__faction { font-size: 10px; color: var(--fc); }
 .v2-partcard__stats { font-family: var(--v2-font-num); font-size: 10px; color: var(--v2-dim); }
+.v2-partcard__trait { font-weight: 400; color: rgb(var(--grade, 170, 176, 190)); }   /* 등급 고유 능력치 (D-158) — 등급 색 */
 .v2-partcard__skill { display: flex; align-items: center; gap: 4px; font-size: 11px; color: var(--sk, var(--v2-dim)); white-space: nowrap; overflow: hidden; }
 .v2-partcard__skill em { font-style: normal; font-family: var(--v2-font-num); font-size: 8px; padding: 0 3px; color: #16120a; background: var(--sk, var(--v2-dim)); }
 .v2-partcard__badge {

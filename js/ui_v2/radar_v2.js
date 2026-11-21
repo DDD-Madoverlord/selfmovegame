@@ -2,7 +2,7 @@
    PROJECT: MAD OVERLORD // 전술 레이더 (메인 화면, v2)
    홀로그램 전장 지도: 지형 등고선 + 원형 레이더(고리, 십자선, 회전 탐지선) + 진격 경로 + 목표 표시.
    탐지선이 지나간 적 신호가 밝게 빛났다가 서서히 흐려진다.
-   mode 'story': 챕터 스테이지 점과 경로 (setStages) — 누르면 onSelect(id) / 'special': 잠김(어둡게, HTML 안내가 덮음)
+   mode 'story': 챕터 스테이지 점과 경로 (setStages) — 누르면 onSelect(id) / 'special': 어둡게 (그 위에 작전 카드 HTML — menu_v2.js renderSpecial)
    메인 화면이 보일 때만 그린다 (start / stop).
    ========================================================================== */
 

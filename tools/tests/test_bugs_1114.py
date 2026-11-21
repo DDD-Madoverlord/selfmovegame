@@ -62,18 +62,19 @@ KILL_FINAL = "const bd = b.enemies.find(e => e.isBuilding && e.isFinal); if (bd)
 def run(ctx):
     # ===== S2 · L3 · S7 · M1 : 숨김 그룹이 닫힌 보통 상태 =====
     g = plain(ctx)
-    clear(g, [f'{z}-{i}' for z in range(1, 7) for i in list(range(1, 11)) + ['B']][:-1])   # 6-10까지
-    gear(g, 'mech', '6-B', all_clear=False)
+    # 회의 ① (11-21): 출시 범위가 구역 1~4라 공개된 마지막 판은 4-B, 그다음 5-1이 공개 전 (예전 6-B → 7-1)
+    clear(g, [f'{z}-{i}' for z in range(1, 5) for i in list(range(1, 11)) + ['B']][:-1])   # 4-10까지
+    gear(g, 'mech', '4-B', all_clear=False)
     g.js("progress.save(); gameState.notify();")
     g.page.click('#btn-to-battle-v2')
     g.wait(2500)
     g.js("b.finishBattle(true);")
     g.page.wait_for_selector('.v2-result [data-act]', timeout=20000)
     st = g.js("""const { isUnlocked } = await import('/js/engine_v2/stages_v2.js');
-        return { acts: [...document.querySelectorAll('.v2-result [data-act]')].map(x => x.dataset.act), cleared: progress.stage('6-B', 'normal').cleared,
-                 open71: isUnlocked('7-1', progress) };""")
+        return { acts: [...document.querySelectorAll('.v2-result [data-act]')].map(x => x.dataset.act), cleared: progress.stage('4-B', 'normal').cleared,
+                 open71: isUnlocked('5-1', progress) };""")
     ctx.check(st['cleared'] and not st['open71'] and 'next' not in st['acts'] and 'retry' in st['acts'],
-              "S2 6-B를 깬 결과 화면에 '다음 7-1'이 없음 (구역 7은 공개 전)", str(st))
+              "S2 4-B를 깬 결과 화면에 '다음 5-1'이 없음 (구역 5는 공개 전)", str(st))
     g.page.click(".v2-result [data-act='menu']")
     g.wait(600)
 

@@ -10,6 +10,7 @@
    ========================================================================== */
 
 import { monsterControllerV2 } from '../monster_v2.js';
+import { GRADE_TRAIT } from '../growth_v2.js';
 import { sound } from '../audio/sound_v2.js';
 import { aimAt as aimOf } from '../bases_v2.js';
 import { ENEMY_ART } from '../enemyArt_v2.js';
@@ -1028,8 +1029,9 @@ export const KitMethods = {
             this.playerHp = Math.max(1, this.playerHp - this.maxPlayerHp * drain * dt);
             monsterControllerV2.updateHpBar(this.playerHp, this.maxPlayerHp);
         }
-        // 공격 속도 = 공격 동작 빠르기 (오버드라이브와 겹치면 큰 쪽)
-        const atk = Math.max(this.buffs?.overdrive ? SET.overdrive.atk : 1, 1 + this.kitMod('atkSpd'));
+        // 공격 속도 = 공격 동작 빠르기: 팔 등급 공격 속도(D-158) × 버프(오버드라이브 · 2차 버프는 큰 쪽), 동작이 깨지지 않게 GRADE_TRAIT.atkMax까지
+        const buff = Math.max(this.buffs?.overdrive ? SET.overdrive.atk : 1, 1 + this.kitMod('atkSpd'));
+        const atk = Math.min(GRADE_TRAIT.atkMax, (this.gradeTr?.atkSpd || 1) * buff);
         if (Math.abs(atk - (monsterControllerV2.animBoost ?? 1)) > 0.01) monsterControllerV2.setAnimBoost(atk);
         if (this.kitBlockT > 0) this.kitBlockT -= dt;
         const me = this.monsterX + 60;

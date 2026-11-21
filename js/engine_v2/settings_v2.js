@@ -8,7 +8,9 @@ import * as saveStore from './saveStore_v2.js';
 
 const KEY = 'mo_v2_settings';
 // layout: 화면 배치 'auto'(휴대폰·태블릿이면 휴대폰 배치, PC는 예전 배치) | 'mobile' | 'pc' — main_v2.js fitScreens (Q-015)
-export const DEFAULT_SETTINGS = { master: 0.8, sfx: 0.9, bgm: 0.5, mute: false, shake: true, sharp: true, layout: 'auto' };
+// sfxPack: 소리 묶음 'old'(지금 소리) | 'new'(11-16 선정 새 소리 17개) — 적용 전 / 후 견주기 (audio/sound_v2.js, 2026-11-21)
+// lowSpec: 저사양 모드 (회의 ⑬ 2026-11-21) — 캔버스 해상도 1배 · 이펙트 입자 수 줄임 · 흐림 효과 끔 (perfHint_v2.js 머리 설명)
+export const DEFAULT_SETTINGS = { master: 0.8, sfx: 0.9, bgm: 0.5, mute: false, shake: true, sharp: true, layout: 'auto', sfxPack: 'old', lowSpec: false };
 
 function load() {
     try {

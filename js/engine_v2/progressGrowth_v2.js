@@ -23,7 +23,7 @@ import { TRAITS, TRAIT_TIER_STARS, GEAR_KEYS } from './traits_v2.js';
 import {
     GRADES, gradeOf, gradeIndex, OPTIONS, OPTION_CAPS, DROP, AFFINITY, SKILL_LEVEL, CORES,
     MODULES, MODULE_SLOTS, MODULE_MAX_LEVEL, MODULE_LEVEL_COST, DISPATCH, CHARACTER_ZONE, LEGACY_CHARACTER_STARS, RESEARCH, pickWeighted,
-    SKINS, SKIN_STARS, skinById, skinCharacterOf, PROMO
+    SKINS, SKIN_STARS, skinById, skinCharacterOf, PROMO, stageDropOf
 } from './growth_v2.js';
 
 const partById = id => SLOTS.map(s => (PARTS_DB[s] || []).find(p => p.id === id)).find(Boolean) || null;
@@ -144,7 +144,7 @@ export const GrowthMethods = {
         if (this.levelOf(id) < c.needLevel) return { success: false, reason: `먼저 Lv${c.needLevel}까지 강화하세요 (지금 등급의 한도)` };
         if (this.shards < c.shards) return { success: false, reason: '파츠 조각이 부족합니다' };
         if (gameState.darkMatter < c.dm) return { success: false, reason: '다크 매터(DM)가 부족합니다' };
-        if ((this.stones || 0) < c.stones) return { success: false, reason: '승급석이 부족합니다 — 작전 지원 › 스페셜 › 보스 러시에서 얻어요' };
+        if ((this.stones || 0) < c.stones) return { success: false, reason: '승급석이 부족합니다 — 메인 화면 SPECIAL MAP › 보스 러시에서 얻어요' };
         this.shards -= c.shards;
         gameState.darkMatter -= c.dm;
         this.stones -= c.stones;
@@ -174,9 +174,10 @@ export const GrowthMethods = {
         return (AFFINITY[zone] || []).includes(character);
     },
     /**
-     * 클리어 드랍: 확률(25% + 상성 + 연구) → 공용 파츠 조각(등급은 난이도 표, 양은 DROP.shardDrop — 11-05 피드백 23번),
+     * 클리어 드랍: 확률(25% + 상성 + 연구) → 공용 파츠 조각(등급은 난이도 표, 양은 DROP.shardDrop — 11-05 피드백 23번).
+     * 헬은 조각 대신 DM, 나이트메어는 승급석 (DROP.stageDrop — 회의 ⑥ 11-21).
      * 보스전 첫 클리어는 확정으로 출전 캐릭터 파츠 하나(예전 그대로)
-     * @returns { type: 'shards', grade, shards } · 받은 파츠 결과(grantPart) · null
+     * @returns { type: 'shards', grade, shards } · { type: 'dm', grade, dm } · { type: 'stones', grade, stones } · 받은 파츠 결과(grantPart) · null
      */
     rollBattleDrop({ character, zone, difficulty, boss, firstClear }, rnd = Math.random) {
         const chance = DROP.chance + (this.isAffinity(character, zone) ? DROP.affinityBonus : 0) + this.researchBonus('dropRate');
@@ -185,7 +186,16 @@ export const GrowthMethods = {
         const diff = difficultyOf(difficulty).id;
         if (!sure) {
             const grade = pickWeighted(DROP.grades[diff] || DROP.grades.normal, rnd);
-            const shards = Math.round(DROP.shardDrop[grade] * (1 + this.researchBonus('shardBoost')));
+            const what = stageDropOf(diff, grade);
+            if (what.kind === 'dm') {
+                gameState.darkMatter += what.amount;
+                return { type: 'dm', grade, dm: what.amount, sure: false };
+            }
+            if (what.kind === 'stones') {
+                this.stones = (this.stones || 0) + what.amount;
+                return { type: 'stones', grade, stones: what.amount, sure: false };
+            }
+            const shards = Math.round(what.amount * (1 + this.researchBonus('shardBoost')));
             this.shards += shards;
             return { type: 'shards', grade, shards, sure: false };
         }
@@ -218,22 +228,24 @@ export const GrowthMethods = {
         const list = groups[key];
         return list[Math.floor(rnd() * list.length)];
     },
-    /** 조각으로 만들기 비용 (안 가진 세트 파츠만, 아니면 null) */
+    /** 조각으로 만들기 비용 { shards, dm, grade } (안 가진 세트 파츠만, 아니면 null) — DM은 등급 올리기와 같은 값 (회의 ⑥ 11-21) */
     craftCost(id) {
         if (!id || id === 'none' || this.owned.has(id)) return null;
         const s = setOf(id);
-        return s ? { shards: DROP.craftCost[s.tier], grade: minGradeOf(id) } : null;
+        return s ? { shards: DROP.craftCost[s.tier], dm: DROP.craftDm[s.tier] || 0, grade: minGradeOf(id) } : null;
     },
-    /** 조각으로 세트 파츠 만들기 → 등급 바닥으로 얻음 */
+    /** 조각 + DM으로 세트 파츠 만들기 → 등급 바닥으로 얻음 */
     craftPart(id, rnd = Math.random) {
         const c = this.craftCost(id);
         if (!c) return { success: false, reason: '만들 수 없는 파츠입니다' };
         const lock = this.tierLock(partById(id));   // 등급 단계 (progress_v2.js tierLock, 11-03)
         if (lock) return { success: false, reason: this.tierLockText(lock) };
         if (this.shards < c.shards) return { success: false, reason: `파츠 조각이 부족합니다 (${c.shards}개 필요)` };
+        if (gameState.darkMatter < c.dm) return { success: false, reason: `DM이 부족합니다 (${c.dm.toLocaleString()} DM 필요)` };
         this.shards -= c.shards;
+        gameState.darkMatter -= c.dm;
         const got = this.grantPart(id, c.grade, rnd);
-        return { success: true, shards: c.shards, ...got };
+        return { success: true, shards: c.shards, dm: c.dm, ...got };
     },
     addCores(n) {
         const got = Math.round(n * (1 + this.researchBonus('coreBoost')));

@@ -256,6 +256,18 @@ export function variantThumb(character, file, variant) {
     return { file, filter: (SET_TINT[character] || {})[variant] || null };
 }
 
+/**
+ * 얼굴 그림 (전투 HUD 초상화 · 필살기 컷인): 지금 낀 머리 파츠의 그림 { file, filter } — 연구소 머리 카드와 같은 규칙
+ * (세트 머리 = head_<글자>.png 또는 세트 색, 새 캐릭터 강화 머리 = head_up.png). 머리가 없거나 다른 캐릭터 것이면 기본 head.png.
+ * 외형(스킨) 색은 리그와 같이 덧씌움 (회의 ⑱, 2026-11-21 — 예전엔 언제나 기본 head.png)
+ */
+export function headPortrait(character, headPart) {
+    const mine = headPart && headPart.id !== 'none' && characterOfPart(headPart) === character ? headPart : null;
+    const t = mine ? variantThumb(character, mine.rigUpgrade ? 'head_up.png' : 'head.png', mine.rigVariant) : { file: 'head.png', filter: null };
+    const skin = skinResolver ? skinResolver(character) : null;
+    return { file: t.file, filter: [t.filter, skin].filter(Boolean).join(' ') || null };
+}
+
 // ---- 파츠 외형 차이 (로드맵 B): 같은 캐릭터 안의 변형 파츠를 색으로 구분 ----
 // 슬롯 → 캐릭터별 리그 부위 그림 키
 const SLOT_PARTS = {

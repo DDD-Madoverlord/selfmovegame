@@ -25,6 +25,7 @@ import { gameState } from '../engine/state.js';
 import { monsterControllerV2 } from './monster_v2.js';
 import { BattleFx, ensureSkillStyles } from './battleFx.js';
 import { gameTime } from './gameTime.js';
+import { perfHint } from './perfHint_v2.js';
 import { HERO_VFX, MECH_VFX } from './vfx/vfxDefs.js';
 import { skillsForParts } from './skills_v2.js';
 import { BattleHud } from '../ui_v2/battleHud_v2.js';
@@ -162,7 +163,7 @@ export class BattleEngine {
         this.isActive = true;
         this.distanceTraveled = 0;
         // 난이도(D-063): 고른 난이도의 배율을 곱한 스테이지 복사본 — 전투 코드는 b.stage만 읽음
-        const special = this.pendingSpecial;   // 스페셜맵 (D-123): 작전 지원 › 스페셜에서 고른 판 — 보통 판 기록·연패 보정과 따로
+        const special = this.pendingSpecial;   // 스페셜맵 (D-123): 메인 SPECIAL MAP 탭에서 고른 판 — 보통 판 기록·연패 보정과 따로
         this.pendingSpecial = null;
         if (special) {
             this.difficulty = special.difficulty || DEFAULT_DIFFICULTY;
@@ -274,6 +275,7 @@ export class BattleEngine {
         this.statDps = stats.dps;   // 밸런스 조절로 전투 중 다시 계산할 때 기준 (applyLiveTune — 합성괴인 2페이즈 같은 배율은 비율로 유지)
         this.playerRange = stats.range;
         this.playerSpeed = stats.speed;
+        this.gradeTr = stats.traits;   // 등급 고유 능력치 (D-158): 공격 속도(kit.js) · 방어 무시(enemyField.js) · 넉백(player.js) · 상태이상(growth.js)
         this.attackType = equippedObjs.arm ? (equippedObjs.arm.attackType || 'melee') : 'melee';
         this.roleTaken = roleMods(stats.role).taken;   // 원거리·근거리 받는 피해 배율 (D-119, sets.js incomingMul)
         this.setupTraits(equippedObjs);                  // 캐릭터 고유 특성 (battle/traits.js)
@@ -486,6 +488,8 @@ export class BattleEngine {
         this.playerDps = stats.dps * ratio;
         this.statDps = stats.dps;
         if (this.playerSpeed > 0) this.playerSpeed = stats.speed;
+        this.playerRange = stats.range;
+        this.gradeTr = stats.traits;
         this.roleTaken = roleMods(stats.role).taken;
         this.stage = this.tunedStage(this.stage);
     }
@@ -635,6 +639,7 @@ export class BattleEngine {
     loop(timestamp) {
         if (!this.isActive) return;
         const dt = Math.min(0.1, (timestamp - this.lastTime) / 1000) * gameTime.scale(timestamp);   // 히트스톱/일시정지 0, 배속 적용
+        if (dt > 0) perfHint.tick((timestamp - this.lastTime) / 1000);   // 느린 기기 안내 (회의 ⑬) — 멈춘 프레임은 세지 않음
         this.lastTime = timestamp;
 
         // 승리 연출 / 시간 초과 연출 / 목숨 소진 연출 중: 전투 정지 — 쓰러지는 동안 소환수·장판이 기지를 부숴 승패가 겹치지 않게 (11-14 버그 점검 M2)
@@ -686,6 +691,7 @@ export class BattleEngine {
         this.tickAllies(dt);             // allies.js
         this.tickPet(dt);                // pets.js (추종·작은 자동 공격)
         this.tickEnemies(dt, frontX);    // enemyField.js
+        this.holdLine();                 // enemyField.js — 기준 벽: 적이 주인공 뒤로 넘어가 있지 않게 (회의 ⑲)
 
         this.loopId = requestAnimationFrame((t) => this.loop(t));
     }
@@ -728,7 +734,8 @@ export class BattleEngine {
             // 제자리걸음으로 거리만 쌓지 않음 (11-03 QA: 소환수가 떨어져 싸우는데 주인공은 계속 전진)
             monsterControllerV2.setState('walking-forward');
             this.syncWalk(true);
-            this.monsterX += this.playerSpeed * dt * this.moveMul();
+            // 기준 벽 (회의 ⑲): 거점·바리케이드 앞, 화면 오른쪽 한도를 넘어 걷지 않음 (이미 넘어 있으면 그 자리)
+            this.monsterX = Math.max(this.monsterX, Math.min(this.monsterX + this.playerSpeed * dt * this.moveMul(), this.playerMaxX()));
             monsterControllerV2.setMonsterPosition(this.monsterX);
         } else if (this.ruinHoldT > 0) {
             this.ruinHoldT -= dt;

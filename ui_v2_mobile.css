@@ -179,9 +179,21 @@ body.v2-fit.v2-mobile #screen-menu-v2 { left: 0; top: 0; width: var(--v2-vw, 128
 .v2-mobile #screen-menu-v2 .v2-difftab .v2-icon { width: 18px; height: 18px; }
 .v2-mobile #screen-menu-v2 .v2-radar__diffnote { right: 16px; bottom: 16px; padding: 10px 16px; font-size: 22px; }
 .v2-mobile #screen-menu-v2 .v2-radar__diffnote b { font-size: 24px; }
-.v2-mobile #screen-menu-v2 .v2-radar__locked strong { font-size: 40px; }
-.v2-mobile #screen-menu-v2 .v2-radar__locked small { font-size: 24px; }
-.v2-mobile #screen-menu-v2 .v2-radar__locked .v2-icon { width: 64px; height: 64px; }
+/* 느린 기기 안내 (회의 ⑬) */
+.v2-mobile .v2-perfhint { top: 150px; gap: 18px; padding: 16px 20px; font-size: 24px; border-radius: 12px; flex-wrap: wrap; justify-content: center; }
+.v2-mobile .v2-perfhint small { font-size: 20px; }
+.v2-mobile .v2-perfhint .v2-btn { min-height: 64px; padding: 0 24px; font-size: 24px; }
+/* SPECIAL MAP 작전 카드 (회의 ⑳): 전체 화면 지도 창 안에서 큰 글자 · 큰 단추 */
+.v2-mobile #screen-menu-v2 .v2-radar__special { position: relative; inset: auto; min-height: 0; padding: 20px; gap: 18px; }
+.v2-mobile #screen-menu-v2 .v2-radar__special .v2-growth__hint { font-size: 24px; }
+.v2-mobile #screen-menu-v2 .v2-radar__special .v2-special { gap: 18px; }
+.v2-mobile #screen-menu-v2 .v2-radar__special .v2-special__card { padding: 20px 22px; gap: 10px; border-left-width: 6px; border-radius: 10px; }
+.v2-mobile #screen-menu-v2 .v2-radar__special .v2-special__card > b { font-size: 34px; }
+.v2-mobile #screen-menu-v2 .v2-radar__special .v2-special__card small { font-size: 23px; line-height: 1.45; }
+.v2-mobile #screen-menu-v2 .v2-radar__special .v2-special__card button { min-height: 72px; padding: 0 28px; font-size: 28px; border-radius: 12px; }
+.v2-mobile #screen-menu-v2 .v2-radar__special .v2-pips i { width: 20px; height: 20px; }
+.v2-mobile #screen-menu-v2 .v2-radar__special .v2-pips { gap: 8px; }
+.v2-mobile #screen-menu-v2 .v2-radar__special .v2-tower__mut { font-size: 21px; padding: 3px 10px; }
 .v2-mobile #screen-menu-v2 .v2-radar__foot { align-self: center; justify-content: flex-start; gap: 4px 16px; min-height: 0; font: 700 24px/1.35 var(--v2-font); letter-spacing: 0; color: var(--v2-text); }
 .v2-mobile #screen-menu-v2 .v2-radar__foot b { font-size: 26px; color: var(--v2-amber); }
 .v2-mobile #screen-menu-v2 .v2-radar__foot .v2-stars { font-size: 28px; }

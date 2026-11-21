@@ -11,7 +11,7 @@ import { sound } from '../audio/sound_v2.js';
 import { aimAt as aimOf } from '../bases_v2.js';
 import { characterOfPart } from '../roster_v2.js';
 import { difficultyOf, difficultyOfStage } from '../difficulty_v2.js';
-import { MODULES, MODULE_MAX_LEVEL, SKILL_LEVEL, CORES, combineMutators } from '../growth_v2.js';
+import { MODULES, MODULE_MAX_LEVEL, SKILL_LEVEL, CORES, combineMutators, OPTION_CAPS } from '../growth_v2.js';
 import { setCounts } from '../sets_v2.js';
 import { SET_VFX } from '../vfx/vfxDefs.js';
 import { FOOT_B } from './tuning.js';
@@ -210,7 +210,8 @@ export const GrowthBattleMethods = {
     /** 상태 이상 시간 배율 (냉기 저항 옵션, 방벽 발생기 면역이면 0) */
     ccMul() {
         if (this.ccImmuneT > 0) return 0;
-        return (1 - (this.gear?.ccCut || 0)) * this.kitCcMul();   // 2차 패시브 (kit.js)
+        const cut = Math.min(OPTION_CAPS.ccCut, (this.gear?.ccCut || 0) + (this.gradeTr?.ccCut || 0));   // 냉기 저항 옵션 + 머리 등급 상태이상 저항 (D-158), 합산 한도 70%
+        return (1 - cut) * this.kitCcMul();   // 2차 패시브 (kit.js)
     },
 
     /** 진격 속도 배율 (신속 진격 옵션 · 얼음 바닥 변이) */
@@ -245,6 +246,6 @@ export const GrowthBattleMethods = {
             boss: !!this.stage.boss, firstClear
         }) : null;
         if (cores || drop) gameState.notify();
-        return { cores, drop, shards: progress.shards };
+        return { cores, drop, shards: progress.shards, stones: progress.stones || 0 };
     }
 };

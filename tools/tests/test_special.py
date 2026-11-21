@@ -100,17 +100,30 @@ def run(ctx):
               '모두 부수면 남은 시간 보너스 → 결과 등급 · 조각 · 이번 주 최고 기록', str(st))
     g.shot('special_smash_result', '#screen-battle-v2')
 
-    # ===== 작전 지원 '스페셜' 탭 =====
+    # ===== 메인 화면 SPECIAL MAP 탭 (회의 ⑳ 11-21 — 예전 작전 지원 '스페셜' 탭) =====
     g.js("window.madOverlordGameV2.switchScreen('menu');")
     g.wait(400)
     g.js("const gu = await import('/js/ui_v2/growthUi_v2.js'); gu.openGrowthPanel('special');")
     g.wait(400)
-    st = g.js("""const p = document.querySelector('.v2-growth'); const tab = [...p.querySelectorAll('[data-act=tab]')].find(b => b.dataset.tab === 'special'); tab && tab.click();
+    st = g.js("""const p = document.querySelector('.v2-growth');
+        const out = { tabs: [...p.querySelectorAll('[data-act=tab]')].map(b => b.dataset.tab), cards: p.querySelectorAll('.v2-special__card').length };
+        (await import('/js/ui_v2/growthUi_v2.js')).closeGrowthPanel();
+        return out;""")
+    ctx.check('special' not in st['tabs'] and st['cards'] == 0 and 'modules' in st['tabs'], "작전 지원 창에는 '스페셜' 탭이 없음 (메인 SPECIAL MAP으로 옮김)", str(st))
+    g.wait(300)
+    g.page.click('.v2-maptab[data-map="special"]')
+    g.wait(400)
+    st = g.js("""const p = document.getElementById('menu-special-v2');
         const cards = [...p.querySelectorAll('.v2-special__card')];
         return { n: cards.length, text: cards.map(c => c.textContent.replace(/\\s+/g, ' ').slice(0, 60)), dots: cards.map(c => c.querySelectorAll('.v2-special__left i.is-on').length) };""")
     ctx.check(st['n'] == 3 and st['dots'][:2] == [3, 2] and '보스 러시' in st['text'][0] and '다음 1단계' in st['text'][0] and '오버로드의 탑' in st['text'][2],
-              "작전 지원 '스페셜' 탭: 보스 러시(다음 1단계 · 남은 3회) · 파괴 작전(남은 2회) · 오버로드의 탑(D-126, 횟수 없음)", str(st))
-    g.shot('special_tab', '.v2-growth')
+              "메인 SPECIAL MAP 탭: 보스 러시(다음 1단계 · 남은 3회) · 파괴 작전(남은 2회) · 오버로드의 탑(D-126, 횟수 없음)", str(st))
+    vis = g.js("""const p = document.getElementById('menu-special-v2'), r = p.getBoundingClientRect();
+        const btns = [...p.querySelectorAll('button[data-act]')].map(b => b.getBoundingClientRect());
+        return { shown: !p.hidden && r.width > 300 && r.height > 150, noLock: !document.body.textContent.includes('엘리트 챌린지 — 준비 중'),
+            sortie: document.getElementById('btn-to-battle-v2').disabled, btns: btns.length, wide: btns.every(b => b.width > 40 && b.height > 18) };""")
+    ctx.check(vis['shown'] and vis['noLock'] and vis['sortie'] and vis['btns'] == 3 and vis['wide'], 'SPECIAL MAP 탭: 준비 중 화면 대신 작전 카드 3장 · 도전 단추 3개', str(vis))
+    g.shot('special_tab', '.v2-radar')
     g.page.click('.v2-special__card[data-mode="boss"] [data-act=startSpecial]')
     g.wait(2500)
     st = g.js("return { sp: b.stage.special, step: b.stage.specialStep, left: progress.specialLeft('boss') };")

@@ -413,9 +413,8 @@ export const SetMethods = {
      *  opt.shove (방패 돌진): 만난 적을 앞에 붙여 같이 밀고 감 — 밀리지 않는 적(보스·방패병 등)·바리케이드 앞에서만 멈춤
      *  (디스코드 QA 11-05 홍도도 "돌진 스킬을 쓰면 적을 뚫고 지나감") */
     dashForward(dist, sec, onHit, trailFx, opt = {}) {
-        const building = this.enemies.find(e => e.isBuilding);
         const start = this.monsterX;
-        const end = Math.max(start, Math.min(start + dist, building ? building.x - 110 : Infinity));
+        const end = Math.max(start, Math.min(start + dist, this.playerMaxX()));   // 거점·바리케이드 앞 · 화면 한도 (기준 벽, enemyField.js)
         const hit = new Set();
         const steps = 8;
         const gap = opt.gap ?? SET.shove.gap;

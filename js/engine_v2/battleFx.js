@@ -109,9 +109,9 @@ export class BattleFx {
         });
     }
 
-    /** from {x, bottom}, to() → {x, b}, onArrive() */
+    /** from {x, bottom}, to() → {x, b}, onArrive(). opts.sfx: null이면 발사음 없음 (부르는 쪽이 자기 소리를 냄) */
     launchMissile(from, to, onArrive, opts = {}) {
-        sound.play('mech_missile_launch', { x: this.panX(from.x) });
+        if (opts.sfx !== null) sound.play('mech_missile_launch', { x: this.panX(from.x) });
         this.vfx.launchMissile({
             from: [from.x, this.H - from.bottom], to: () => { const t = to(); return [t.x, this.H - t.b]; },
             onArrive, ...opts

@@ -16,6 +16,12 @@
      vars  : 변형 파일 수 — <이름>.ogg, <이름>_2.ogg … 중 바로 앞과 다른 것을 골라 냄 (tools/audio/polish_audio.py가 만듦)
      with  : 같이 겹쳐 낼 소리 이름들 (몸통 + 꼬리처럼 레이어로 — 각자 자기 규칙대로)
      src   : 다른 소리 파일을 빌려 씀 (전용 소리가 생기기 전 임시), rate: 기본 음높이 배율
+     pick  : '새 소리' 묶음(sfx_new/<이름>.ogg, tools/audio/build_picks.py — 11-16 선정 17개)을 읽었을 때의 음량
+     pack  : 그 묶음에서만 나는 소리 ('new' = 새 소리 묶음에만 있는 새 이름 — 예전 묶음에서는 부르는 자리가 조용함)
+
+   소리 묶음 (적용 전 / 후 견주기, 2026-11-21): settings.sfxPack 'old'(지금 소리) | 'new'(새 소리) — 설정 창에서 고름.
+     주소 ?sfxPack=new|old 는 켤 때의 묶음만 정함 (저장 안 함 — 설정 창에서 바꾸면 그쪽을 따름).
+     'new'면 pick이 있는 이름은 sfx_new/를 먼저 읽고(없으면 예전 순서), pack: 'new' 이름이 켜짐. 바꾸면 그 이름들만 다시 읽음 (setPack)
 
    묶음(catOf): 전투 소리(skill·enemy·player)와 연출·UI(cue·ui)를 따로 모아 CAT_VOL로 묶음 음량을 맞춘다.
    전투 소리만 받는 일:
@@ -30,6 +36,15 @@ import { settings } from '../settings_v2.js';
 import { gameTime } from '../gameTime.js';
 
 const BASE = 'assets/audio/';
+const PACK_DIR = 'sfx_new/';
+export const SFX_PACKS = ['old', 'new'];
+/** 지금 쓸 소리 묶음: 주소 ?sfxPack= 이 설정보다 먼저 (저장은 안 함) */
+function packNow() {
+    let q = null;
+    try { q = new URLSearchParams(location.search).get('sfxPack'); } catch (e) { /* 주소 없음 (검사 환경) */ }
+    const v = SFX_PACKS.includes(q) ? q : settings.get('sfxPack');
+    return SFX_PACKS.includes(v) ? v : 'old';
+}
 const PAN = 0.55;          // 화면 끝에서 좌우로 이만큼 (1 = 한쪽 귀만)
 const MAX_VOICES = 28;     // 전투 소리 동시 재생 상한
 export const CAT_VOL = { skill: 1, enemy: 0.85, player: 1, cue: 1, ui: 0.9 };
@@ -39,7 +54,7 @@ const WORLD = new Set(['skill', 'enemy', 'player']);
 export function catOf(name) {
     if (name.startsWith('ui_') || name === 'reward_done') return 'ui';
     if (/^(warning|ult_|skill_|intro_|mission_|result_|star_get|low_hp)/.test(name)) return 'cue';
-    if (name.startsWith('zone_') || name === 'enemy_die') return 'enemy';
+    if (name.startsWith('zone_') || name.startsWith('en_') || name === 'enemy_die' || name === 'kill_small') return 'enemy';
     if (name === 'player_hit' || name === 'player_down' || name.startsWith('shield_')) return 'player';
     return 'skill';
 }
@@ -47,7 +62,7 @@ export function catOf(name) {
 export const SFX = {
     // 거대로봇
     mech_laser: { vol: 0.26, gap: 0.045, voices: 4, pitch: 0.06 },
-    mech_laser_big: { vol: 0.7 },
+    mech_laser_big: { vol: 0.7, pick: 0.7 },
     mech_laser_hit: { vol: 0.22, gap: 0.06, voices: 3, pitch: 0.1 },
     mech_missile_launch: { vol: 0.32, gap: 0.05, voices: 4, pitch: 0.1 },
     mech_missile_blast: { vol: 0.42, gap: 0.05, voices: 4, pitch: 0.1 },
@@ -57,7 +72,7 @@ export const SFX = {
     mech_land: { vol: 0.7 },
     mech_thrust: { vol: 0.45 },
     giant_step: { vol: 0.22, gap: 0.12, pitch: 0.08 },
-    charge_up: { vol: 0.32, ext: 0.63 },
+    charge_up: { vol: 0.32, ext: 0.63, pick: 0.52 },
     // 거대괴수
     kaiju_bite: { vol: 0.5, gap: 0.08, pitch: 0.06 },
     kaiju_roar: { vol: 0.8, duck: 0.45 },
@@ -70,7 +85,7 @@ export const SFX = {
     hero_wave: { vol: 0.38, gap: 0.08, pitch: 0.05 },
     hero_wave_hit: { vol: 0.28, gap: 0.06, voices: 4, pitch: 0.1 },
     hero_orb: { vol: 0.35, gap: 0.1, pitch: 0.05 },
-    hero_cast: { vol: 0.5 },
+    hero_cast: { vol: 0.5, pick: 1.05 },
     hero_curse_tick: { vol: 0.15, gap: 0.3, pitch: 0.05 },
     hero_curse_nova: { vol: 0.7 },
     hero_mind_convert: { vol: 0.45, gap: 0.1 },
@@ -118,26 +133,32 @@ export const SFX = {
     bc_emergency: { vol: 0.5, duck: 0.55 },                                    // 긴급 방송 (필살기)
     // 실드
     shield_on: { vol: 0.5 },
-    shield_hit: { vol: 0.28, ext: 0.25, gap: 0.15, pitch: 0.1 },
+    shield_hit: { vol: 0.28, ext: 0.25, pick: 0.28, gap: 0.15, pitch: 0.1 },
     shield_break: { vol: 0.7 },
     // 전투 공용
-    enemy_die: { vol: 0.28, ext: 0.41, gap: 0.06, voices: 3, pitch: 0.12 },
+    enemy_die: { vol: 0.28, ext: 0.41, pick: 0.38, gap: 0.06, voices: 3, pitch: 0.12 },
     player_hit: { vol: 0.22, ext: 0.3, gap: 0.4, pitch: 0.1 },
+    // 새 소리 묶음에만 있는 이름 (11-16 선정, pack: 'new') — 예전 묶음에서는 안 남. vol은 점검실에서 맞출 때의 기준 값
+    kill_small: { vol: 0.3, pick: 0.72, pack: 'new', gap: 0.06, voices: 3, pitch: 0.12 },        // 작은 적 처치 (enemy_die 대신 — battle/enemyField.js)
+    hit_tail_metal: { vol: 0.25, pick: 0.25, pack: 'new', gap: 0.2, voices: 2, pitch: 0.1 },      // 갑옷·기계 적을 친 뒤 금속 울림
+    en_melee: { vol: 0.35, pick: 0.35, pack: 'new', gap: 0.18, voices: 3, pitch: 0.1 },           // 적 근접 한 번 휘두름
+    en_fire: { vol: 0.26, pick: 0.26, pack: 'new', gap: 0.1, voices: 3, pitch: 0.1 },             // 적 화염 (화염방사병 · 끓는 기름)
+    en_holy: { vol: 0.24, pick: 0.7, pack: 'new', gap: 0.3, voices: 2, pitch: 0.08 },             // 적 성스러운 빛 (빛의 마법사)
     base_blast: { vol: 0.5, gap: 0.08, voices: 4, pitch: 0.12 },
     base_destroyed: { vol: 0.9, duck: 0.35 },
     player_down: { vol: 0.8, duck: 0.35 },
     // 연출
     intro_whoosh: { vol: 0.45, ext: 0.59 },
     intro_sortie: { vol: 0.6, ext: 1.19 },
-    warning: { vol: 0.32, ext: 1.72, duck: 0.6 },
-    warning_danger: { vol: 0.38, ext: 1.27, duck: 0.5 },
+    warning: { vol: 0.32, ext: 1.72, pick: 0.6, duck: 0.6 },
+    warning_danger: { vol: 0.38, ext: 1.27, pick: 0.71, duck: 0.5 },
     ult_cutin: { vol: 0.62, duck: 0.45 },
-    ult_ready: { vol: 0.42, ext: 1.7, gap: 1 },
-    skill_ready: { vol: 0.32, ext: 0.35, gap: 0.3 },
+    ult_ready: { vol: 0.42, ext: 1.7, pick: 0.86, gap: 1 },
+    skill_ready: { vol: 0.32, ext: 0.35, pick: 0.32, gap: 0.3 },
     skill_use: { vol: 0.55, gap: 0.1 },
     star_get: { vol: 0.55, ext: 2.06 },
-    mission_complete: { vol: 0.7, ext: 1.79 },
-    mission_failed: { vol: 0.7, ext: 1.76 },
+    mission_complete: { vol: 0.7, ext: 1.79, pick: 1.41 },
+    mission_failed: { vol: 0.7, ext: 1.76, pick: 1.44 },
     result_win: { vol: 0.4, ext: 1.14 },
     result_lose: { vol: 0.52 },
     result_star: { vol: 0.5, ext: 1.07, gap: 0.1 },
@@ -161,7 +182,7 @@ export const SFX = {
     zone_split: { vol: 0.32, gap: 0.12, pitch: 0.1 },
     // UI
     ui_click: { vol: 0.45, gap: 0.04 },
-    ui_toggle: { vol: 0.4, gap: 0.04 },
+    ui_toggle: { vol: 0.4, pick: 1.51, gap: 0.04 },
     ui_pause: { vol: 0.45, gap: 0.05 },
     ui_tab: { vol: 0.32, gap: 0.04 },
     ui_tick: { vol: 0.12, gap: 0.05, pitch: 0.04 },
@@ -187,7 +208,10 @@ class SoundManager {
         this.active = 0;            // 지금 나는 전투 소리 수
         this.lastVar = new Map();   // 이름 → 바로 앞에 낸 변형 번호
         this.extLoaded = new Set();  // sfx_ext/에서 읽은 이름 (음량은 ext)
-        settings.subscribe(() => this.applyVolumes());
+        this.pickLoaded = new Set(); // sfx_new/에서 읽은 이름 (음량은 pick)
+        this.pack = packNow();       // 소리 묶음 'old' | 'new'
+        this.packGen = 0;            // 묶음을 바꾸면 +1 — 그 전에 읽기 시작한 파일은 버림
+        settings.subscribe((key, value) => (key === 'sfxPack' ? this.setPack(value) : this.applyVolumes()));
         gameTime.onSlow = (scale, sec) => this.slowMo(scale, sec);
     }
 
@@ -257,11 +281,37 @@ class SoundManager {
         this.bgmBus.gain.setTargetAtTime(s.bgm, t, 0.03);
     }
 
+    /** 이 이름이 지금 묶음에서 나는 소리인가 (새 묶음에만 있는 이름은 예전 묶음에서 false) */
+    has(name) {
+        const def = SFX[name];
+        return !!def && (!def.pack || def.pack === this.pack);
+    }
+
+    /** 소리 묶음 바꾸기: 묶음에 따라 달라지는 이름(pick · pack)만 비우고 다시 읽음. 나고 있는 소리는 끝까지 남.
+        다 읽으면 끝나는 Promise (설정 창이 바꾼 뒤 한 번 들려줄 때 씀) */
+    setPack(pack) {
+        if (!SFX_PACKS.includes(pack) || pack === this.pack) return Promise.resolve();
+        this.pack = pack;
+        this.packGen += 1;
+        const jobs = [];
+        for (const [name, def] of Object.entries(SFX)) {
+            if (def.pick == null && !def.pack) continue;
+            this.buffers.delete(name);
+            this.loading.delete(name);
+            this.pickLoaded.delete(name);
+            this.extLoaded.delete(name);
+            if (this.unlocked) jobs.push(this.load(name));
+        }
+        return Promise.all(jobs);
+    }
+
     /** 소리 파일 읽기: 변형까지 모두 (buffers: 이름 → AudioBuffer 목록, 첫 파일이 없으면 무음).
-        ext가 있으면 sfx_ext/를 먼저, 없으면 sfx/ */
+        새 소리 묶음이면 pick이 있는 이름은 sfx_new/를 먼저 → ext가 있으면 sfx_ext/ → sfx/ */
     load(name) {
         if (this.buffers.has(name) || this.loading.has(name) || !this.ctx) return this.loading.get(name);
+        if (!this.has(name)) return undefined;   // 다른 묶음에만 있는 이름
         const def = SFX[name] || {};
+        const gen = this.packGen;
         const file = def.src || name;
         const one = f => fetch(`${BASE}${f}.ogg`)
             .then(r => (r.ok ? r.arrayBuffer() : Promise.reject(new Error(r.status))))
@@ -269,17 +319,19 @@ class SoundManager {
             .catch(() => null);   // 파일 없음/해석 실패: 그 변형만 빠짐
         const fromDir = dir => Promise.all([file, ...Array.from({ length: Math.max(0, (def.vars || 1) - 1) }, (_, i) => `${file}_${i + 2}`)]
             .map(f => one(dir + f))).then(list => (list[0] ? list.filter(Boolean) : null));
-        const p = (def.ext ? fromDir('sfx_ext/').then(l => (l ? (this.extLoaded.add(name), l) : fromDir('sfx/'))) : fromDir('sfx/'))
-            .then(list => { if (list) this.buffers.set(name, list); })
-            .finally(() => this.loading.delete(name));
+        const fresh = () => gen === this.packGen;   // 읽는 사이 묶음이 바뀌면 이 결과는 버림
+        const usual = () => (def.ext ? fromDir('sfx_ext/').then(l => (l ? (fresh() && this.extLoaded.add(name), l) : fromDir('sfx/'))) : fromDir('sfx/'));
+        const p = (this.pack === 'new' && def.pick != null ? fromDir(PACK_DIR).then(l => (l ? (fresh() && this.pickLoaded.add(name), l) : usual())) : usual())
+            .then(list => { if (list && fresh()) this.buffers.set(name, list); })
+            .finally(() => { if (this.loading.get(name) === p) this.loading.delete(name); });
         this.loading.set(name, p);
         return p;
     }
 
-    /** 표의 기본 음량 (외부 소리 파일을 읽었으면 ext) */
+    /** 표의 기본 음량 (새 소리 묶음 파일을 읽었으면 pick, 외부 소리 파일을 읽었으면 ext) */
     volOf(name) {
         const def = SFX[name] || {};
-        return (this.extLoaded.has(name) ? def.ext : def.vol) ?? 0.5;
+        return (this.pickLoaded.has(name) ? def.pick : this.extLoaded.has(name) ? def.ext : def.vol) ?? 0.5;
     }
 
     /** 변형 고르기: 바로 앞과 다른 것 */
@@ -297,6 +349,7 @@ class SoundManager {
     play(name, opts = {}) {
         const def = SFX[name];
         if (!def || !this.unlocked || this.away) return;
+        if (def.pack && def.pack !== this.pack) return;   // 다른 묶음에만 있는 소리
         const now = this.ctx.currentTime;
         if (def.gap && now - (this.lastAt.get(name) ?? -9) < def.gap) return;
         const count = this.playing.get(name) || 0;

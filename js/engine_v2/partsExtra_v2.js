@@ -41,7 +41,9 @@
      기본·강화 파츠와 스킬은 부품 스킬 데이터로 sets2/architectSets2.js · sets2/broadcasterSets2.js (ARCHITECT_BASE · BROADCASTER_BASE)
 
    V2_NAME_OVERRIDES: 기존 파츠 이름을 v2에서만 바꿈 (parts.js 원본은 그대로)
-   V2_STAT_OVERRIDES: 기존 파츠 능력치를 v2에서만 바꿈 (parts.js 원본은 그대로)
+   V2_STAT_OVERRIDES: 기존 파츠 능력치를 v2에서만 바꿈 (parts.js 원본은 그대로). 2차 세트 파츠(sets2/)에도 걸림 — 등록 뒤 한 번에 덮어씀
+     - 사거리 (2026-11-21, 회의 ④): 거대괴수·합성괴인 근접 팔 −30, 거대로봇 근 170 · 원 300~360
+     - 다리 속도 (2026-11-21, 회의 ⑤): 다리 파츠 speed는 등급 표(GRADES legSpeed 50 / 80 / 120 / 150)로 덮어씀 — 위 leg_red_robot 70도 50이 됨
      - 기본 로봇 (2026-10-03, D-043): 풀강화(Lv5)해도 1-4를 못 깸 → 기본 다리 속도 20 → 70, 기본 팔 공격력 300 → 520
        · 속도: 기본 로봇 45로 다른 조합의 1/3 (속도는 강화로 안 오름) → 95. 걷는 동안 적이 쌓여 기절·과부하
        · 공격력: 근접 주먹이라 적이 붙게 두고 싸워야 함 → 속도만으로는 Lv5도 1-3 실패라 함께 올림
@@ -49,6 +51,8 @@
    ========================================================================== */
 
 import { PARTS_DB } from '../data/parts.js';
+import { GRADES } from './growth_v2.js';
+import { minGradeOf } from './sets_v2.js';
 
 export const DIVER_FACTION = '심연의 길잡이 (심해)';
 export const SAINT_FACTION = '봉합 성녀 (뒤틀린 구원)';
@@ -532,7 +536,22 @@ export const V2_NAME_OVERRIDES = { arm_mech_missile: '미사일 포드' };
 
 export const V2_STAT_OVERRIDES = {
     leg_red_robot: { speed: 70 },
-    arm_red_robot: { dps: 520 }
+    arm_red_robot: { dps: 520, range: 170 },
+    // ---- 사거리 줄이기 (회의 ④ · D-154 ⑤, 2026-11-21): 근거리가 멀리서 허공을 치는 어색함 — 붙어서 치게 ----
+    // 거대로봇: 근접 팔 −30 (200 → 170, 세트 310 → 280) · 원거리 350~420 → 300~360 (310짜리 플라즈마·쌍열 가속포는 그대로)
+    // → 묶음 B ③ 사거리 기준(근거리 150~230 · 중거리 230~290 · 원거리 300~360, D-158): 기준 밖 팔 10개를 안으로 (근 280 · 260 · 315 · 275 → 230, 원 280 · 260 → 300)
+    arm_mech_b: { range: 170 }, arm_mech_c: { range: 230 }, arm_mech_w: { range: 230 }, arm_mech_m: { range: 230 },
+    arm_mech_laser: { range: 300 }, arm_mech_u: { range: 310 }, arm_mech_missile: { range: 340 }, arm_mech_d: { range: 340 }, arm_mech_a: { range: 360 },
+    // 거대괴수: 근접 팔 −30 (산성 침 촉수 320은 원거리라 그대로)
+    arm_mutant: { range: 160 }, arm_kaiju_a: { range: 160 }, arm_kaiju_u: { range: 170 },
+    arm_kaiju_c: { range: 225 }, arm_kaiju_d: { range: 225 }, arm_kaiju_v: { range: 225 }, arm_kaiju_l: { range: 225 }, arm_kaiju_m: { range: 225 },
+    arm_kaiju_w: { range: 230 },
+    // 합성괴인: 근접 팔 −30 (산탄 개조 팔 240은 중거리라 그대로)
+    arm_chimera: { range: 150 }, arm_chimera_a: { range: 160 }, arm_chimera_u: { range: 190 }, arm_chimera_c: { range: 230 },
+    arm_chimera_d: { range: 185 }, arm_chimera_v: { range: 185 }, arm_chimera_w: { range: 185 }, arm_chimera_l: { range: 185 }, arm_chimera_m: { range: 185 },
+    // 타락 히어로: 근접 장검 · 지팡이 · 낫 260 → 230, 원거리 파동 지팡이 280 · 마검 260 → 300
+    arm_hero_d: { range: 230 }, arm_hero_v: { range: 230 }, arm_hero_w: { range: 230 },
+    arm_hero_wave: { range: 300 }, arm_hero_l: { range: 300 }
 };
 
 /** v2 시작 시 한 번: 추가 파츠를 PARTS_DB에 등록 (이미 있으면 건너뜀), 능력치 덮어쓰기 */
@@ -551,5 +570,10 @@ export function registerV2Parts() {
             const over = V2_STAT_OVERRIDES[part.id];
             if (over && part.stats) Object.assign(part.stats, over);
         }
+    }
+    // 다리 이동 속도 = 등급 표 (회의 ⑤, growth_v2.js GRADES legSpeed): 그 다리의 등급 바닥(커먼 · 세트 등급) 값으로 통일
+    for (const part of PARTS_DB.leg || []) {
+        if (!part.stats || part.id === 'none') continue;
+        part.stats.speed = (GRADES.find(g => g.id === minGradeOf(part)) || GRADES[0]).legSpeed;
     }
 }

@@ -21,6 +21,11 @@
   적 쓰러짐(`enemy_die`), 맞음(`player_hit`·`shield_hit`), 저체력(`low_hp`), 스킬·필살기 준비(`skill_ready`·`ult_ready`), 별(`star_get`·`result_star`),
   임무 성공·실패(`mission_complete`·`mission_failed`), 승리 결과(`result_win`)
 
+## 견주기용 새 소리 묶음 (assets/audio/sfx_new — 2026-11-21, D-153)
+- 11-16 팀이 사운드 장면 점검실에서 고른 17개 (`assets/audio/sound_picks_20261116/sound_picks.json`에 원래 파일 이름). 참고 사이트 soundza.com.
+- **사용 조건(상업 이용 · 재배포) 확인 전** — 확인될 때까지 견주기용으로만 쓰고 공개 저장소·출시판에는 넣지 않는다.
+- 설정 › 사운드 › 소리 묶음 '적용 후'에서만 남. 다시 만들기: `python tools/audio/build_picks.py`
+
 ## AI로 만든 소리 — Powered by Stability AI (D-109, 2026-11-04)
 - Stability AI **Stable Audio 3** (`stable-audio-3-small-sfx` · `stable-audio-3-small-music`)로 만들어 팀이 고른 소리. 만든 소리의 권리는 우리에게 있음(라이선스 4.c.iii), 상업 이용은 Stability AI Community License(연 매출 100만 달러 미만, 2026-11-04 등록).
 - This Stability AI Model is licensed under the Stability AI Community License, Copyright © Stability AI Ltd. All Rights Reserved. (게임 설정 › 정보에 "Powered by Stability AI" 표시)

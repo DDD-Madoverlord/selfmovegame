@@ -258,10 +258,9 @@ const STEP = {
     /** 순간 이동: 앞으로 dist (거점·앞을 막는 적 앞에서 멈춤 — 적을 뚫고 화면 끝까지 가던 것, 11-08 QA).
      *  leave = 떠난 자리 장판, arrive = 도착한 자리 장판 (x는 도착한 뒤 앞면 기준 — 적은 늘 앞에서 오므로 떠난 자리는 적이 밟지 않음, 11-14 QA) */
     blink(b, s) {
-        const building = b.enemies.find(e => e.isBuilding);
         const wall = b.dashBlocker();
         const start = b.monsterX;
-        const end = Math.max(start, Math.min(start + (s.dist ?? 200), building ? building.x - 110 : Infinity,
+        const end = Math.max(start, Math.min(start + (s.dist ?? 200), b.playerMaxX(),   // 거점·바리케이드 앞 · 화면 한도 (기준 벽, enemyField.js)
             wall ? wall.x - SET.shove.gap - 100 : Infinity));
         if (s.vfx) b.fx.play(s.vfx, start + 50, FOOT_B + 60);
         if (s.leave) b.kitZone({ ...s.leave, x: start - b.frontX() + 20 });

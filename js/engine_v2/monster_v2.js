@@ -6,7 +6,7 @@
 import { settings } from './settings_v2.js';
 import { SpriteAnimator } from './spriteAnimator_v2.js';
 import { renderer } from './renderer.js';
-import { RigAvatar, rigConfigFor } from './rig/rigAvatar.js';
+import { RigAvatar, rigConfigFor, headPortrait } from './rig/rigAvatar.js';
 
 // ---- 리그 캐릭터 배치 (거대로봇/거대괴수/타락 히어로/합성괴인) ----
 // 전투: 캐릭터 박스(.monster-entity 140x160, 박스 하단 = 지면, index.css) 기준으로 캔버스를 배치
@@ -504,11 +504,13 @@ export class MonsterController {
         if (this.useRig) this.rigBattle.playSkillAnim(kind);
     }
 
-    /** HUD 초상화: 리그 캐릭터 머리 이미지와 이름 (페이퍼돌이면 null) */
-    getPortrait() {
+    /** HUD 초상화: 리그 캐릭터 머리 이미지와 이름 (페이퍼돌이면 null).
+        equipped를 주면 지금 낀 머리 파츠 그림(세트 그림·강화 그림·세트 색·외형 색 = filter) — 전투 HUD · 필살기 컷인 (회의 ⑱) */
+    getPortrait(equipped = null) {
         if (!this.useRig || !this.rigBattle.character) return null;
         const c = this.rigBattle.character;
-        return { id: c.id, name: c.name, src: `${c.assetDir}head.png` };
+        const t = equipped ? headPortrait(c.id, equipped.head) : { file: 'head.png', filter: null };
+        return { id: c.id, name: c.name, src: `${c.assetDir}${t.file}`, filter: t.filter };
     }
 
     // 리그 캔버스 좌표 → entity-layer 기준 {x: left px, bottom: px}

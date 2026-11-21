@@ -161,7 +161,7 @@ def run(ctx):
     battle_at(g, '3-1')
     st = g.js(CLEAN + """const es = Array.from({ length: 24 }, () => b.spawnMinion('guard', { x: 1100, elite: true }));
         const knight = b.spawnMinion('demonknight', { x: 1100, elite: true });
-        return { count: [...es, knight].every(e => e.affixes.length === 2 && new Set(e.affixes).size === 2),
-            reward: es.every(e => e.reward === 6), knight: knight.dom.dataset.name };""")
+        return { count: [...es, knight].every(e => e.affixes.length === 1),
+            reward: es.every(e => e.reward === 5), knight: knight.dom.dataset.name };""")
     ctx.check(st['count'] and st['reward'] and '엘리트 [' in st['knight'],
-              '구역 3: 서로 다른 속성 2개·보상 ×1.5, 악마기사도 속성 표시', str(st))
+              '구역 3 노말: 속성 1개·보상 ×1.25 (회의 ⑩ 11-21 — 예전엔 구역 3부터 2개), 악마기사도 속성 표시', str(st))

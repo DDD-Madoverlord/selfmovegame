@@ -61,6 +61,11 @@ const lootHtml = loot => {
         card = `<div class="v2-loot__part is-shards" style="--grade:${g.color}">
             <small>판 클리어 드랍 · ${g.name} 등급</small><b>${icon('shard', 18)} 파츠 조각 +${d.shards}</b>
             <span>연구소 [만들기] · 등급 올리기에 씀 (보유 ${loot.shards})</span></div>`;
+    } else if (d && (d.type === 'dm' || d.type === 'stones')) {   // 헬 = DM · 나이트메어 = 승급석 (조각 대신 — 회의 ⑥ 11-21, growth_v2.js DROP.stageDrop)
+        const g = gradeOf(d.grade);
+        card = `<div class="v2-loot__part is-${d.type}" style="--grade:${g.color}">
+            <small>판 클리어 드랍 · ${g.name} 등급</small><b>${d.type === 'dm' ? `${icon('gem', 18)} DM +${d.dm.toLocaleString()}` : `◆ 승급석 +${d.stones}`}</b>
+            <span>${d.type === 'dm' ? '강화 · 조각 제작 · 등급 올리기에 씀' : `파츠 등급 올리기에 씀 (보유 ${loot.stones ?? 0})`}</span></div>`;
     } else if (d) {
         const g = gradeOf(d.grade);
         const what = d.type === 'new' ? 'NEW 파츠' : d.type === 'upgrade' ? `등급 상승 (${gradeOf(d.prev).name} → ${g.name})` : '중복 — 환급';
@@ -279,8 +284,9 @@ export class BattleDirector {
     }
 
     // ------------------------------------------------------------------
-    /** 필살기 컷인: 화면을 어둡게 하고 사선 띠에 초상화 + 스킬 이름, 그동안 전투는 슬로모션 */
-    ultCutIn(sk, portraitSrc) {
+    /** 필살기 컷인: 화면을 어둡게 하고 사선 띠에 초상화 + 스킬 이름, 그동안 전투는 슬로모션.
+        portraitFilter: 세트 색·외형 색 (지금 낀 머리 파츠 — battleHud setPortrait). 테두리 빛(CSS drop-shadow) 앞에 덧씌움 */
+    ultCutIn(sk, portraitSrc, portraitFilter = null) {
         if (!this.attach()) return;
         gameTime.slowMo(0.22, 1.0);
         this.sfx('ult_cutin');
@@ -288,7 +294,7 @@ export class BattleDirector {
             <div class="v2-ultcut__dim"></div>
             <div class="v2-ultcut__band">
                 <div class="v2-ultcut__lines"></div>
-                ${portraitSrc ? `<img class="v2-ultcut__face" src="${portraitSrc}" alt="">` : `<span class="v2-ultcut__face">${icon(sk.icon, 120)}</span>`}
+                ${portraitSrc ? `<img class="v2-ultcut__face" src="${portraitSrc}" alt=""${portraitFilter ? ` style="filter: ${portraitFilter} drop-shadow(0 0 18px var(--sk))"` : ''}>` : `<span class="v2-ultcut__face">${icon(sk.icon, 120)}</span>`}
                 <div class="v2-ultcut__text">
                     <small>ULTIMATE SKILL</small>
                     <strong>${sk.name}</strong>

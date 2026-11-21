@@ -25,7 +25,7 @@ def called_names():
 def run(ctx):
     g = ctx.game(fresh=True)
     g.enter_v2()
-    st = g.js("return { state: sound.ctx && sound.ctx.state, loaded: sound.buffers.size, total: Object.keys(SFX).length, bgm: sound.bgm && sound.bgm.name };")
+    st = g.js("return { state: sound.ctx && sound.ctx.state, loaded: sound.buffers.size, total: Object.keys(SFX).filter(n => sound.has(n)).length, bgm: sound.bgm && sound.bgm.name };")
     ctx.check(st['state'] == 'running', '소리 켜짐 (AudioContext running)', str(st['state']))
     ctx.check(st['loaded'] == st['total'], '효과음 전부 로드', f"{st['loaded']}/{st['total']}")
     ctx.check(st['bgm'] == 'menu', '메인 화면 배경음 = menu', str(st['bgm']))

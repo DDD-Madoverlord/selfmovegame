@@ -54,10 +54,11 @@ def run(ctx):
     # ---- 세트마다 전투: 기본 공격 → 스킬 1·2·필살기 → 효과 ----
     for name, parts in SETS.items():
         g.battle(parts, wait_ms=1500)
-        g.place_enemies(n=4, gap=45, first=110, hp=6000, speed=8, dps=8)
+        # 체력 60000: 레어 세트가 Lv3에서 시작하면서(회의 ⑦ 11-21) 6000짜리는 스킬에 쓰러져, 아래 '사라진 적 = 체력 그대로'(세뇌로 넘어간 적) 셈이 틀어졌음
+        g.place_enemies(n=4, gap=45, first=110, hp=60000, speed=8, dps=8)
         g.wait(1800)
         hp0 = g.js("return b.enemies.filter(e => !e.isBuilding).map(e => e.hp);")
-        ctx.check(any(h < 6000 for h in hp0), f'{name}: 기본 공격({parts[2]})이 적에게 피해', str([round(h) for h in hp0]))
+        ctx.check(any(h < 60000 for h in hp0), f'{name}: 기본 공격({parts[2]})이 적에게 피해', str([round(h) for h in hp0]))
         used = g.js("""b.skillCd.arm = 0; b.skillCd.body = 0; b.ultGauge = 1;
             return ['arm', 'body', 'head'].map(s => b.useSkill(s));""")
         ctx.check(all(used), f'{name}: 스킬 1·2·필살기 사용', str(used))
@@ -65,7 +66,7 @@ def run(ctx):
         desc, expr = EFFECT[name]
         ctx.check(g.js(f'return {expr};'), f'{name}: {desc}', str(g.js(
             "return { buffs: Object.keys(b.buffs), zones: b.zones.length, turret: b.turretT, allies: b.allies.length };")))
-        hp1 = g.js("return b.enemies.filter(e => !e.isBuilding).reduce((s, e) => s + e.hp, 0) + (6000 * (4 - b.enemies.filter(e => !e.isBuilding).length));")
+        hp1 = g.js("return b.enemies.filter(e => !e.isBuilding).reduce((s, e) => s + e.hp, 0) + (60000 * (4 - b.enemies.filter(e => !e.isBuilding).length));")
         ctx.check(hp1 < sum(hp0), f'{name}: 스킬이 적에게 피해', f'{round(sum(hp0))} → {round(hp1)}')
         c, v = name.split('_')
         alias = g.js("return m.rigBattle.skeleton && m.rigBattle.skeleton.partAlias;") or {}

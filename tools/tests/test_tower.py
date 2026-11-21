@@ -85,17 +85,17 @@ def run(ctx):
     ctx.check(st['a'] == 13 and st['b2'] == 0 and st['c'] == 14 and st['best'] == 14 and st['again'] is False,
               '주간 최고 층: 새 주에는 0부터 · 이미 깬 층은 보상 없음', str(st))
 
-    # ===== 작전 지원 › 스페셜 세 번째 카드 =====
+    # ===== 메인 화면 SPECIAL MAP 탭 세 번째 카드 (회의 ⑳ 11-21 — 예전 작전 지원 › 스페셜) =====
     g.js("window.madOverlordGameV2.switchScreen('menu');")
     g.wait(400)
-    g.js("const gu = await import('/js/ui_v2/growthUi_v2.js'); gu.openGrowthPanel('special');")
+    g.page.click('.v2-maptab[data-map="special"]')
     g.wait(400)
     st = g.js("""const card = document.querySelector('.v2-special__card[data-mode="tower"]');
         return { has: !!card, text: card ? card.textContent.replace(/\\s+/g, ' ') : '', btn: card?.querySelector('[data-act=startTower]')?.textContent || '',
             muts: card ? card.querySelectorAll('.v2-tower__mut').length : -1 };""")
     ctx.check(st['has'] and '오버로드의 탑' in st['text'] and '15층' in st['btn'] and '최고 14층' in st['text'] and st['muts'] == 3,
               "스페셜 탭 세 번째 카드 '오버로드의 탑': 다음 15층 · 쌓인 변이 3개 · 최고 14층", str(st))
-    g.shot('tower_card', '.v2-growth')
+    g.shot('tower_card', '.v2-radar')
     g.page.click('.v2-special__card[data-mode="tower"] [data-act=startTower]')
     g.wait(2500)
     st = g.js("return { floor: b.stage.specialStep, sp: b.stage.special, muts: b.mutator && b.mutator.ids.length };")

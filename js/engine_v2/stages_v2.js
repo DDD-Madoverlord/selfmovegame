@@ -945,7 +945,8 @@ CHAPTERS.forEach(ch => ch.stages.forEach(st => {
 export const STAGES = CHAPTERS.flatMap(ch => ch.stages);
 
 /** 그룹의 마지막 판 (그 그룹의 다음 난이도를 여는 판 — difficulty_v2.js) */
-export const GROUP_FINAL = { 1: '6-B', 2: '8-B', 3: '10-B' };
+// 그룹 1 = 4-B (회의 ① 11-21): 출시 때 공개 구역이 1~4라 6-B면 하드 이상이 영영 안 열림 → D-078 때의 4-B로. 구역 5 · 6을 공개한 뒤에도 4-B 그대로
+export const GROUP_FINAL = { 1: '4-B', 2: '8-B', 3: '10-B' };
 /** 그룹의 첫 판 */
 export const GROUP_FIRST = { 1: '1-1', 2: '7-1', 3: '9-1' };
 

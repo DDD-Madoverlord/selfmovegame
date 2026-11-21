@@ -51,7 +51,7 @@ def run(ctx):
     p = st['picks']
     ctx.check(st['leg'] == 8 and 0.15 < p['legendary'] / 2000 < 0.25 and st['first'] == 'legendary' and st['disp'] == 0,
               '드랍: 나이트메어 레전더리 약 20%, 보스 첫 클리어는 레전더리 세트, 파견은 유니크·레전더리 빠짐', str(st))
-    ctx.check(st['craft'] and st['craft']['shards'] == 200 and st['craft']['grade'] == 'legendary', '조각 제작: 레전더리 200개 → 레전더리 등급', str(st['craft']))
+    ctx.check(st['craft'] and st['craft']['shards'] == 200 and st['craft']['dm'] == 200000 and st['craft']['grade'] == 'legendary', '조각 제작: 레전더리 조각 200 + DM 20만 → 레전더리 등급', str(st['craft']))
 
     # ---- 세트마다 전투 ----
     sets = g.js("""const { PACKS } = await import('/js/engine_v2/sets2/index.js');

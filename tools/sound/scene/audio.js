@@ -13,8 +13,9 @@ import { NEW_RULES } from './cues.js';
 export const dbToGain = db => Math.pow(10, db / 20);
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 
-// 새 소리 48개를 게임 표에 (이 페이지에서만) — src = 지금 빌려 쓰는 소리
-for (const [n, r] of Object.entries(NEW_RULES)) if (!SFX[n]) SFX[n] = { ...r };
+// 새 소리 48개를 게임 표에 (이 페이지에서만) — src = 지금 빌려 쓰는 소리.
+// 게임 표에 '새 소리 묶음 전용'(pack)으로 먼저 들어간 이름도 이 페이지에서는 점검실 규칙으로 (묶음과 상관없이 장면에서 나야 함)
+for (const [n, r] of Object.entries(NEW_RULES)) if (!SFX[n] || SFX[n].pack) SFX[n] = { ...r };
 
 export const audio = {
     mode: 'mine',          // 'mine' 넣은 파일로 · 'game' 지금 게임 소리로

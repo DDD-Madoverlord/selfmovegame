@@ -53,8 +53,8 @@ def run(ctx):
         return { logo: t.querySelector('.v2-title__logo').textContent, tap: t.querySelector('.v2-title__tap').textContent,
             faces: t.querySelectorAll('.v2-title__face').length, secret: t.querySelectorAll('.v2-title__face.is-secret').length,
             acct: t.querySelector('.v2-title__acct').textContent, ver: t.querySelector('.v2-title__ver').textContent };""")
-    ctx.check('OVERLORD' in st['logo'] and 'TOUCH TO START' in st['tap'] and st['faces'] == 10 and st['secret'] == 4,
-              '시작 화면: 로고 · TOUCH TO START · 캐릭터 10명 줄(숨김 그룹 4명은 ?)', str(st))
+    ctx.check('OVERLORD' in st['logo'] and 'TOUCH TO START' in st['tap'] and st['faces'] == 10 and st['secret'] == 6,
+              '시작 화면: 로고 · TOUCH TO START · 캐릭터 10명 줄(출시 4명 밖의 6명은 ? — 회의 ① 11-21)', str(st))
     ctx.check('게스트' in st['acct'] and st['ver'].startswith('v0.'), '왼쪽 아래 계정 줄 "게스트 · 계정 연동하기" · 오른쪽 아래 버전', str(st))
     g.shot('title_start')
     g.page.click('.v2-title__tap')

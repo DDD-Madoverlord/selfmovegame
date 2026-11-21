@@ -6,7 +6,12 @@
    그룹에 든 구역·캐릭터는 그룹 date가 없으면 숨김(공개 전) — 위 '빈 설정 = 공개'와 뜻이 반대라 그룹에 든 것만 이렇게.
    구역·캐릭터에 따로 날짜(RELEASE)를 적으면 그 날짜가 그룹보다 먼저다. */
 export const RELEASE = { zones: {}, characters: {} };
+// 출시 범위 (회의 ① · D-154 ⑥, 2026-11-21): 출시 때는 캐릭터 4명(거대로봇 · 거대괴수 · 타락 히어로 · 합성괴인) + 구역 1~4만.
+//   구역 5 · 6과 심연의 길잡이 · 봉합 성녀도 숨김 묶음으로 (id 'launch2' — 날짜를 넣으면 그날 공개, 구역 7~10과 같은 '???' 실루엣).
+//   scale: 판 세기·난이도 배율에 쓰는 그룹 번호 (stages_v2.js GROUP_SCALE · difficulty_v2.js GROUP_DIFF_K). 구역 5 · 6은 예전처럼 그룹 1 값 그대로
+//   — 숨기기만 하고 세기는 안 바꿈. 구역 7~10은 예전처럼 id가 곧 배율 그룹(2 · 3)
 export const RELEASE_GROUPS = [
+    { id: 'launch2', scale: 1, zones: [5, 6], characters: ['diver', 'saint'], date: null },
     { id: 2, zones: [7, 8], characters: ['doll', 'frost'], date: null },
     { id: 3, zones: [9, 10], characters: ['architect', 'broadcaster'], date: null }
 ];
@@ -48,7 +53,7 @@ export function releaseGroupOf(kind, key) {
 /** 구역의 그룹 번호: 처음부터 공개된 구역은 1 (그룹 배율·난이도 — stages_v2.js · difficulty_v2.js) */
 export function groupOfZone(zone) {
     const g = RELEASE_GROUPS.find(x => x.zones.includes(Number(zone)));
-    return g ? g.id : 1;
+    return g ? g.scale ?? g.id : 1;
 }
 
 function localHost() {

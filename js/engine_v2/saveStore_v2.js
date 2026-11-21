@@ -230,9 +230,10 @@ function validate(entries) {
                 throw new Error('설정 음량이 올바르지 않습니다.');
             }
         }
-        for (const key of ['mute', 'shake', 'sharp']) {
+        for (const key of ['mute', 'shake', 'sharp', 'lowSpec']) {
             if (settings[key] !== undefined && typeof settings[key] !== 'boolean') throw new Error('설정 스위치 값이 올바르지 않습니다.');
         }
+        if (settings.sfxPack !== undefined && !['old', 'new'].includes(settings.sfxPack)) throw new Error('설정 소리 묶음 값이 올바르지 않습니다.');
     }
     if (entries.mo_v2_auto_skill !== undefined && !['0', '1'].includes(entries.mo_v2_auto_skill)) {
         throw new Error('스킬 자동 사용 값이 올바르지 않습니다.');

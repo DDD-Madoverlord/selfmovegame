@@ -143,7 +143,7 @@ export class BattleHud {
     }
 
     setPortrait(equipped) {
-        const p = monsterControllerV2.getPortrait();
+        const p = monsterControllerV2.getPortrait(equipped);   // 지금 낀 머리 파츠 그림 (회의 ⑱)
         const color = (p && FACTION_COLOR[p.id]) || '#ffb020';
         this.el.unit.style.setProperty('--faction', color);
         this.el.name.textContent = p ? p.name : 'OVERLORD';
@@ -152,11 +152,13 @@ export class BattleHud {
         if (p) {
             this.el.portrait.hidden = false;
             this.el.portrait.src = p.src;
+            this.el.portrait.style.filter = p.filter || '';
         } else {
             this.el.portrait.hidden = true;
             this.el.portraitBox.insertAdjacentHTML('beforeend', icon('fist', 34));
         }
         this.portraitSrc = p ? p.src : null;
+        this.portraitFilter = p ? p.filter : null;
     }
 
     buildDock() {
@@ -327,7 +329,7 @@ export class BattleHud {
             void slotEl.btn.offsetWidth;   // 애니메이션 재시작
             slotEl.btn.classList.add('is-fired');
         }
-        if (sk.ult) this.b.director.ultCutIn(sk, this.portraitSrc);   // 필살기 컷인 + 슬로모션
+        if (sk.ult) this.b.director.ultCutIn(sk, this.portraitSrc, this.portraitFilter);   // 필살기 컷인 + 슬로모션
     }
 
     /** 스킬 입력: 쓸 수 없으면(쿨다운/대상 없음) 짧은 경고음 */

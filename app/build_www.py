@@ -38,9 +38,9 @@ FILES = ['index.html', 'index.css', 'ui_v2.css', 'ui_v2_mobile.css',
          'rig_test.html']   # 연구소 스킬 미리보기가 iframe으로 씀 (11-05 피드백 11번, lab_v2.js previewSkill)
 DIRS = ['js', 'assets']
 SKIP_DIRS = {'src', 'png', '_sets_tmp', '__pycache__'}
-SKIP_SUFFIX = ('_raw.png', '_gemini.png', '.psd', '.md')
+SKIP_SUFFIX = ('_raw.png', '_gemini.png', '.psd', '.md', '.zip')
 # 게임이 읽지 않는 폴더 (앱 묶음에서 뺌) — 배경음 후보 곡(11-06 추가, 약 97MB): 게임은 bgm/menu·battle·boss.ogg만 씀 (sound_v2.js BGM, 2026-11-10 빌드 24)
-SKIP_PATHS = {'assets/audio/bgm/main', 'assets/audio/bgm/stage'}
+SKIP_PATHS = {'assets/audio/bgm/main', 'assets/audio/bgm/stage', 'assets/audio/sound_picks_20261116'}   # 선정 묶음 원본(wav) — 게임은 sfx_new/의 ogg만 씀
 
 MODE_STYLE = '<style>#screen-mode-selector{display:none!important}</style>'
 APP_HEAD = MODE_STYLE + '<script>window.madOverlordApp = true;</script>'

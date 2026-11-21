@@ -2101,7 +2101,7 @@ export const PART_CATALOG = {
       attackType: null,
       skill: "cmSubmerge",
       kind: "스킬 2",
-      skillName: "급강하",
+      skillName: "상어 급강하",
       cd: 12,
       desc: "높이 뛰어올라(공중 동안 피해 안 받음) 1초 뒤 앞 적에게 내리꽂혀 물어뜯음 — 큰 피해 + 1.5초 기절",
       kit: true,

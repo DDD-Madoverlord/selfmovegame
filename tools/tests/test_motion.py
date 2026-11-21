@@ -31,7 +31,8 @@ def run(ctx):
 
     # ---- Q2: 걸음 맞추기 — 느린 캐릭터는 배경·걷기 동작이 느림 ----
     speeds = {}
-    for name, build in (('frost', FROST), ('kaiju', SLOW)):
+    # 회의 ⑤ (11-21): 커먼 다리 50이라 무희(원거리)·거대괴수 기본 둘 다 걷기 동작 최소(×0.60)에 걸림 → 빠른 쪽은 기본 로봇(근거리 113)
+    for name, build in (('frost', FROST), ('kaiju', ('head_red_robot', 'body_red_robot', 'arm_red_robot', 'leg_red_robot'))):
         g.battle(build, wait_ms=1500)
         clear(g)
         g.wait(400)

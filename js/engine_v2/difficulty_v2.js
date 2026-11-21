@@ -8,7 +8,7 @@
      enemyHp / enemyDps : 적 체력·공격력 (보스·바리케이드·요새 사격 포함 — 모두 stage.enemy 배율을 씀)
      base     : 중간 요새·최종 기지 체력
      elite    : 엘리트로 나올 확률에 더함
-     affixes  : 엘리트 속성 수 최소 (노말은 구역 1·2 = 1개, 구역 3·4 = 2개), affixesLate = 구역 3·4에서의 수
+     affixes  : 엘리트 속성 수 [최소, 최대] (회의 ⑩ 11-21 — 노말 1 · 하드 1 · 헬 2~3 · 나이트메어 3, 구역과 상관없음), eliteArmor · affixPower는 아래 표 주석
      bossHaste: 보스 기술 간격을 이 값으로 나눔 (경고 시간은 그대로) — 보스 종류 기술 + 구역 기믹(EMP·가스·악마기사)
      time     : 제한 시간·별 목표 시간
      reward   : DM 보상(처치·요새·기지)과 새 별 보너스
@@ -21,19 +21,22 @@ import { STAGES, GROUP_FINAL } from './stages_v2.js';
 import { MUTATORS, weeklyMutator } from './growth_v2.js';
 
 export const DIFFICULTIES = [
+    // 엘리트 (회의 ⑩ · D-154 ⑦, 2026-11-21): affixes = 속성 개수 [최소, 최대] (엘리트마다 그 사이에서 무작위) —
+    //   노말 1 · 하드 1 · 헬 2~3 · 나이트메어 3 (예전: 구역 3부터 노말·하드도 2개, 헬 고정 2, 나이트메어 2 → 3).
+    //   eliteArmor = 엘리트가 받는 피해 감소(하드 '방어력 상승'), affixPower = 속성 효과 배율(나이트메어 '난이도 상승', enemies_v2.js eliteAffix)
     { id: 'normal', name: '노말', en: 'NORMAL', color: '120, 220, 140',
-        enemyHp: 1, enemyDps: 1, base: 1, elite: 0, affixes: 0, bossHaste: 1, time: 1, reward: 1, maxLevel: 5 },
+        enemyHp: 1, enemyDps: 1, base: 1, elite: 0, affixes: [1, 1], bossHaste: 1, time: 1, reward: 1, maxLevel: 5 },
     { id: 'hard', name: '하드', en: 'HARD', color: '255, 176, 32',
-        enemyHp: 1.4, enemyDps: 1.3, base: 1.3, elite: 0.05, affixes: 0, bossHaste: 1, time: 1.05, reward: 1.6, maxLevel: 7 },
+        enemyHp: 1.4, enemyDps: 1.3, base: 1.3, elite: 0.05, affixes: [1, 1], eliteArmor: 0.1, bossHaste: 1, time: 1.05, reward: 1.6, maxLevel: 7 },
     { id: 'hell', name: '헬', en: 'HELL', color: '255, 74, 58',
-        enemyHp: 1.9, enemyDps: 1.6, base: 1.65, elite: 0.1, affixes: 2, bossHaste: 1, time: 1.1, reward: 2.4, maxLevel: 9 },
+        enemyHp: 1.9, enemyDps: 1.6, base: 1.65, elite: 0.1, affixes: [2, 3], bossHaste: 1, time: 1.1, reward: 2.4, maxLevel: 9 },
     { id: 'nightmare', name: '나이트메어', en: 'NIGHTMARE', color: '180, 92, 255',
-        enemyHp: 2.5, enemyDps: 2, base: 2.1, elite: 0.15, affixes: 2, affixesLate: 3, bossHaste: 1.25, time: 1.2, reward: 3.5, maxLevel: 10,
+        enemyHp: 2.5, enemyDps: 2, base: 2.1, elite: 0.15, affixes: [3, 3], affixPower: 1.25, bossHaste: 1.25, time: 1.2, reward: 3.5, maxLevel: 10,
         mutators: true }
 ];
 export const DEFAULT_DIFFICULTY = 'normal';
 /**
- * 다음 난이도를 여는 스테이지: 처음부터 공개된 그룹 1(구역 1~6)의 마지막 판 6-B (D-119 8번, 예전 4-B — D-078).
+ * 다음 난이도를 여는 스테이지: 출시 때 공개된 구역 1~4의 마지막 판 4-B (회의 ① 11-21 — D-119 8번의 6-B에서 되돌림, 구역 5 · 6을 숨겨서).
  * 숨김 그룹(구역 7~8 · 9~10)은 그룹마다 따로: 그 그룹 첫 판의 하드 이상은 그룹 마지막 판(8-B · 10-B)을 바로 아래 난이도에서 깨야 열림 (stages_v2.js isUnlockedNormally).
  * 4-B 시절에 이미 연 난이도는 그 난이도 기록이 하나라도 있으면 그대로 열어 둠 (다시 잠그지 않음)
  */
@@ -72,10 +75,10 @@ export function nextDifficultyOf(id) {
     return i >= 0 && i < DIFFICULTIES.length - 1 ? DIFFICULTIES[i + 1] : null;
 }
 
-/** 엘리트 속성 수: 노말 규칙(구역 3·4는 2개)과 난이도 최소 중 큰 값 */
+/** 엘리트 속성 수 [최소, 최대] — 난이도 표 그대로 (구역과 상관없음, 회의 ⑩). 엘리트마다 그 사이에서 뽑음 (enemies_v2.js spawnEnemy) */
 export function affixCountFor(zone, d) {
-    const base = zone >= 3 ? 2 : 1;
-    return Math.max(base, d.affixes || 0, zone >= 3 ? d.affixesLate || 0 : 0);
+    const [lo, hi] = d.affixes || [1, 1];
+    return [lo, Math.max(lo, hi)];
 }
 
 const round2 = v => Math.round(v * 100) / 100;
@@ -116,6 +119,8 @@ export function stageFor(stage, id = DEFAULT_DIFFICULTY, now = Date.now()) {
         mutator,
         elite: Math.min(0.5, round2((stage.elite || 0) + d.elite)),
         affixCount: affixCountFor(stage.zone, d),
+        eliteArmor: d.eliteArmor || 0,       // 하드: 엘리트가 받는 피해 −10%
+        affixPower: d.affixPower || 1,       // 나이트메어: 엘리트 속성 효과 ×1.25
         bossHaste: d.bossHaste,
         base: { mid: roundTo(stage.base.mid * baseM, 100), final: roundTo(stage.base.final * baseM, 100) },
         reward: {

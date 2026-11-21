@@ -33,12 +33,12 @@ def run(ctx):
         const c = progress.grantPart('arm_mech_laser', 'rare', rnd);              // 낮은 등급 → 환급
         return { a: a.type, b: b2.type, prev: b2.prev, opts: progress.optionsOf('arm_mech_laser').length, owned: progress.isOwned('arm_mech_laser'),
             c: c.type, dmGain: gameState.darkMatter - dm, shGain: progress.shards - sh, want: G.DROP.refund.rare,
-            hp0, hp1, mul: G.GRADES[2].mul };""")
+            hp0, hp1, mul: G.GRADES[2].mul * (1 + 0.12 * (G.GRADES[2].startLevel - 1)) };""")   # 유니크는 Lv5에서 시작 (회의 ⑦ 11-21)
     ctx.check(st['a'] == 'new' and st['owned'], '드랍: 없던 파츠 → 그 등급으로 얻음', str(st))
     ctx.check(st['b'] == 'upgrade' and st['prev'] == 'common' and st['opts'] == 2, '드랍: 높은 등급 → 등급 상승 + 옵션 2개 (유니크)', str(st))
     ctx.check(st['c'] == 'refund' and st['dmGain'] == st['want']['dm'] and st['shGain'] == st['want']['shards'],
               '드랍: 같거나 낮은 등급 → DM·파츠 조각 환급', str(st))
-    ctx.check(abs(st['hp1'] - round(st['hp0'] * st['mul'])) <= 1, f"등급 능력치: 유니크 ×{st['mul']}", str(st))
+    ctx.check(abs(st['hp1'] - round(st['hp0'] * st['mul'])) <= 1, f"등급 능력치: 유니크 ×1.2 × 시작 레벨 5(+48%) = ×{st['mul']:.3f}", str(st))
 
     st = g.js("""progress.shards = 100; progress.stones = 50; gameState.darkMatter = 500000;
         const cost = progress.shardUpgradeCost('arm_mech_laser');
@@ -67,16 +67,26 @@ def run(ctx):
         const none = progress.rollBattleDrop({ character: 'mech', zone: 1, difficulty: 'normal', boss: false, firstClear: false }, r([0.9]));
         const n = progress.rollBattleDrop({ character: 'mech', zone: 1, difficulty: 'normal', boss: false, firstClear: false }, r([0.1, 0.0, 0.5, 0.5]));
         const h = progress.rollBattleDrop({ character: 'mech', zone: 1, difficulty: 'hard', boss: false, firstClear: false }, r([0.1, 0.3, 0.1, 0.5]));
+        const dm0 = gameState.darkMatter, st0 = progress.stones || 0, sh0 = progress.shards;
+        const hl = progress.rollBattleDrop({ character: 'mech', zone: 1, difficulty: 'hell', boss: false, firstClear: false }, r([0.1, 0.3, 0.5, 0.5]));
+        const hl2 = progress.rollBattleDrop({ character: 'mech', zone: 1, difficulty: 'hell', boss: false, firstClear: false }, r([0.1, 0.95, 0.5, 0.5]));
         const nm = progress.rollBattleDrop({ character: 'mech', zone: 1, difficulty: 'nightmare', boss: false, firstClear: false }, r([0.1, 0.6, 0.5, 0.5]));
+        const gain = { dm: gameState.darkMatter - dm0, stones: (progress.stones || 0) - st0, shards: progress.shards - sh0 };
+        gameState.darkMatter = dm0;
         const sure = progress.rollBattleDrop({ character: 'mech', zone: 1, difficulty: 'normal', boss: true, firstClear: true }, r([0.99, 0.2, 0.5]));
         const aff = [progress.isAffinity('mech', 1), progress.isAffinity('mech', 3), progress.isAffinity('chimera', 4)];
         return { none, n: n && n.grade, h: h && h.grade, nm: nm && nm.grade, sure: sure && sure.sure, aff,
-            kinds: [n.type, h.type, nm.type, sure.type], amounts: [n.shards, nm.shards], boost: progress.researchBonus('shardBoost') };""")
+            kinds: [n.type, h.type, nm.type, sure.type], amounts: [n.shards, nm.shards], boost: progress.researchBonus('shardBoost'),
+            hell: [hl.type, hl.grade, hl.dm, hl2.grade, hl2.dm], night: [nm.type, nm.stones], gain };""")
     ctx.check(st['none'] is None and st['n'] == 'common' and st['h'] in ('rare', 'unique') and st['nm'] == 'legendary',
               '드랍 판정: 25% 밖이면 없음 · 노말 커먼 · 하드 레어/유니크 · 나이트메어 레전더리', str(st))
     ctx.check(st['sure'] and st['aff'] == [True, False, True], '보스전 첫 클리어는 확정 드랍 · 구역 상성(구역 1 거대로봇, 구역 4 합성괴인)', str(st))
-    ctx.check(st['kinds'][:3] == ['shards'] * 3 and st['kinds'][3] != 'shards' and (st['boost'] > 0 or st['amounts'] == [2, 20]),
-              '판 클리어 드랍 = 파츠 대신 공용 파츠 조각(노말 커먼 2 · 나이트메어 레전더리 20), 보스전 첫 클리어만 파츠 (11-05 피드백 23)', str(st))
+    ctx.check(st['kinds'][:2] == ['shards'] * 2 and st['kinds'][3] not in ('shards', 'dm', 'stones') and (st['boost'] > 0 or st['amounts'][0] == 2),
+              '판 클리어 드랍 = 파츠 대신 공용 파츠 조각(노말 커먼 2 · 하드), 보스전 첫 클리어만 파츠 (11-05 피드백 23)', str(st))
+    # 회의 ⑥ (11-21, D-154): 헬 · 나이트메어 판 드랍은 조각 대신 DM · 승급석 — 조각은 하나도 안 늘어남
+    ctx.check(st['hell'] == ['dm', 'unique', 6000, 'legendary', 15000] and st['night'] == ['stones', 1]
+              and st['gain'] == {'dm': 21000, 'stones': 1, 'shards': 0},
+              '헬 판 드랍 = DM(유니크 6,000 · 레전더리 15,000), 나이트메어 = 승급석 1 — 조각은 안 줌', str((st['hell'], st['night'], st['gain'])))
 
     # 세트 장비 (Q-008): 등급 바닥 · 묶음 가중 드랍 · 보스 첫 클리어 세트 부위 · 조각 제작 · 드랍 전용 잠금 · 예전 저장
     st = g.js("""const S = await import('/js/engine_v2/sets_v2.js');
@@ -85,7 +95,7 @@ def run(ctx):
         progress.owned.delete('arm_kaiju_a'); progress.owned.delete('arm_kaiju_b'); delete progress.grades.arm_kaiju_a;
         const floor = [progress.gradeOf('arm_kaiju_a'), progress.gradeOf('arm_kaiju'), S.minGradeOf('head_mech_b')];
         const arm = PARTS_DB.arm.find(p => p.id === 'arm_kaiju_a');
-        const dps = progress.partStats(arm).dps, want = Math.round(arm.stats.dps * 1.1);
+        const dps = progress.partStats(arm).dps, want = Math.round(arm.stats.dps * 1.1 * (1 + 0.12 * 2));   // 레어 ×1.1 × 시작 레벨 3 (+24%, 회의 ⑦ 11-21)
         // 묶음 가중: 노말은 기본·강화만, 하드 0.5 → 레어 세트(기본 40% 다음), 하드 보스 첫 클리어 → 레어 세트, 헬 첫 클리어 → 유니크 없으면 레어
         const kinds = diff => [0.05, 0.3, 0.45, 0.7, 0.95].map(v => S.dropGroupOf(progress.pickDropPart('kaiju', diff, {}, r([v, 0.5]))));
         const normal = kinds('normal'), hard = kinds('hard');
@@ -101,10 +111,14 @@ def run(ctx):
         const tierLocked = progress.craftPart('arm_kaiju_a');
         commons.slice(0, 3).forEach(id => progress.owned.add(id));
         // 조각 제작
-        progress.shards = 10;
+        progress.shards = 10; gameState.darkMatter = 50000;
         const c0 = progress.craftCost('arm_kaiju_a'), poor = progress.craftPart('arm_kaiju_a');
-        progress.shards = 40;
+        progress.shards = 40; gameState.darkMatter = 19990;   // 조각은 넉넉한데 DM이 모자람 (회의 ⑥ 11-21 — 만들기에도 DM)
+        const noDm = progress.craftPart('arm_kaiju_a');
+        const keptShards = progress.shards;
+        gameState.darkMatter = 50000;
         const made = progress.craftPart('arm_kaiju_a');
+        const dmLeft = gameState.darkMatter;
         const after = { owned: progress.isOwned('arm_kaiju_a'), shards: progress.shards, again: progress.craftCost('arm_kaiju_a'), base: progress.craftCost('arm_kaiju') };
         // 드랍 전용(유니크 세트 표시)은 DM으로 못 삼
         const p = PARTS_DB.leg.find(q => q.id === 'leg_kaiju_b'); progress.owned.delete('leg_kaiju_b'); p.dropOnly = true;
@@ -115,18 +129,20 @@ def run(ctx):
         progress.owned.add('head_hero_a'); delete progress.options.head_hero_a;
         progress.loadGrowth(save);
         return { tierLocked: [tierLocked.success, tierLocked.reason || ''], floor, dps, want, normal, hard, first, hellFirst, got: [got.type, got.grade, progress.optionsOf('arm_kaiju_b').length],
-            c0, poor: poor.success, made: [made.success, made.grade, made.shards], after, locked: locked.success, lockedWhy: locked.reason || '',
+            c0, poor: poor.success, noDm: [noDm.success, noDm.reason || '', keptShards], dmLeft, made: [made.success, made.grade, made.shards], after, locked: locked.success, lockedWhy: locked.reason || '',
             old: [progress.gradeOf('head_hero_a'), progress.optionsOf('head_hero_a').length],
             label: S.setLabelOf(S.setOf('head_hero_a')) };""")
     ctx.check(st['floor'] == ['rare', 'common', 'rare'] and abs(st['dps'] - st['want']) <= 1,
-              '세트 등급 바닥: A·B(레어 세트)는 안 가져도 레어, 능력치 ×1.1 · 기본 파츠는 커먼', str(st))
+              '세트 등급 바닥: A·B(레어 세트)는 안 가져도 레어, 능력치 ×1.1 × 시작 레벨 3 · 기본 파츠는 커먼', str(st))
     ctx.check(set(st['normal']) == {'base'} and st['hard'] == ['base', 'base', 'rare', 'rare', 'rare'],
               '드랍 묶음 가중: 노말 기본·강화만 · 하드 기본 40% / 레어 세트 60%', str(st['normal']) + str(st['hard']))
     ctx.check(st['first'] == 'rare' and st['hellFirst'] == 'unique', '보스 첫 클리어: 하드 레어 세트 · 헬 유니크 (2차 세트로 거대괴수도 유니크가 생김)', str(st))
     ctx.check(st['got'] == ['new', 'rare', 1], '드랍: 레어 세트 파츠는 커먼으로 뽑혀도 레어 + 옵션 1개', str(st['got']))
-    ctx.check(st['c0'] == {'shards': 30, 'grade': 'rare'} and not st['poor'] and st['made'] == [True, 'rare', 30]
+    ctx.check(st['c0'] == {'shards': 30, 'dm': 20000, 'grade': 'rare'} and not st['poor'] and st['made'] == [True, 'rare', 30]
               and st['after'] == {'owned': True, 'shards': 10, 'again': None, 'base': None},
-              '조각 제작: 레어 세트 부위 30개 (부족하면 실패), 가진 파츠·기본 파츠는 불가', str(st))
+              '조각 제작: 레어 세트 부위 조각 30 + DM 2만 (부족하면 실패), 가진 파츠·기본 파츠는 불가', str(st))
+    ctx.check(not st['noDm'][0] and 'DM이 부족' in st['noDm'][1] and st['noDm'][2] == 40 and st['dmLeft'] == 30000,
+              '조각 제작: 조각이 넉넉해도 DM이 모자라면 실패(조각 그대로) · 만들면 DM 2만이 빠짐', str((st['noDm'], st['dmLeft'])))
     ctx.check(not st['tierLocked'][0] and '커먼 파츠를 3개' in st['tierLocked'][1],
               '등급 단계: 거대괴수 커먼 파츠가 3개 안 되면 레어 세트를 조각으로도 못 만듦', str(st['tierLocked']))
     ctx.check(not st['locked'] and '드랍·조각' in st['lockedWhy'], '드랍 전용 파츠는 개조 확정(DM 구매) 불가', st['lockedWhy'])

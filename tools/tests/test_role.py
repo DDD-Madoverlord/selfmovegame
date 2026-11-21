@@ -42,11 +42,11 @@ def run(ctx):
     ctx.check(o['fist']['role'] == 'melee' and o['fist']['armor'] == 25 and o['fist']['speed'] == jsround(o['fist']['rawSpeed'] * M['move'])
               and abs(o['fist']['dps'] - o['fist']['rawDps'] * M['dps']) <= 2,
               f"근거리(주먹 로봇) 능력치: 이동 ×{M['move']} · 공격 ×{M['dps']} · 방어력 25%", str(o['fist']))
-    ctx.check(o['laser']['role'] == 'ranged' and o['laser']['armor'] == -20 and o['laser']['speed'] == jsround(o['laser']['rawSpeed'] * Rg['move'])
+    ctx.check(o['laser']['role'] == 'ranged' and o['laser']['armor'] == -10 and o['laser']['speed'] == jsround(o['laser']['rawSpeed'] * Rg['move'])
               and abs(o['laser']['dps'] - o['laser']['rawDps'] * Rg['dps']) <= 2,
-              f"원거리(레이저 로봇) 능력치: 이동 ×{Rg['move']} · 공격 ×{Rg['dps']} · 방어력 −20%", str(o['laser']))
-    ctx.check(o['diver']['role'] == 'mid' and o['diver']['armor'] == 0 and o['diver']['speed'] == o['diver']['rawSpeed'] and o['diver']['dps'] == o['diver']['rawDps'],
-              '중거리(길잡이 물줄기): 보정 없음', str(o['diver']))
+              f"원거리(레이저 로봇) 능력치: 이동 ×{Rg['move']} · 공격 ×{Rg['dps']} · 방어력 −10% (D-158)", str(o['laser']))
+    ctx.check(o['diver']['role'] == 'mid' and o['diver']['armor'] == 0 and o['diver']['speed'] == o['diver']['rawSpeed'] and abs(o['diver']['dps'] - o['diver']['rawDps'] * 1.05) <= 1,
+              '중거리(길잡이 물줄기): 유형 보정 없음 (공격력만 후발 캐릭터 +5% — 회의 ① 11-21)', str(o['diver']))
 
     # 전투: 속도·받는 피해가 능력치와 같음
     g.battle('kaiju', wait_ms=2200)
@@ -56,8 +56,9 @@ def run(ctx):
     ctx.check(st['role'] == 'melee' and st['speed'] == st['want'] and abs(st['lost'] - 75) < 0.01, '전투(거대괴수 근거리): 진격 속도 = 표시 속도, 100 피해 → 75만 받음', str(st))
     st = g.js("""const T = await import('/js/engine_v2/battle/tuning.js'); return [T.MELEE_CLEAVE.radius, T.MELEE_CLEAVE.mul];""")
     ctx.check(st == [110, 0.75], '근거리 휩쓸기 반경 110px · 둘레 피해 75%', str(st))
-    st = g.js("return b.sigTargetMul({ isBuilding: true }) === 1.3 && b.sigTargetMul({}) === 1;")
-    ctx.check(st, '고유 특성 거대괴수 산성 부식: 거점 피해 +30%')
+    st = g.js("return [b.sigTargetMul({ isBuilding: true }), b.sigTargetMul({}), b.sigTargetMul({ boss: true })];")
+    ctx.check(abs(st[0] - 1.3) < 1e-9 and abs(st[1] - 1.15) < 1e-9 and st[2] == 1,
+              '고유 특성 거대괴수 산성 부식: 거점 피해 +30% · 근거리 몬스터형(D-158): 보통 적 +15%, 보스는 그대로', str(st))
 
     # 원거리 서리: 받는 피해 +20%, 빙결 적 +20%
     g.js("b.stopBattle(); window.madOverlordGameV2.switchScreen('menu');")
@@ -66,8 +67,8 @@ def run(ctx):
     g.battle(None, wait_ms=2200)
     st = g.js("""b.shieldHp = 0; b.supportShield = 0; b.blizzard = null; const hp = b.playerHp; b.damagePlayer(100, 0);
         return { lost: hp - b.playerHp, frozen: b.sigTargetMul({ frozenT: 1 }), char: b.sigChar };""")
-    ctx.check(st['char'] == 'frost' and abs(st['lost'] - 120) < 0.01 and abs(st['frozen'] - 1.2) < 1e-9,
-              '전투(서리의 무희 원거리): 100 피해 → 120 받음 · 고유 특성 얼린 적 +20%', str(st))
+    ctx.check(st['char'] == 'frost' and abs(st['lost'] - 110) < 0.01 and abs(st['frozen'] - 1.2) < 1e-9,
+              '전투(서리의 무희 원거리): 100 피해 → 110 받음 (D-158 원거리 받는 피해 ×1.1) · 고유 특성 얼린 적 +20%', str(st))
 
     # 관통: 어둠 파동·레일건·물줄기 — 두 번째부터 ×0.3, 최대 4명
     g.js("b.stopBattle(); window.madOverlordGameV2.switchScreen('menu');")

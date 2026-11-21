@@ -20,7 +20,7 @@
 
 import { gameState } from '../engine/state.js';
 import { PARTS_DB } from '../data/parts.js';
-import { ROSTER, SLOTS, DEFAULT_CHARACTER, rosterOf, characterOfPart, partsOfCharacter } from './roster_v2.js';
+import { ROSTER, SLOTS, DEFAULT_CHARACTER, rosterOf, characterOfPart, partsOfCharacter, lateBonusOf } from './roster_v2.js';
 import { DIFFICULTIES, DEFAULT_DIFFICULTY, difficultyOf, difficultyUnlocked, highestDifficulty, assistOf } from './difficulty_v2.js';
 import { GrowthMethods, emptyGrowth } from './progressGrowth_v2.js';
 import { CommerceMethods, emptyCommerce } from './progressCommerce_v2.js';
@@ -28,7 +28,7 @@ import { PetMethods } from './progressPets_v2.js';
 import { OfflineMethods, emptyOffline } from './offlineReward_v2.js';
 import { TutorialMethods, emptyTutorial } from './tutorial_v2.js';
 import { track } from './analytics_v2.js';
-import { gradeOf, TIER_UNLOCK, UP_EXP } from './growth_v2.js';
+import { gradeOf, TIER_UNLOCK, UP_EXP, LEG, GRADE_TRAIT } from './growth_v2.js';
 import { isDropOnly, dropGroupOf } from './sets_v2.js';
 import { allStagesUnlocked, isUnlockedNormally, GROUP_FIRST } from './stages_v2.js';
 import { revealAllTemp } from './contentSchedule_v2.js';
@@ -348,8 +348,11 @@ class Progress {
     }
 
     // ---- 파츠 강화 ----
+    /** 강화 레벨: 저장된 레벨과 그 파츠 등급의 시작 레벨(GRADES startLevel — 레어 3 · 유니크 5 · 레전더리 6, 회의 ⑦) 중 큰 쪽.
+     *  세트 파츠는 안 가졌어도 등급 바닥이 있어 연구소 카드·비교에 시작 레벨 능력치로 보임. 예전 저장의 Lv1 세트 파츠도 그대로 올라감 */
     levelOf(id) {
-        return this.levels[id] || 1;
+        const start = id && id !== 'none' ? gradeOf(this.gradeOf(id)).startLevel || 1 : 1;
+        return Math.max(this.levels[id] || 1, start);
     }
 
     /** 강화 한도: 열린 난이도 중 가장 높은 난이도의 한도 (노말 Lv5 → 하드 Lv7 → 헬 Lv9 → 나이트메어 Lv10)
@@ -398,30 +401,61 @@ class Progress {
         return { success: true, cost, level: this.levels[id] };
     }
 
+    /** 능력치를 셀 때의 등급: 보통은 그 파츠의 등급, 밸런스 조절 패널의 '등급 고정'(시험용)을 켜면 그 등급 (liveTune_v2.js) */
+    statGradeOf(id) {
+        const forced = id && id !== 'none' ? liveTune.forcedGrade() : null;
+        return forced || this.gradeOf(id);
+    }
+
     /** 강화 레벨·등급(커먼 ×1 ~ 레전더리 ×1.35)을 반영한 파츠 능력치 */
     partStats(part) {
         const s = (part && part.stats) || {};
-        const k = (1 + LEVEL_BONUS * (this.levelOf(part && part.id) - 1)) * gradeOf(part ? this.gradeOf(part.id) : null).mul;   // 세트 등급 바닥 포함
-        return { hp: Math.round((s.hp || 0) * k), dps: Math.round((s.dps || 0) * k), range: s.range || 0, speed: s.speed || 0 };
+        const g = gradeOf(part ? this.statGradeOf(part.id) : null);
+        const lv = Math.max(this.levelOf(part && part.id), part && part.id !== 'none' ? g.startLevel || 1 : 1);   // 등급 고정이면 그 등급 시작 레벨부터
+        const k = (1 + LEVEL_BONUS * (lv - 1)) * g.mul;   // 세트 등급 바닥 포함
+        // 다리 이동 속도는 지금 등급이 정함 (회의 ⑤ — 등급을 올린 다리는 올린 등급 값). 다른 부위는 파츠 값 그대로
+        const speed = part && part.id !== 'none' && s.speed != null && slotOf(part.id) === 'leg' ? g.legSpeed : s.speed || 0;
+        return { hp: Math.round((s.hp || 0) * k), dps: Math.round((s.dps || 0) * k), range: s.range || 0, speed };
+    }
+
+    /** 등급 고유 능력치 (회의 ② · D-158): 팔 = 공격 속도 + (근거리 방어 무시 / 원거리 사거리 / 중거리 둘 다 절반), 몸통 = 넉백 저항, 머리 = 상태이상 저항.
+     *  파츠의 지금 등급 값 × 세기(GRADE_TRAIT.power, 조절 패널). 파츠가 없으면 0 */
+    gradeTraits(partsObj) {
+        const gOf = slot => { const p = partsObj && partsObj[slot]; return p && p.id !== 'none' ? gradeOf(this.statGradeOf(p.id)) : null; };
+        const arm = gOf('arm'), body = gOf('body'), head = gOf('head');
+        const role = roleOfArm(partsObj && partsObj.arm), pw = GRADE_TRAIT.power;
+        const share = role === 'mid' ? 0.5 : 1;
+        return {
+            atkSpd: arm ? arm.atkSpd : 1,
+            pierce: arm && role !== 'ranged' ? arm.pierce * share * pw : 0,
+            rangeBonus: arm && role !== 'melee' ? Math.round(arm.rangeBonus * share * pw) : 0,
+            knockCut: body ? Math.min(1, body.knockCut * pw) : 0,
+            ccCut: head ? head.ccCut * pw : 0
+        };
     }
 
     /** 파츠 조합 능력치 (구버전 calculateStats와 같은 규칙 + 강화 레벨) */
     statsFor(partsObj) {
         let hp = 0, dps = 0, range = 0, speed = 0;
+        const traits = this.gradeTraits(partsObj);
         for (const slot of SLOTS) {
             const part = partsObj[slot];
             if (!part || !part.stats) continue;
             const s = this.partStats(part);
             hp += s.hp;
             dps += s.dps;
-            if (slot === 'arm') range = part.stats.range || 100;   // 사거리는 팔이 기준
+            if (slot === 'arm') range = (part.stats.range || 100) + traits.rangeBonus;   // 사거리는 팔이 기준 (+ 원거리 팔 등급 보너스, D-158)
             else range += s.range;
             speed += s.speed;
         }
         // 원거리·근거리 (D-119): 팔 공격 종류로 공격력·진격 속도 배율, 방어력(%) = 받는 피해 감소율 — 전투(battle_v2.js)와 연구소 표시가 같은 값
         const role = roleOfArm(partsObj.arm), mod = roleMods(role);
-        dps *= liveTune.attackMul(characterOfPart(partsObj.body) || this.character);   // 밸런스 조절 (시험용, D-127) — 기본값이면 ×1
-        return { hp, dps: Math.round(dps * mod.dps), range: Math.max(80, range), speed: Math.max(30, Math.round(speed * mod.move)), role, armor: armorOf(role) };
+        const who = characterOfPart(partsObj.body) || this.character;
+        dps *= liveTune.attackMul(who);   // 밸런스 조절 (시험용, D-127) — 기본값이면 ×1
+        const late = lateBonusOf(who);    // 후발 캐릭터(5번째부터) 공격력 · 체력 +5% (회의 ①, roster_v2.js)
+        // 진격 속도: 하한 30 · 상한 LEG.cap 240 (D-158 — 다리 기준 140에서 레전더리 근거리가 300을 넘지 않게)
+        return { hp: Math.round(hp * late), dps: Math.round(dps * mod.dps * late), range: Math.max(80, range), speed: Math.min(LEG.cap, Math.max(30, Math.round(speed * mod.move))),
+            role, armor: armorOf(role), traits };
     }
 
     equippedStats() {

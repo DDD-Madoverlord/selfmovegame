@@ -25,7 +25,7 @@ import { openSettings } from './settingsPanel_v2.js';
 import { liveTune } from '../engine_v2/liveTune_v2.js';
 import { TacticalRadar } from './radar_v2.js';
 import { StageMap, stageNpcs, plainName } from './stageMap_v2.js';
-import { openGrowthPanel } from './growthUi_v2.js';
+import { openGrowthPanel, specialHtml } from './growthUi_v2.js';
 import { refreshCurrency, currencyChipsHtml } from './currencyBar_v2.js';
 import { MUTATORS } from '../engine_v2/growth_v2.js';
 import { openShop } from './shop_v2.js';
@@ -160,6 +160,20 @@ export class MenuController {
         $('btn-menu-support-v2')?.addEventListener('click', () => openGrowthPanel('modules', changed));
         $('btn-menu-coop-v2')?.addEventListener('click', () => openGrowthPanel('coop', changed));
         this.root?.querySelectorAll('.v2-maptab').forEach(tab => tab.addEventListener('click', () => this.setMap(tab.dataset.map)));
+        // SPECIAL MAP 탭의 작전 카드 (보스 러시 · 파괴 작전 · 오버로드의 탑 — 회의 ⑳, 예전 작전 지원 › 스페셜): 도전 단추 → 그 판으로 출격
+        $('menu-special-v2')?.addEventListener('click', e => {
+            const btn = e.target.closest('button[data-act]');
+            if (!btn || btn.disabled) return;
+            const res = btn.dataset.act === 'startTower' ? progress.startTower() : progress.startSpecial(btn.dataset.mode);
+            if (!res.success) {
+                sound.play('ui_error');
+                this.say(res.reason);
+                this.renderSpecial();
+                return;
+            }
+            this.openStages(false);
+            window.madOverlordGameV2.startSpecial(res.stage);
+        });
         const money = this.root?.querySelector('.v2-radar__money');
         if (money) money.innerHTML = currencyChipsHtml();
         // 휴대폰 메인의 [스토리 맵]·[스페셜 맵]: 그 지도로 바꾸고 지도 창을 엶 (11-05 피드백 14번)
@@ -214,8 +228,8 @@ export class MenuController {
         this.radar.setMode(map);
         this.root.querySelectorAll('.v2-maptab, .v2-mmap').forEach(t => t.classList.toggle('is-on', t.dataset.map === map));
         const story = map === 'story';
-        $('menu-radar-locked-v2').hidden = story;
-        $('menu-map-name-v2').textContent = story ? plainName(chapterOf(this.currentStage()).name) : 'SPECIAL · 무한 파밍 / 엘리트 챌린지';
+        $('menu-special-v2').hidden = story;
+        $('menu-map-name-v2').textContent = story ? plainName(chapterOf(this.currentStage()).name) : 'SPECIAL · 보스 러시 / 파괴 작전 / 오버로드의 탑';
         this.stageMap.root.hidden = !story;
         $('menu-radar-v2').hidden = story;
         this.syncRadar();
@@ -223,13 +237,20 @@ export class MenuController {
         sortie.disabled = !story;
         if (story) this.renderStages();
         else {
-            $('menu-map-foot-v2').textContent = 'SPECIAL MAP · 준비 중';
-            $('menu-sortie-sub-v2').textContent = 'SPECIAL MAP 준비 중 — STORY MAP으로 출격';
+            this.renderSpecial();
+            $('menu-map-foot-v2').textContent = 'SPECIAL MAP · 도전할 작전의 단추를 누르면 바로 출격';
+            $('menu-sortie-sub-v2').textContent = 'SPECIAL MAP — 지도에서 작전을 골라 도전';
             const card = $('menu-stage-card-v2');
             if (card) card.innerHTML = `<button class="v2-mstage__zone" data-act="stages">SPECIAL MAP${icon('down', 26)}</button>`
-                + '<div class="v2-mstage__title"><strong>무한 파밍 · 엘리트 챌린지</strong></div><div class="v2-mstage__meta"><span>준비 중 — STORY MAP으로 출격</span></div>'
-                + `<button class="v2-mstage__pick" data-act="stages">${icon('map', 34)}스테이지 선택</button>`;
+                + '<div class="v2-mstage__title"><strong>보스 러시 · 파괴 작전 · 오버로드의 탑</strong></div><div class="v2-mstage__meta"><span>작전을 골라 도전</span></div>'
+                + `<button class="v2-mstage__pick" data-act="stages">${icon('map', 34)}작전 선택</button>`;
         }
+    }
+
+    /** SPECIAL MAP 탭: 작전 카드 (보스 러시 · 파괴 작전 · 오버로드의 탑 — growthUi_v2.js specialHtml). 횟수·단계가 바뀌면 다시 그림 */
+    renderSpecial() {
+        const box = $('menu-special-v2');
+        if (box) box.innerHTML = specialHtml();
     }
 
     // ---- 스테이지 선택 (레이더 점) ----
@@ -345,7 +366,7 @@ export class MenuController {
             note.hidden = diff.id === 'normal';
             const mut = shown.mutator && MUTATORS[shown.mutator];   // 나이트메어 이번 주 전장 변이 (Q-006)
             note.innerHTML = diff.id === 'normal' ? '' : `<b>${diff.en}</b><span>적 체력 ×${diff.enemyHp} · 공격력 ×${diff.enemyDps} · 거점 ×${diff.base}</span>`
-                + `<span>엘리트 속성 ${shown.affixCount}개${diff.bossHaste > 1 ? ' · 보스 기술 빨라짐' : ''} · 보상 ×${diff.reward}</span>`
+                + `<span>엘리트 속성 ${shown.affixCount[0] === shown.affixCount[1] ? shown.affixCount[0] : shown.affixCount.join('~')}개${diff.eliteArmor ? ' · 엘리트 방어 ↑' : ''}${diff.affixPower > 1 ? ' · 속성 효과 강화' : ''}${diff.bossHaste > 1 ? ' · 보스 기술 빨라짐' : ''} · 보상 ×${diff.reward}</span>`
                 + (mut ? `<span class="v2-mutnote">이번 주 변이: ${mut.name} — ${mut.desc} (대응: ${mut.counter})</span>` : '');
         }
         $('menu-map-foot-v2').innerHTML = `<b>${cur.id} ${cur.name}</b> <span class="v2-stars">${stars}</span>`
@@ -431,6 +452,7 @@ export class MenuController {
         this.renderStats();
         this.renderStatusBar(equipped);
         if (this.map === 'story') this.renderStages();
+        else this.renderSpecial();
         this.syncRadar();
     }
 

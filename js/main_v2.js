@@ -161,7 +161,7 @@ class GameRouterV2 {
         console.log('🔥 PROJECT: MAD OVERLORD ENGINE V2 ONLINE 🔥');
     }
 
-    /** 스페셜맵 판으로 출격 (D-123 — 작전 지원 › 스페셜) */
+    /** 스페셜맵 판으로 출격 (D-123 — 메인 화면 SPECIAL MAP 탭, 회의 ⑳) */
     startSpecial(stage) {
         battleEngineV2.pendingSpecial = stage;
         this.switchScreen('battle');

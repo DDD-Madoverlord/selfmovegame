@@ -233,6 +233,7 @@ export const PlayerMethods = {
             return;
         }
         px *= this.rangedMul();                       // 다리 패시브 '자기장 방벽': 자석에 덜 끌려감
+        px *= 1 - (this.gradeTr?.knockCut || 0);       // 몸통 등급 넉백 저항 (D-158): 밀리는 거리 감소
         const cut = this.bootsCut('push');               // 잠수화: 덜 밀려남
         if (cut) {
             px *= 1 - cut;

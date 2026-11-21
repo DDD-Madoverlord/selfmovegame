@@ -32,16 +32,17 @@ def run(ctx):
     st = g.js(CS + """return { zones: [1, 6, 7, 8, 9, 10].map(z => C.isZoneReleased(z)),
         chars: ['saint', 'doll', 'frost', 'architect', 'broadcaster'].map(c => C.isCharacterReleased(c)),
         label: C.releaseLabelOf('characters', 'doll'), zlabel: C.releaseLabelOf('zones', 7) };""")
-    ctx.check(st['zones'] == [True, True, False, False, False, False] and st['chars'] == [True, False, False, False, False],
-              '날짜 없는 숨김 그룹: 구역 7~10 · 인형사·무희·설계자·방송자 숨김, 구역 1~6 · 성녀까지 공개', str(st))
+    # 회의 ① (11-21): 출시 범위 = 구역 1~4 · 캐릭터 4명 — 구역 5 · 6과 길잡이 · 성녀도 숨김 묶음(launch2)
+    ctx.check(st['zones'] == [True, False, False, False, False, False] and st['chars'] == [False, False, False, False, False],
+              '날짜 없는 숨김 묶음: 구역 6~10 · 성녀·인형사·무희·설계자·방송자 숨김 (구역 5 · 길잡이도 — test_meeting_b)', str(st))
     ctx.check(st['label'] == '곧 공개' and st['zlabel'] == '곧 공개', "날짜 없으면 '곧 공개'만 (예전엔 '곧 공개 · null')", str(st))
     g.js("window.madOverlordGameV2.switchScreen('select');")
     g.wait(500)
     st = g.js("""const c = document.querySelector('.v2-charcard[data-char="doll"]'), s = document.querySelector('.v2-charcard[data-char="saint"]');
         return { secret: c.classList.contains('is-secret'), name: c.querySelector('h2').textContent, foot: c.querySelector('.v2-charcard__foot').textContent,
             filter: getComputedStyle(c.querySelector('canvas')).filter, saint: s.classList.contains('is-secret') };""")
-    ctx.check(st['secret'] and st['name'] == '???' and '곧 공개' in st['foot'] and 'brightness(0)' in st['filter'] and not st['saint'],
-              '선택창: 숨김 캐릭터는 검은 실루엣 · 이름 ??? · 곧 공개', str(st))
+    ctx.check(st['secret'] and st['name'] == '???' and '곧 공개' in st['foot'] and 'brightness(0)' in st['filter'] and st['saint'],
+              '선택창: 숨김 캐릭터는 검은 실루엣 · 이름 ??? · 곧 공개 (성녀도 출시 범위 밖이라 실루엣)', str(st))
     g.shot('groups_select_secret', '#screen-select-v2')
     st = g.js(CS + """C.setReleaseGroups([{ id: 2, zones: [7, 8], characters: ['doll', 'frost'], date: '2000-01-01' },
             { id: 3, zones: [9, 10], characters: ['architect', 'broadcaster'], date: '2999-01-01' }]);
@@ -79,8 +80,8 @@ def run(ctx):
         {clear_normal_until('8-B')} out.h71Open = S.isUnlocked('7-1', progress); out.h11 = S.isUnlocked('1-1', progress);
         progress.difficulty = 'normal';
         return out;""")
-    ctx.check(not st['fresh'] and not st['at4B'] and st['legacy'] and st['at6B'],
-              '하드는 6-B(그룹 1 마지막 판)를 깨야 열림 — 4-B로는 안 열림, 예전에 하드를 해 본 저장은 그대로 열림', str(st))
+    ctx.check(not st['fresh'] and st['at4B'] and st['legacy'] and st['at6B'],
+              '하드는 4-B(출시 구역 마지막 판)를 깨면 열림 (회의 ① 11-21 — 6-B에서 되돌림), 예전에 하드를 해 본 저장도 그대로 열림', str(st))
     ctx.check(st['lv'] == 9, '강화 한도: 하드 Lv7 + 그룹 2 첫 판(7-1)이 열려 +2 = Lv9', str(st))
     ctx.check(not st['h71Locked'] and st['h71Open'] and st['h11'],
               '하드 7-1: 하드 6-B를 깨도 노말 8-B(그룹 2 마지막 판)를 깨기 전엔 잠김 → 깨면 열림', str(st))

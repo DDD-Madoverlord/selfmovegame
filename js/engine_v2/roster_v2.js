@@ -38,6 +38,12 @@ export function characterOfPart(part) {
     return c ? c.id : null;
 }
 
+// 출시 캐릭터 4명과 후발 캐릭터 보정 (회의 ① · D-154 ⑥, 2026-11-21): 나중에 공개하는 캐릭터는 기존 캐릭터보다 조금 좋아야 함 —
+// 5번째부터 공격력 · 체력 +5% (progress_v2.js statsFor). 많이 차이 나면 안 되므로 5%
+export const LAUNCH_CHARACTERS = ['mech', 'kaiju', 'hero', 'chimera'];
+export const LATE_CHARACTER_BONUS = 1.05;
+export const lateBonusOf = id => (!id || LAUNCH_CHARACTERS.includes(id) ? 1 : LATE_CHARACTER_BONUS);
+
 /** 캐릭터의 한 부위 파츠 목록 (parts.js 순서, [파츠제거] 제외) */
 export function partsOfCharacter(character, slot) {
     return (PARTS_DB[slot] || []).filter(p => characterOfPart(p) === character);

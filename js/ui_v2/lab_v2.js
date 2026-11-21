@@ -29,6 +29,9 @@ import { GRADES, gradeOf, gradeIndex, SKILL_LEVEL } from '../engine_v2/growth_v2
 import { optionText } from './growthUi_v2.js';
 import { refreshCurrency } from './currencyBar_v2.js';
 import { setOf, setIdOf, setCounts, setLabelOf, setBonusList, isDropOnly, SETS, SET_TIERS, SET_PERKS } from '../engine_v2/sets_v2.js';
+import { ROLE as ROLE_MODS, MELEE_FEATURE } from '../engine_v2/battle/tuning.js';
+import { roleOfArm } from '../engine_v2/role_v2.js';
+import { GRADE_TRAIT } from '../engine_v2/growth_v2.js';
 
 const $ = id => document.getElementById(id);
 const ROLE = { arm: { tag: '1', label: '스킬 1' }, body: { tag: '2', label: '스킬 2' }, head: { tag: 'ULT', label: '필살기' }, leg: { tag: 'P', label: '패시브' } };
@@ -56,8 +59,37 @@ const TIER_SHORT = { rare: 'R', unique: 'U', legendary: 'L' };
 const setMark = s => (s ? `<span class="v2-setmark" style="--grade:${gradeOf(SET_TIERS[s.tier].minGrade).color}">${TIER_SHORT[s.tier]}${'①②③④'[s.no - 1] || s.no}</span>` : '');
 const COMPARE_ROWS = [['최대 체력', 'hp'], ['초당 피해', 'dps'], ['사거리', 'range'], ['이동 속도', 'speed'], ['방어력 %', 'armor']];   // 능력치 비교 · 휴대폰 카드 안 능력치
 // 원거리·근거리 유형 한 줄 (D-119): 팔 공격 종류로 정해지는 배율
-const ROLE_LINE = { melee: '근거리 · 이동 ×1.5 · 받는 피해 −25% · 공격 ×1.2 · 넓게 휩쓸기', ranged: '원거리 · 이동 ×0.5 · 받는 피해 +20% · 공격 ×0.85', mid: '중거리 · 보정 없음' };
-const roleLine = st => `<div class="v2-compare__role is-${st.role}"><dt>유형</dt><dd>${ROLE_LINE[st.role] || ''}</dd></div>`;
+// 유형 안내 글: 값은 battle/tuning.js ROLE · MELEE_FEATURE에서 바로 (밸런스 조절 패널로 바꾸면 글도 같이)
+const num2 = v => String(+Number(v).toFixed(2));
+const pctOf = v => Math.round(Math.abs(v) * 100);
+function roleText(role, character) {
+    const r = ROLE_MODS[role];
+    if (!r) return '';
+    if (role === 'mid') return '중거리 · 보정 없음';
+    const taken = r.taken < 1 ? `받는 피해 −${pctOf(1 - r.taken)}%` : r.taken > 1 ? `받는 피해 +${pctOf(r.taken - 1)}%` : '';
+    const move = Math.abs(r.move - 1) > 1e-9 ? `이동 ×${num2(r.move)}` : '';
+    if (role === 'ranged') return ['원거리', move, taken, `공격 ×${num2(r.dps)}`].filter(Boolean).join(' · ');
+    const type = MELEE_FEATURE.type[character];   // 근거리 특징 (D-158)
+    const feat = type === 'building' ? `건물형 거점 +${pctOf(MELEE_FEATURE.building)}%` : type === 'monster' ? `몬스터형 적 +${pctOf(MELEE_FEATURE.monster)}%` : '';
+    return ['근거리', move, taken, `공격 ×${num2(r.dps)}`, '넓게 휩쓸기', feat].filter(Boolean).join(' · ');
+}
+const roleLine = (st, character) => `<div class="v2-compare__role is-${st.role}"><dt>유형</dt><dd>${roleText(st.role, character)}</dd></div>`;
+// 등급 고유 능력치 줄 (회의 ② · D-158): 지금 · 개조 후 둘 다 기본값이면 숨김 (커먼만 끼면 안 보임). 사거리 보너스는 '사거리' 줄에 들어감
+const TRAIT_ROWS = [['공격 속도', 'atkSpd', v => `×${(v || 1).toFixed(2)}`, 1], ['방어 무시', 'pierce', v => `${pctOf(v || 0)}%`, 0],
+    ['넉백 저항', 'knockCut', v => `${pctOf(v || 0)}%`, 0], ['상태이상 저항', 'ccCut', v => `${pctOf(v || 0)}%`, 0]];
+/** 파츠 카드 한 줄 끝에 붙는 그 부위 고유 능력치 (예: 공속×1.05 · 방무15%) */
+function partTraitText(slot, part) {
+    if (!part || part.id === 'none') return '';
+    const g = gradeOf(progress.statGradeOf(part.id)), pw = GRADE_TRAIT.power;
+    if (slot === 'leg') return `이동 ${g.legSpeed}`;
+    if (slot === 'body') return g.knockCut * pw > 0 ? `넉백저항${pctOf(Math.min(1, g.knockCut * pw))}%` : '';
+    if (slot === 'head') return g.ccCut * pw > 0 ? `상태저항${pctOf(g.ccCut * pw)}%` : '';
+    const role = roleOfArm(part), share = role === 'mid' ? 0.5 : 1, out = [];
+    if (g.atkSpd !== 1) out.push(`공속×${g.atkSpd.toFixed(2)}`);
+    if (role !== 'ranged' && g.pierce * share * pw > 0) out.push(`방무${pctOf(g.pierce * share * pw)}%`);
+    if (role !== 'melee' && g.rangeBonus * share * pw > 0) out.push(`사거리+${Math.round(g.rangeBonus * share * pw)}`);
+    return out.join(' · ');
+}
 const LAB_RIG = { width: 350, height: 400, rootX: 175, rootY: 384, scale: 0.36, fit: { x: 22, y: 16 }, shadow: true, fitCss: true };   // fitCss: 휴대폰 배치 실제 크기에서도 선명하게 (rigAvatar.js _fitRes)
 
 /** 카드 그림 { src, filter }: A·B 세트 파츠는 세트 그림(있으면) 또는 기본 그림 + 세트 색 (D-050) */
@@ -72,7 +104,7 @@ function thumbOf(slot, part) {
 /** 드랍 전용(유니크·레전더리 세트) 카드 배지 = 만들기 조각 수 (11-05 피드백 10번 — 예전 '드랍·조각') */
 function dropBadge(part) {
     const c = progress.craftCost(part.id);
-    return c ? [`${icon('shard', 11)}조각 ${c.shards}`, `is-drop${c.shards > progress.shards ? ' is-poor' : ''}`] : ['드랍 전용', 'is-drop'];
+    return c ? [`${icon('shard', 11)}조각 ${c.shards}`, `is-drop${c.shards > progress.shards || c.dm > gameState.darkMatter ? ' is-poor' : ''}`] : ['드랍 전용', 'is-drop'];
 }
 
 /** 세트 줄: 아직 없는 파츠를 다 얻는 값 — DM으로 살 수 있으면 DM 합, 아니면 만들기 조각 합 (11-05 피드백 10번) */
@@ -81,7 +113,11 @@ function setCostHtml(parts) {
     for (const p of parts) {
         if (!p || progress.isOwned(p.id)) continue;
         if (!isDropOnly(p) && p.cost) dm += p.cost;
-        else shards += progress.craftCost(p.id)?.shards || 0;
+        else {   // 만들기 = 조각 + DM (회의 ⑥ 11-21)
+            const c = progress.craftCost(p.id);
+            shards += c?.shards || 0;
+            dm += c?.dm || 0;
+        }
     }
     if (!dm && !shards) return parts.some(Boolean) ? '<span class="v2-setrow__cost is-done">모두 보유</span>' : '';
     const bits = [];
@@ -181,7 +217,7 @@ export class LabController {
             if (!progress.isOwned(id) && progress.craftCost(id)) {
                 const res = progress.craftPart(id);
                 sound.play(res.success ? 'ui_equip' : 'ui_error');
-                this.showNotification(res.success ? `제작 완료! ${res.name} (${gradeOf(res.grade).name}, 조각 -${res.shards})` : res.reason, res.success ? 'success' : 'error');
+                this.showNotification(res.success ? `제작 완료! ${res.name} (${gradeOf(res.grade).name}, 조각 -${res.shards} · DM -${res.dm.toLocaleString()})` : res.reason, res.success ? 'success' : 'error');
                 if (res.success) this.refresh();
                 return;
             }
@@ -317,8 +353,8 @@ export class LabController {
                 </div>
                 <div class="v2-partcard__body">
                     <div class="v2-partcard__name">${part.name}${part.id !== 'none' && lv > 1 ? `<span class="v2-partcard__lv">Lv${lv}</span>` : ''}</div>
-                    <div class="v2-partcard__faction">세트 · ${partSetLabel(part)}${mate ? `<b class="v2-partcard__mate">모으는 중 ${focusCount}/4</b>` : ''}</div>
-                    <div class="v2-partcard__stats">HP +${st.hp} · DPS +${st.dps}${st.range ? ` · RNG +${st.range}` : ''}</div>
+                    <div class="v2-partcard__faction">${setOf(part) ? '세트 · ' : ''}${partSetLabel(part)}${mate ? `<b class="v2-partcard__mate">모으는 중 ${focusCount}/4</b>` : ''}</div>
+                    <div class="v2-partcard__stats">HP +${st.hp} · DPS +${st.dps}${st.range ? ` · RNG +${st.range}` : ''}${(t => (t ? ` · <b class="v2-partcard__trait">${t}</b>` : ''))(partTraitText(slot, part))}</div>
                     <dl class="v2-partcard__totals"></dl>
                     ${sk ? `<div class="v2-partcard__skill" style="--sk:${sk.color}"><em>${ROLE[slot].tag}</em>${icon(sk.icon, 13)}${sk.name}</div>` : '<div class="v2-partcard__skill">스킬 없음</div>'}
                 </div>`;
@@ -359,13 +395,19 @@ export class LabController {
                     parts: SLOTS4.map(slot => partsOfCharacter(char, slot).find(p => setIdOf(p) === sid) || null),
                     bonus: [...Object.entries(s.bonus || {}), ...(perk ? [[perk.need, perk.text]] : [])] };
             });
-        // 세트가 아닌 커먼 파츠도 맨 아래에 줄로 보임 — 부위마다 n번째 커먼 파츠끼리 한 줄 (기본 · 강화), 세트 효과 없음 (11-03)
+        // 세트가 아닌 커먼 파츠도 맨 아래에 보임 (11-03). 커먼 세트 줄은 캐릭터마다 하나 — 부위마다 첫 커먼 파츠(기본 파츠) 네 개.
+        // 나머지 커먼 파츠는 '낱개 커먼 파츠' 한 줄로: 세트 표시(C②…)·[세트로 담기] 없이 파츠만 (회의 ⑫, 2026-11-21 —
+        // 예전엔 n번째끼리 묶어 거대로봇 '커먼 강화 파츠' · 미사일 팔 하나짜리 'C③' 줄이 세트처럼 보였음)
         const commons = SLOTS4.map(slot => partsOfCharacter(char, slot).filter(p => !setIdOf(p)));
         const cColor = gradeOf('common').color;
-        for (let k = 0; k < Math.max(0, ...commons.map(l => l.length)); k++) {
-            rows.push({ sid: null, grade: 'common', color: cColor, parts: commons.map(l => l[k] || null),
-                mark: `<span class="v2-setmark" style="--grade:${cColor}">C${'①②③④'[k] || k + 1}</span>`,
-                label: k ? `커먼 강화 파츠${k > 1 ? ` ${k}` : ''}` : '커먼 기본 파츠', bonus: [] });
+        if (commons.some(l => l.length)) {
+            rows.push({ sid: null, grade: 'common', color: cColor, parts: commons.map(l => l[0] || null),
+                mark: `<span class="v2-setmark" style="--grade:${cColor}">C</span>`, label: '커먼 기본 파츠', bonus: [] });
+        }
+        const looseCells = commons.flatMap((l, i) => l.slice(1).map(p => ({ slot: SLOTS4[i], p })));
+        if (looseCells.length) {
+            rows.push({ sid: null, loose: true, grade: 'common', color: cColor, parts: looseCells.map(c => c.p), cells: looseCells,
+                mark: '', label: '낱개 커먼 파츠', bonus: [] });
         }
         if (!rows.length) {
             if (this.domGradeBar) this.domGradeBar.innerHTML = '';
@@ -376,33 +418,37 @@ export class LabController {
         if (this.gradeFilter !== 'all' && !counts[this.gradeFilter]) this.gradeFilter = 'all';
         this.renderGradeBar(rows.length, counts);
         const color = (rosterOf(char) || {}).color || '#5a6272';
-        for (const { sid, color: gColor, mark, label, parts, bonus: bonusList, grade } of rows) {
+        for (const { sid, color: gColor, mark, label, parts, bonus: bonusList, grade, loose, cells: looseList } of rows) {
             if (this.gradeFilter !== 'all' && grade !== this.gradeFilter) continue;
+            const list = looseList || parts.map((p, i) => ({ slot: SLOTS4[i], p }));   // 칸: 세트 줄은 부위 순서 네 칸, 낱개 줄은 있는 파츠만
+            const inCartOf = c => !!c.p && !!cart[c.slot] && cart[c.slot].id === c.p.id;
             const n = parts.filter(Boolean).length;
             const owned = parts.filter(p => p && progress.isOwned(p.id)).length;
-            const inCart = parts.filter((p, i) => p && cart[SLOTS4[i]] && cart[SLOTS4[i]].id === p.id).length;
+            const inCart = list.filter(inCartOf).length;
             const row = document.createElement('div');
-            row.className = `v2-setrow${inCart ? ' is-in' : ''}${sid ? '' : ' is-common'}`;
+            row.className = `v2-setrow${inCart ? ' is-in' : ''}${sid ? '' : ' is-common'}${loose ? ' is-loose' : ''}`;
             row.style.setProperty('--grade', gColor);
             row.style.setProperty('--fc', color);
-            const cells = parts.map((p, i) => {
+            const cells = list.map(c => {
+                const p = c.p;
                 if (!p) return '<div class="v2-setrow__part is-none"></div>';
-                const t = thumbOf(SLOTS4[i], p);
-                const cls = `${cart[SLOTS4[i]] && cart[SLOTS4[i]].id === p.id ? ' is-in' : ''}${progress.isOwned(p.id) ? ' is-owned' : ''}`;
-                return `<button class="v2-setrow__part${cls}" data-slot="${SLOTS4[i]}" data-id="${p.id}" title="${p.name}">`
+                const t = thumbOf(c.slot, p);
+                const cls = `${inCartOf(c) ? ' is-in' : ''}${progress.isOwned(p.id) ? ' is-owned' : ''}`;
+                return `<button class="v2-setrow__part${cls}" data-slot="${c.slot}" data-id="${p.id}" title="${p.name}">`
                     + `<span class="v2-setrow__img">${t ? `<img src="${t.src}" alt=""${t.filter ? ` style="filter: ${t.filter}"` : ''}>` : ''}</span>`
-                    + `<small>${SLOT_NAME[SLOTS4[i]]}</small><span class="v2-setrow__name">${p.name}</span></button>`;
+                    + `<small>${SLOT_NAME[c.slot]}</small><span class="v2-setrow__name">${p.name}</span></button>`;
             }).join('');
             const bonus = bonusList.map(([need, d]) => `<li class="${inCart >= Number(need) ? 'is-on' : ''}"><b>${need}부위</b> ${d}</li>`).join('')
-                || '<li>세트 효과 없음</li>';
+                || (loose ? '<li>세트가 아닌 파츠 — 하나씩 골라 담기</li>' : '<li>세트 효과 없음</li>');
+            // 낱개 줄: 세트가 아니라 [세트로 담기]·남은 값 없음 (파츠를 눌러 하나씩)
             row.innerHTML = `
                 <div class="v2-setrow__head">${mark}<b>${label}</b>
-                    <span class="v2-setrow__meta"><small>보유 ${owned}/${n} · 담음 ${inCart}/${n}</small>${setCostHtml(parts)}</span>
+                    <span class="v2-setrow__meta"><small>보유 ${owned}/${n}${loose ? '' : ` · 담음 ${inCart}/${n}`}</small>${loose ? '' : setCostHtml(parts)}</span>
                     ${sid ? '<button class="v2-btn v2-btn--ghost v2-setrow__skills">세트 스킬</button>' : ''}
-                    <button class="v2-btn v2-setrow__take" ${inCart === n ? 'disabled' : ''}>${inCart === n ? '담음' : n === 4 ? '세트로 담기' : '모두 담기'}</button></div>
+                    ${loose ? '' : `<button class="v2-btn v2-setrow__take" ${inCart === n ? 'disabled' : ''}>${inCart === n ? '담음' : n === 4 ? '세트로 담기' : '모두 담기'}</button>`}</div>
                 <div class="v2-setrow__parts">${cells}</div>
                 <ul class="v2-setrow__bonus">${bonus}</ul>`;
-            row.querySelector('.v2-setrow__take').addEventListener('click', () => {
+            row.querySelector('.v2-setrow__take')?.addEventListener('click', () => {
                 parts.forEach((p, i) => {
                     if (p) { gameState.selectCartPart(SLOTS4[i], p.id); progress.tutorialCompare(p.id); }
                 });
@@ -541,7 +587,12 @@ export class LabController {
             const delta = d ? `${d > 0 ? '▲' : '▼'}${Math.abs(d).toLocaleString()}` : '';
             return `<div><dt>${label}</dt><dd class="is-old">${cur[k].toLocaleString()}</dd><dd class="is-arrow">→</dd>`
                 + `<dd class="${cls}">${next[k].toLocaleString()}</dd><dd class="is-delta ${cls}">${delta}</dd></div>`;
-        }).join('') + roleLine(next);
+        }).join('') + TRAIT_ROWS.map(([label, k, f, base]) => {
+            const a = cur.traits?.[k] ?? base, b = next.traits?.[k] ?? base;
+            if (Math.abs(a - base) < 1e-9 && Math.abs(b - base) < 1e-9) return '';
+            const cls = b > a + 1e-9 ? 'is-up' : b < a - 1e-9 ? 'is-down' : '';
+            return `<div class="v2-compare__trait" data-trait="${k}"><dt>${label}</dt><dd class="is-old">${f(a)}</dd><dd class="is-arrow">→</dd><dd class="${cls}">${f(b)}</dd><dd class="is-delta"></dd></div>`;
+        }).join('') + roleLine(next, characterOfPart(gameState.getCartObjects().body) || progress.character);
     }
 
     /** 휴대폰 배치 (11-04 디자인 제안): 고른 파츠 카드 안에 개조 후 능력치 칸 — PC는 숨김 (ui_v2.css) */
@@ -648,7 +699,7 @@ export class LabController {
         const opts = $('lab-upg-opts-v2');
         const craft = valid && !owned0 ? progress.craftCost(part.id) : null;   // 안 가진 세트 파츠: 조각으로 만들기 (Q-008)
         if (opts) opts.textContent = valid && owned0 ? (optionText(part.id) || (g.id === 'common' ? '옵션 없음 — 레어부터 (하드 이상 드랍·조각)' : ''))
-            : craft ? `파츠 조각 ${craft.shards}개로 만들 수 있음 (보유 ${progress.shards}) · ${isDropOnly(part) ? '보스 첫 클리어(헬 이상) 확정 보상으로도 나옴' : 'DM으로도 살 수 있음'}` : '';
+            : craft ? `파츠 조각 ${craft.shards}개 + DM ${craft.dm.toLocaleString()}로 만들 수 있음 (보유 조각 ${progress.shards}) · ${isDropOnly(part) ? '보스 첫 클리어(헬 이상) 확정 보상으로도 나옴' : 'DM으로도 살 수 있음'}` : '';
         const gc = valid ? progress.shardUpgradeCost(part.id) : null;
         const gBtn = $('btn-grade-v2');
         if (gBtn) {
@@ -656,7 +707,7 @@ export class LabController {
             // 등급 올리기 (D-124): 지금 등급 한도까지 강화 + 조각 + DM + 승급석
             const lvOk = !gc || progress.levelOf(part.id) >= gc.needLevel;
             const poor = gc ? { sh: gc.shards > progress.shards, dm: gc.dm > gameState.darkMatter, st: gc.stones > (progress.stones || 0) } : {};
-            gBtn.disabled = craft ? craft.shards > progress.shards : !gc || !lvOk || poor.sh || poor.dm || poor.st;
+            gBtn.disabled = craft ? craft.shards > progress.shards || craft.dm > gameState.darkMatter : !gc || !lvOk || poor.sh || poor.dm || poor.st;
             // 필요 / 보유 조각 (11-05 피드백 10번 — 휴대폰은 보유 줄이 숨어 있어 단추에 같이), 모자라면 빨강
             const need = craft ? craft.shards : owned0 && gc ? gc.shards : null;
             $('lab-grade-cost-v2').innerHTML = !valid ? '' : need != null
@@ -665,8 +716,9 @@ export class LabController {
                     // DM 값도 단추에 (11-14 버그 점검 M3 — 예전에는 마우스를 올려야 보이는 말풍선에만 있어 2만~20만 DM이 말없이 빠졌음).
                     // 강화 레벨이 모자라 꺼져 있을 때는 그 까닭을 대신 보여 줌 (휴대폰은 말풍선이 없음)
                     + (gc && !craft ? `<em class="${!lvOk || poor.dm ? 'is-poor' : ''}">${lvOk ? `DM ${gc.dm.toLocaleString()}` : `먼저 Lv${gc.needLevel} 강화`}</em>` : '')
+                    + (craft ? `<em class="${craft.dm > gameState.darkMatter ? 'is-poor' : ''}">DM ${craft.dm.toLocaleString()}</em>` : '')   // 만들기에도 DM (회의 ⑥ 11-21)
                     : !owned0 ? '구매 후' : 'MAX';
-            gBtn.title = craft ? `파츠 조각 ${craft.shards}개로 만들기 — ${gradeOf(craft.grade).name} (보유 ${progress.shards})`
+            gBtn.title = craft ? `파츠 조각 ${craft.shards}개 + DM ${craft.dm.toLocaleString()}로 만들기 — ${gradeOf(craft.grade).name} (보유 조각 ${progress.shards})`
                 : gc ? `${gradeOf(gc.grade).name}로: Lv${gc.needLevel} 강화 뒤 · 조각 ${gc.shards} · DM ${gc.dm.toLocaleString()} · 승급석 ${gc.stones} (보유 조각 ${progress.shards} · 승급석 ${progress.stones || 0})${lvOk ? '' : ' — 먼저 강화'}` : '';
         }
         // 강화 한도: 등급 한도(커먼 5 · 레어 7 · 유니크 9 · 레전더리 14, D-124)와 열린 난이도 한도(Lv5 → 7 → 9 → 10, D-063) 중 작은 쪽

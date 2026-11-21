@@ -20,7 +20,7 @@ def run(ctx):
         return { sel: progress.selectedStage, n: S.CHAPTER6.stages.length, after5: S.nextStageOf('5-B').id, final: D.FINAL_STAGE_ID, hard: D.difficultyUnlocked('hard', progress) };""")
     st['name'] = name
     ctx.check(st['sel'] == '6-1' and '피에 젖은 성역' in st['name'] and st['n'] == 11 and st['after5'] == '6-1'
-              and st['final'] == '6-B' and not st['hard'], '5-B 클리어 → 구역 6 열림(6-1), 11판, 하드는 아직(6-B를 깨야 열림)', str(st))
+              and st['final'] == '4-B' and st['hard'], '5-B 클리어 → 구역 6 열림(6-1), 11판, 하드는 4-B에서 이미 열림 (회의 ① 11-21)', str(st))
     g.shot('zone6_menu', '#screen-menu-v2')
 
     battle_at(g, '6-1')

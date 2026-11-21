@@ -110,8 +110,15 @@ export const MELEE_CLEAVE = { radius: 110, mul: 0.75, dmg: 1.15 };
 //   move = 진격 속도 배율, taken = 받는 피해 배율(방어력 = 1 − taken), dps = 공격력 배율 — progress_v2.js statsFor가 능력치에 곱함
 export const ROLE = {
     melee: { move: 1.5, taken: 0.75, dps: 1.2 },   // 이동 2 → 1.5 (디스코드 QA 11-17 성용 — 진격이 너무 빨라 판마다 속도 차가 극과 극, D-150)
-    ranged: { move: 0.5, taken: 1.2, dps: 0.85 },
+    ranged: { move: 1, taken: 1.1, dps: 0.9 },   // 이동 0.5 → 1 (Q-052 안 A, D-157) · 받는 피해 1.2 → 1.1 · 공격 0.85 → 0.9 (묶음 B ③, D-158 — 11-10 측정 29 → 61/110판 근거)
     mid: { move: 1, taken: 1, dps: 1 }
+};
+// 근거리 특징 (묶음 B ③, D-158 — 회의 '근거리 특징: 몬스터 추가 피해형 / 건물 추가 피해형'): 근거리 팔을 낀 때만 (battle/traits.js meleeFeatureMul)
+//   building: 거점 · 바리케이드 피해 + / monster: 보통 적 · 엘리트 피해 + (보스는 둘 다 아님 — 보스 사냥꾼 옵션이 따로)
+//   거대괴수는 고유 특성이 이미 거점 +30%라 몬스터형. 후발 6명은 공개할 때 정함 (없으면 특징 없음)
+export const MELEE_FEATURE = {
+    type: { mech: 'building', chimera: 'building', kaiju: 'monster', hero: 'monster' },
+    building: 0.25, monster: 0.15
 };
 // 관통 2차 (D-119): 2차 세트 관통 기본 공격(kit.js pierce)의 줄어드는 배율에 곱함 (예: 0.6 → 0.48)
 export const PIERCE2 = { kitDecay: 0.8 };
@@ -131,6 +138,12 @@ export const SIGNATURE = {
 
 // ---- 기존 4종 A·B 세트 (D-050 파츠 확장 1차, 효과는 battle/sets.js · 스킬은 skills_v2.js) ----
 // 피해 배율은 기본 1타(u) 기준, dps가 붙은 것은 주인공 DPS 대비 초당 피해 비율
+// 기준 벽 (회의 ⑲, 2026-11-21): 적·주인공이 서로를 넘어 반대편으로 가지 못하게 하는 선 (battle/enemyField.js holdLine · battle_v2.js tickAdvance)
+//   back   : 적 왼쪽 끝이 주인공 앞면(frontX)보다 이만큼까지만 뒤로 (붙어 싸울 때 겹치는 정도 — 돌진이 '앞을 막는 적'으로 보는 60보다 안쪽)
+//   baseGap: 주인공 x는 거점·바리케이드 x − baseGap 까지 (돌진·순간 이동이 쓰던 110과 같음)
+//   maxX   : 거점이 없어도 주인공 x는 여기까지 (아군이 화면 끝에서 싸울 때 따라 걷다 화면 밖으로 나가지 않게)
+export const LINE = { back: 40, baseGap: 110, maxX: 880 };
+
 export const SET = {
     // 새 기본 공격: 레일건 관통(뒤로 갈수록 × pierce), 산성 침 웅덩이, 암흑 구체 폭발, 산탄(가까운 적 max명, 둘째부터 × mul)
     rail: { pierce: 0.3, max: 4, extra: 40 },   // 0.6 → 0.45 (11-03, Q-018) → 0.3 + 최대 4명 (D-119 관통 2차)

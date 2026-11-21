@@ -22,10 +22,14 @@ const SLIDERS = [
 const TOGGLES = [
     { key: 'mute', label: '음소거', desc: '모든 소리 끄기' },
     { key: 'shake', label: '화면 흔들림', desc: '폭발·착지·타격 때 화면이 흔들림' },
-    { key: 'sharp', label: '선명한 그림', desc: '큰 화면에서 캐릭터·이펙트를 높은 해상도로 (느리면 끄기)' }
+    { key: 'sharp', label: '선명한 그림', desc: '큰 화면에서 캐릭터·이펙트를 높은 해상도로 (느리면 끄기)' },
+    // 저사양 모드 (회의 ⑬ 11-21): 해상도 1배 · 이펙트 입자 줄임 · 흐림 효과 끔 — engine_v2/perfHint_v2.js
+    { key: 'lowSpec', label: '저사양 모드', desc: '느린 휴대폰용 — 그림 해상도와 이펙트 입자·흐림 효과를 줄여 부드럽게' }
 ];
 // 화면 배치 (Q-015, main_v2.js fitScreens): 휴대폰 배치 = 메인 시안 B · 전투 시안 A
 const LAYOUTS = [['auto', '자동'], ['mobile', '휴대폰'], ['pc', 'PC']];
+// 소리 묶음 (적용 전 / 후 견주기, 2026-11-21 — audio/sound_v2.js): 바꾸면 그 자리에서 다시 읽고 한 번 들려줌
+const SFX_PACK_LABELS = [['old', '적용 전'], ['new', '적용 후']];
 
 export function openSettings() {
     if (document.querySelector('.v2-settings')) return;
@@ -43,6 +47,12 @@ export function openSettings() {
                         <input type="range" min="0" max="100" step="5" data-key="${s.key}">
                         <output data-out="${s.key}"></output>
                     </label>`).join('')}
+                <div class="v2-settings__row">
+                    <span>소리 묶음<small>11-16에 고른 새 효과음 17개 — 적용 전(지금 소리) / 적용 후, 누르면 바로 바뀜</small></span>
+                    <div class="v2-settings__actions" role="group" aria-label="소리 묶음">
+                        ${SFX_PACK_LABELS.map(([v, label]) => `<button class="v2-btn v2-btn--ghost" data-sfx-pack="${v}">${label}</button>`).join('')}
+                    </div>
+                </div>
             </section>
             <section>
                 <h3>화면 / 조작</h3>
@@ -150,6 +160,11 @@ export function openSettings() {
             btn.classList.toggle('is-on', on);
             btn.setAttribute('aria-pressed', String(on));
         });
+        el.querySelectorAll('[data-sfx-pack]').forEach(btn => {
+            const on = sound.pack === btn.dataset.sfxPack;   // 주소(?sfxPack=)로 켠 묶음도 그대로 보임
+            btn.classList.toggle('is-on', on);
+            btn.setAttribute('aria-pressed', String(on));
+        });
     };
     render();
 
@@ -173,6 +188,12 @@ export function openSettings() {
     el.querySelectorAll('[data-layout]').forEach(btn => btn.addEventListener('click', () => {
         settings.set('layout', btn.dataset.layout);
         sound.play('ui_toggle');
+        render();
+    }));
+    el.querySelectorAll('[data-sfx-pack]').forEach(btn => btn.addEventListener('click', () => {
+        const pack = btn.dataset.sfxPack;
+        settings.set('sfxPack', pack);
+        sound.setPack(pack).then(() => sound.play('ui_toggle'));   // 다 읽은 뒤 그 묶음의 소리로
         render();
     }));
 
@@ -251,6 +272,7 @@ export function openSettings() {
     });
     el.querySelector('[data-act="reset"]').addEventListener('click', () => {
         settings.reset();
+        sound.setPack(settings.get('sfxPack'));   // 주소로 켠 묶음이어도 기본값으로
         sound.play('ui_toggle');
         render();
     });
