@@ -287,6 +287,7 @@ const PART_TINT = {
     leg_mech_wheel: 'brightness(0.8) contrast(1.25) saturate(0.7)'     // 무한궤도: 어두운 강철
 };
 // 비운 부위(아직 안 산 파츠): 흐리게. 다른 캐릭터 파츠 테두리 빛은 연구소가 고른 캐릭터 파츠만 보여 주면서 없앰 (D-051)
+// 몸통이 있으면(출격할 수 있는 캐릭터) 빈 부위도 기본 그림 그대로 — 머리만 시커멓게 나와 고장처럼 보이던 것 (D-152, 파견 화면 D-070과 같음)
 const EMPTY_SLOT = 'grayscale(1) brightness(0.45) opacity(0.55)';
 
 /**
@@ -324,10 +325,12 @@ export function partFiltersFor(partsObj, character) {
     const map = {};
     const slots = SLOT_PARTS[character];
     if (!slots || !partsObj) return map;
+    const isEmpty = part => !part || part.id === 'none';
+    const dimEmpty = isEmpty(partsObj.body);   // 몸통도 없을 때만 흐리게 (아직 안 산 캐릭터)
     for (const slot of ['head', 'body', 'arm', 'leg']) {
         const part = partsObj[slot];
         let f = null;
-        if (!part || part.id === 'none') f = EMPTY_SLOT;
+        if (isEmpty(part)) f = dimEmpty ? EMPTY_SLOT : null;
         else if (PART_TINT[part.id]) f = PART_TINT[part.id];
         if (f) slots[slot].forEach(key => { map[key] = f; });
     }

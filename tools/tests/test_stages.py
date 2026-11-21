@@ -138,6 +138,12 @@ def run(ctx):
         return { ch: c && c.character, torso: c && c.filters.torso, noFallback: rigConfigFor({ head: none, body: none, arm: none, leg: none }) };""")
     ctx.check(st['ch'] == 'hero' and 'grayscale' in (st['torso'] or '') and st['noFallback'] is None,
               '파츠 색: 몸통이 없으면 고른 캐릭터를 흐리게 (고른 캐릭터가 없으면 그림 없음)', str(st))
+    # D-152: 몸통이 있으면 빈 부위(머리·다리)도 흐리게 하지 않음 — 거대괴수 머리가 시커멓게 나오던 것
+    st = g.js("""const { rigConfigFor } = await import('/js/engine_v2/rig/rigAvatar.js');
+        const none = gameState.getPartById('head', 'none');
+        const c = rigConfigFor({ head: none, body: gameState.getPartById('body', 'body_mech'), arm: none, leg: none }, 'mech');
+        return { head: c.filters.head || null, leg: c.filters.legR || null };""")
+    ctx.check(st['head'] is None and st['leg'] is None, '파츠 색: 몸통이 있으면 빈 머리·다리도 기본 그림 그대로', str(st))
     g.js("b.spawnAllyMinion(b.monsterX + 60, 'chimera'); b.spawnAllyMinion(b.monsterX + 90, 'mind');")
     cls = g.js("return b.allies.map(a => a.dom.className);")
     ctx.check(any('chimera-minion-v2' in c for c in cls) and any('v2-mind' in c for c in cls), '소환 유닛: 미니 괴인 / 세뇌 보병 외형', str(cls))
