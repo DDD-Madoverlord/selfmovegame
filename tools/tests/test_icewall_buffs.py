@@ -45,7 +45,7 @@ def run(ctx):
 
     st = g.js("""b.buffs = {}; b.kitBuffs = {}; b.shieldHp = 0; b.supportShield = 0; b.kitNextMul = 1;
         b.addBuff('adrenaline', 3); b.hud.update();
-        const root = document.querySelector('.v2-buff-marks'), node = root.querySelector('[data-buff-id="legacy:adrenaline"]');
+        const root = document.querySelector('.v2-buff-marks'), node = root.querySelector('[data-buff-id="atk+"]');
         const r = root.getBoundingClientRect(), hp = m.domMonster.querySelector('.monster-hp-container').getBoundingClientRect();
         return { shown: !root.hidden && !!node, label: node.title, above: r.bottom <= hp.top,
             center: Math.abs((r.left + r.width / 2) - (hp.left + hp.width / 2)) < 2 };
@@ -58,7 +58,7 @@ def run(ctx):
         const scale = scene.getBoundingClientRect().width / scene.clientWidth;
         const moved = Math.abs(root.getBoundingClientRect().left - old - 60 * scale) < 2;
         b.addBuff('adrenaline', 6); b.tickSetBuffs(1); b.hud.update();
-        const n = root.querySelectorAll('[data-buff-id="legacy:adrenaline"]');
+        const n = root.querySelectorAll('[data-buff-id="atk+"]');
         return { moved, one: n.length === 1, refreshed: n[0].title.includes('5초'),
             progress: Math.abs(parseFloat(n[0].style.getPropertyValue('--buff-left')) - 5 / 6) < 0.01 };
     """)
@@ -70,17 +70,17 @@ def run(ctx):
         const root = document.querySelector('.v2-buff-marks');
         const labels = [...root.children].map(n => n.title);
         delete b.kitBuffs['speed-test']; delete b.kitBuffs['heal-test']; b.hud.update();
-        return { many: labels.length === 2, named: labels.some(s => s.includes('가속')) && labels.some(s => s.includes('지속 회복')),
+        return { many: labels.length === 2, named: labels.some(s => s.includes('공속') && s.includes('가속')) && labels.some(s => s.includes('재생')),
             cleared: root.children.length === 0 };
     """)
     ctx.check(all(st.values()), '여러 버프 동시 표시 · 종류별 이름 · 강제 해제 즉시 제거', str(st))
     st = g.js("""b.applyShield(0.1, 5); b.hud.update();
-        const shown = !!document.querySelector('[data-buff-id="shield"]');
+        const shown = !!document.querySelector('[data-buff-id="shield+"]');
         b.damagePlayer(b.shieldHp * 2, 0); b.hud.update();
-        const broken = !document.querySelector('[data-buff-id="shield"]');
-        b.kitNextMul = 3; b.hud.update(); const next = !!document.querySelector('[data-buff-id="next-hit"]');
+        const broken = !document.querySelector('[data-buff-id="shield+"]');
+        b.kitNextMul = 3; b.hud.update(); const next = !!document.querySelector('[data-buff-id="next+"]');
         b.kitOnAttack(null); b.hud.update();
-        return { shown, broken, next, consumed: !document.querySelector('[data-buff-id="next-hit"]') };
+        return { shown, broken, next, consumed: !document.querySelector('[data-buff-id="next+"]') };
     """)
     ctx.check(all(st.values()), '보호막 파괴 · 강화 공격 소모 시 표식 제거', str(st))
     st = g.js("""const { activePlayerBuffs } = await import('/js/ui_v2/buffMarks_v2.js');
@@ -98,7 +98,7 @@ def run(ctx):
     g.battle(tuple(f'{s}_mech_l' for s in ('head', 'body', 'arm', 'leg')))
     st = g.js("""b.autoSkills = false; b.skillCd.body = 0; const used = b.useSkill('body');
         await new Promise(r => setTimeout(r, 200)); b.hud.update();
-        return { used, title: document.querySelector('[data-buff-id="kit:overload"]')?.title || '' };
+        return { used, title: [...document.querySelectorAll('.v2-buff-mark')].map(n => n.title).find(t => t.includes('동력 과부하')) || '' };   // 11-23: 스킬 버프 → 능력치 칩(말풍선에 스킬 이름)
     """)
     ctx.check(st['used'] and '동력 과부하' in st['title'], '실제 부품 스킬 버프에 스킬명·아이콘 연결', str(st))
 

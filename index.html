@@ -249,7 +249,7 @@
 
         <!-- ===================================================
              4. 가로형 (LANDSCAPE) v2 메인 화면: 전술 그리드 (MD/화면UI.MD)
-                좌: 오버로드 대기실(캐릭터 + CHARACTER·MUTATION LAB) / 우: 전술 레이더 / 하단: ATTACK·SORTIE / 우상단: 재화·설정
+                좌: 오버로드 대기실(캐릭터 + CHARACTER·MUTATION LAB) / 우: 전술 레이더 / 하단: 출격 / 우상단: 재화·설정
                 (ui_v2.css 8장, js/ui_v2/menu_v2.js, js/ui_v2/radar_v2.js)
              =================================================== -->
         <section id="screen-menu-v2" class="screen-v2 landscape">
@@ -351,7 +351,7 @@
                     </button>
                     <button id="btn-to-battle-v2" class="v2-sortie">
                         <b class="v2-sortie__ko">출격</b>
-                        <strong>ATTACK / SORTIE</strong>
+                        <strong>출격</strong>
                         <small id="menu-sortie-sub-v2">READY FOR ENGAGEMENT</small>
                     </button>
                     <div class="v2-statusbar" id="menu-statusbar-v2"></div>
@@ -411,6 +411,7 @@
                             <h1>연구소</h1>
                             <span>파츠를 골라 개조한 뒤 확정하면 바로 장착됩니다</span>
                         </div>
+                        <button id="btn-lab-character-mobile-v2" class="v2-btn v2-btn--ghost v2-lab__character-mobile">캐릭터</button>
                     </div>
                     <div class="v2-topbar__right" data-currency>   <!-- 재화 표시줄 (currencyBar_v2.js, 11-05 피드백 12번) -->
                         <div class="v2-chip v2-chip--res" id="lab-res-v2"></div>
@@ -438,11 +439,13 @@
                                 <small>몸통 파츠가 캐릭터를 정합니다</small>
                             </div>
                         </div>
+                        <div class="v2-lab__stats">
+                            <h3 class="v2-lab__title">능력치 <small>개조 후 · 변경 시 증감 표시</small></h3>
+                            <dl class="v2-compare" id="lab-compare-v2"></dl>
+                        </div>
                     </section>
 
                     <section class="v2-lab__info v2-frame">
-                        <h3 class="v2-lab__title">능력치 <small>현재 → 개조 후</small></h3>
-                        <dl class="v2-compare" id="lab-compare-v2"></dl>
                         <h3 class="v2-lab__title">스킬 구성 <small>파츠가 스킬을 정함</small></h3>
                         <div class="v2-lab__skills" id="lab-skills-v2" tabindex="0" role="region" aria-label="스킬 구성">
                             <ul class="v2-loadout" id="lab-loadout-v2"></ul>
@@ -460,7 +463,10 @@
                             <button class="tab-btn-v2 v2-slottab" data-slot="leg"><b>다리</b><small>패시브</small></button>
                         </div>
                         <!-- 등급 거르기 칩 (Q-017 C안, lab_v2.js renderGradeBar) -->
-                        <div id="parts-gradebar-v2" class="v2-gradebar"></div>
+                        <div class="v2-lab__filters">
+                            <div id="parts-gradebar-v2" class="v2-gradebar"></div>
+                            <button id="btn-cart-reset-v2" class="v2-btn v2-btn--ghost" title="선택한 파츠를 현재 장착 상태로 되돌리기">초기화</button>
+                        </div>
                         <div id="parts-grid-v2" class="v2-partgrid"></div>
                         <!-- 선택한 파츠 강화 (D-015: Lv1~5) -->
                         <div class="v2-upgrade" id="lab-upgrade-v2">
@@ -482,7 +488,7 @@
                         <span>개조 비용 <strong id="cart-cost-v2">0</strong> DM</span>
                         <span>개조 후 잔액 <strong id="cart-remain-v2">0</strong> DM</span>
                     </div>
-                    <button id="btn-cart-reset-v2" class="v2-btn v2-btn--ghost">되돌리기</button>
+                    <button id="btn-lab-character-v2" class="v2-btn v2-btn--ghost">캐릭터</button>
                     <button id="btn-equip-confirm-v2" class="v2-hazard-btn v2-hazard-btn--confirm">
                         <strong>개조 확정</strong>
                         <small>파츠 장착</small>

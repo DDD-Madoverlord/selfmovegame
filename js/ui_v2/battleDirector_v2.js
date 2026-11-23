@@ -1,7 +1,7 @@
 /* ==========================================================================
    PROJECT: MAD OVERLORD // 전투 연출 (v2)
    전투 엔진(battle_v2.js)이 알맞은 순간에 부르는 화면 연출을 모았다. 전투 규칙은 건드리지 않는다.
-   - intro()          : 출격 인트로 (레터박스 + 작전명 카드 + SORTIE!) → HUD 등장
+   - intro()          : 출격 인트로 (레터박스 + 작전명 카드 + 작전 개시) → HUD 등장
    - warning(kind)    : 거점 출현 경고 (붉은 테두리 + 경고 줄무늬 + WARNING / DANGER)
    - bossCard(t, sub) : 보스 등장 카드 (BOSS + 이름 + 주요 기술, 짧은 느린 화면 + 흔들림, 2026-10-24)
    - ultCutIn(...)    : 필살기 컷인 (화면 어둡게 + 집중선 + 사선 띠 초상화) + 슬로모션
@@ -181,7 +181,7 @@ export class BattleDirector {
     }
 
     // ------------------------------------------------------------------
-    /** 출격 인트로: 레터박스 + 작전명 → SORTIE! → HUD 등장. 클릭하면 건너뜀 */
+    /** 출격 인트로: 레터박스 + 작전명 → 작전 개시 → HUD 등장. 클릭하면 건너뜀 */
     async intro(stage) {
         this.stage = stage;
         if (!this.attach()) return;
@@ -210,7 +210,7 @@ export class BattleDirector {
         await until(INTRO_MS.sortie - INTRO_MS.card);
         if (!this.alive(token)) return;
         card.classList.add('is-out');
-        const sortie = this.layer('v2-stamp v2-stamp--sortie', '<strong>SORTIE!</strong><small>출격</small>');
+        const sortie = this.layer('v2-stamp v2-stamp--sortie', '<strong>작전 개시</strong><small>목표를 향해 진격하세요</small>');
         this.sfx('intro_sortie');
         await until(INTRO_MS.reveal - INTRO_MS.sortie);
         if (!this.alive(token)) return;
@@ -302,6 +302,8 @@ export class BattleDirector {
                 </div>
             </div>`);
         el.style.setProperty('--sk', sk.color);
+        const face = el.querySelector('.v2-ultcut__face');
+        if (face) face.style.filter = portraitFilter;
         this.ultCutInUntil = performance.now() + 1250;
         setTimeout(() => el.remove(), 1250);
     }

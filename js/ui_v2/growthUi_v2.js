@@ -20,6 +20,7 @@ import { icon } from './icons.js';
 import { mountDispatch, tickDispatch, unmountDispatch, dispatchAct, showReturn } from './dispatchUi_v2.js';
 import { petsHtml, petAct } from './petsUi_v2.js';
 import { supportHtml } from './supportUi_v2.js';
+import { fmtK } from './fmt_v2.js';
 import { refreshCurrency } from './currencyBar_v2.js';
 
 const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
@@ -27,12 +28,12 @@ const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;',
 /** 재화 칩 안쪽 HTML */
 export function resChipHtml() {
     // em = 휴대폰 배치(Q-015)에서 글자 이름 대신 보이는 아이콘
-    return `<span title="남은 별 (전술 모듈·계정 연구·특성·외형)" aria-label="별 ${progress.availableStars()}"><em>${icon('star', 15)}</em><i>★</i><b>${progress.availableStars()}</b></span>`
-        + `<span title="파츠 조각 (등급 올리기)" aria-label="조각 ${progress.shards}"><em>${icon('shard', 15)}</em><i>조각</i><b>${progress.shards}</b></span>`
-        + `<span title="스킬 코어 (스킬 강화)" aria-label="코어 ${progress.cores}"><em>${icon('core', 15)}</em><i>코어</i><b>${progress.cores}</b></span>`
+    return `<span title="남은 별 (전술 모듈·계정 연구·특성·외형)" aria-label="별 ${progress.availableStars()}"><em>${icon('star', 15)}</em><i>★</i><b>${fmtK(progress.availableStars())}</b></span>`
+        + `<span title="파츠 조각 (등급 올리기)" aria-label="조각 ${progress.shards}"><em>${icon('shard', 15)}</em><i>조각</i><b>${fmtK(progress.shards)}</b></span>`
+        + `<span title="스킬 코어 (스킬 강화)" aria-label="코어 ${progress.cores}"><em>${icon('core', 15)}</em><i>코어</i><b>${fmtK(progress.cores)}</b></span>`
         // 승급석 (D-124 · 스페셜맵 보스 러시) — 한 번이라도 얻은 뒤부터 보임
         + ((progress.stones || 0) > 0 || (progress.special && progress.special.bossBest > 0)
-            ? `<span title="승급석 (파츠 등급 올리기 — 스페셜맵 보스 러시)" aria-label="승급석 ${progress.stones || 0}"><em>◆</em><i>승급석</i><b>${progress.stones || 0}</b></span>` : '');
+            ? `<span title="승급석 (파츠 등급 올리기 — 스페셜맵 보스 러시)" aria-label="승급석 ${progress.stones || 0}"><em>◆</em><i>승급석</i><b>${fmtK(progress.stones || 0)}</b></span>` : '');
 }
 
 /** 등급 표시 태그 (커먼이면 빈 문자열) */

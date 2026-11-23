@@ -21,8 +21,8 @@ def run(ctx):
         g.js(f"window.madOverlordGameV2.switchScreen('{screen}');")
         g.wait(700)
         seen[screen] = g.js(READ)
-    ok = all(same(rows, '12,345') for rows in seen.values()) and len({rows[0]['res'] for rows in seen.values()}) == 1
-    ctx.check(ok, 'PC 메인·캐릭터 선택·연구소: 같은 재화 표시줄 (별·조각·코어 + DM 12,345 — 선택창에도 별·조각·코어)', str(seen))
+    ok = all(same(rows, '12.3K') for rows in seen.values()) and len({rows[0]['res'] for rows in seen.values()}) == 1
+    ctx.check(ok, 'PC 메인·캐릭터 선택·연구소: 같은 재화 표시줄 (별·조각·코어 + DM 12.3K — 선택창에도 별·조각·코어)', str(seen))
     # DM이 바뀌면 지금 화면 표시줄이 바로 바뀜
     g.js("gameState.darkMatter = 777; gameState.notify();")
     g.wait(100)
@@ -56,6 +56,6 @@ def run(ctx):
     st = p.js("""const mo = document.querySelector('.v2-radar__money'); const r = mo.getBoundingClientRect();
         return { shown: mo.getClientRects().length > 0, inside: r.left >= 0 && r.right <= innerWidth + 1 && r.bottom <= innerHeight + 1,
             dm: mo.querySelector('.v2-chip--dm strong').textContent, res: mo.querySelector('.v2-chip--res').textContent.replace(/\\s+/g, '') };""")
-    ctx.check(st['shown'] and st['inside'] and st['dm'] == '4,321' and top and st['res'] == top[0]['res'],
-              '휴대폰 지도 창: 아래 줄에 메인 위 줄과 같은 재화 (4,321)', str((top, st)))
+    ctx.check(st['shown'] and st['inside'] and st['dm'] == '4.3K' and top and st['res'] == top[0]['res'],
+              '휴대폰 지도 창: 아래 줄에 메인 위 줄과 같은 재화 (4.3K)', str((top, st)))
     p.shot('currency_map')

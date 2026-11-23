@@ -89,8 +89,8 @@ def run(ctx):
     ctx.check(not st['left'] and st['kills'] == st['before'], '바리케이드를 부수면 사라짐 (처치 수에는 안 셈)', str(st))
     g.js(CLEAN + RESET + "const e = b.spawnMinion('netter', { x: b.monsterX + 100 + 220 }); e.speed = 0; e.cd.skill = 99;")
     g.wait(1200)
-    st = g.js("return { root: b.pRootT > 0, move: b.moveMul(), stunned: b.playerStunned(), icon: !!document.querySelector('#hud-pstatus-v2 .is-net') };")
-    ctx.check(st['root'] and st['move'] == 0 and not st['stunned'] and st['icon'], '그물: 속박 (진격 0, 기절 아님, HUD 아이콘)', str(st))
+    st = g.js("return { root: b.pRootT > 0, move: b.moveMul(), stunned: b.playerStunned(), icon: !!document.querySelector('.v2-buff-mark.is-cc[data-buff-id^=root]') };")
+    ctx.check(st['root'] and st['move'] == 0 and not st['stunned'] and st['icon'], '그물: 속박 (진격 0, 기절 아님, 머리 위 칩)', str(st))
     g.js(CLEAN + RESET + "const br = b.spawnBarricade(b.monsterX + 400, 1000); br.hp = 300;"
          "const e = b.spawnMinion('mechanic', { x: b.monsterX + 100 + 300 }); e.speed = 0; e.cd.skill = 99;")
     g.wait(800)

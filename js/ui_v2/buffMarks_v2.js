@@ -1,4 +1,9 @@
+import { PLAYER_STATUS } from '../engine_v2/battle/tuning.js';
 import { icon } from './icons.js';
+import { playerStatChips } from './statChips_v2.js';
+
+// 머리 위로 쌓는 칩 수 — 넘치면 맨 위가 '+N' (말풍선에 나머지). 휴대폰은 캐릭터 위 자리가 좁아 6
+const maxChips = () => (document.body.classList.contains('v2-mobile') ? 6 : 8);
 
 const LEGACY = {
     overdrive: ['오버드라이브', 'overdrive', '#ffd66b'],
@@ -50,6 +55,20 @@ export function activePlayerBuffs(b) {
     return entries;
 }
 
+/** 프로필 설명과 머리 위 아이콘이 같은 디버프 판정을 사용한다. */
+export function activePlayerDebuffs(b) {
+    const pct = n => `${Math.round(n * 100)}%`;
+    return [
+        ['pStunT', '기절', 'stun', '이동·공격·스킬 사용 불가'],
+        ['pRootT', '속박', 'net', '이동 불가'],
+        ['pSlowT', '감속', 'slow', `이동 속도 −${pct(1 - PLAYER_STATUS.slowMove)}`],
+        ['pVulnT', '취약', 'acid', `받는 피해 +${pct(b.pVulnMore || 0)}`],
+        ['pWeakT', '공격 약화', 'mute', `주는 피해 −${pct(b.pWeakCut || 0)}`]
+    ].filter(([key]) => b[key] > 0).map(([id, name, glyph, desc]) => ({
+        id, name, icon: glyph, desc, t: b[id], negative: true, color: '#ff7187'
+    }));
+}
+
 export class BuffMarks {
     constructor(engine, monster) {
         this.b = engine;
@@ -58,13 +77,22 @@ export class BuffMarks {
         this.root = document.createElement('div');
         this.root.className = 'v2-buff-marks';
         this.root.setAttribute('role', 'group');
-        this.root.setAttribute('aria-label', '활성 강화 효과');
+        this.root.setAttribute('aria-label', '활성 버프 및 디버프');
         this.root.hidden = true;
         monster?.appendChild(this.root);
     }
 
+    /**
+     * 머리 위 칩 (11-23): 능력치 하나 = 칩 하나 [아이콘 공격 −25% | 4] (statChips_v2.js), 체력바 위에서 위로 쌓음.
+     * 순서(아래 → 위) = 행동 불가 → 해로움 → 이로움 → 특수. 칩 아래 얇은 막대 = 남은 시간 비율. 예전 초상화 아래 설명 칸은 없앰
+     */
     update() {
-        const buffs = this.b.isActive ? activePlayerBuffs(this.b) : [];
+        const all = this.b.isActive ? playerStatChips(this.b) : [];
+        const max = maxChips();
+        const buffs = all.length > max
+            ? [...all.slice(0, max - 1), { id: 'more', label: `+${all.length - max + 1}`, value: '', icon: '', kind: 'more', t: Infinity,
+                title: all.slice(max - 1).map(c => c.title).join('\n') }]
+            : all;
         const ids = new Set(buffs.map(buff => buff.id));
         for (const [id, node] of this.nodes) if (!ids.has(id)) { node.remove(); this.nodes.delete(id); }
         this.root.hidden = !buffs.length;
@@ -79,18 +107,25 @@ export class BuffMarks {
                 node.className = 'v2-buff-mark';
                 node.dataset.buffId = buff.id;
                 node.setAttribute('role', 'img');
-                node.innerHTML = `<span class="v2-buff-mark__icon"></span><span class="v2-buff-mark__time"></span>`;
+                node.innerHTML = `<span class="v2-buff-mark__icon"></span><span class="v2-buff-mark__text"><b></b><em></em></span><span class="v2-buff-mark__time"></span>`;
                 this.nodes.set(buff.id, node);
                 this.root.appendChild(node);
             }
-            const label = `${buff.name}${Number.isFinite(buff.t) ? ` · ${Math.ceil(buff.t)}초` : ''}`;
+            const cls = `v2-buff-mark is-${buff.kind}${buff.kind === 'down' || buff.kind === 'cc' ? ' is-debuff' : ''}`;
+            if (node.className !== cls) node.className = cls;
+            node.style.order = String(buffs.indexOf(buff));   // column-reverse: 0번이 맨 아래(머리 쪽)
+            const label = `${buff.title}${Number.isFinite(buff.t) ? ` · ${Math.ceil(buff.t)}초` : ''}`;
             if (node.title !== label) { node.title = label; node.setAttribute('aria-label', label); }
             if (node.dataset.icon !== buff.icon) {
-                node.querySelector('.v2-buff-mark__icon').innerHTML = icon(buff.icon, 18);
+                node.querySelector('.v2-buff-mark__icon').innerHTML = buff.icon ? icon(buff.icon, 14) : '';
                 node.dataset.icon = buff.icon;
             }
-            node.style.setProperty('--buff-color', buff.color);
-            node.style.setProperty('--buff-left', Number.isFinite(buff.t) ? Math.min(1, buff.t / buff.duration) : 1);
+            const b = node.querySelector('.v2-buff-mark__text b'), em = node.querySelector('.v2-buff-mark__text em');
+            if (b.textContent !== buff.label) b.textContent = buff.label;
+            if (em.textContent !== buff.value) em.textContent = buff.value;
+            const duration = buff.duration || Math.max(Number(node.dataset.duration) || 0, buff.t);
+            node.dataset.duration = String(duration);
+            node.style.setProperty('--buff-left', Number.isFinite(buff.t) ? Math.min(1, buff.t / duration) : 1);
             const time = Number.isFinite(buff.t) ? String(Math.ceil(buff.t)) : '';
             const num = node.querySelector('.v2-buff-mark__time');
             if (num.textContent !== time) num.textContent = time;

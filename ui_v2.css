@@ -3424,3 +3424,136 @@ body.v2-mobile .v2-story__title-text { zoom: 1.2; }
 #screen-battle-v2 .enemy-entity.is-feared .v2-enemy__sprite { scale: -1 1; }
 /* 석화의 눈물 (D-127): 굳은 동안 몸이 잿빛 대리석 색 */
 #screen-battle-v2 .enemy-entity.is-stone .v2-enemy__sprite { filter: grayscale(1) brightness(1.18) contrast(1.08) !important; }
+/* 연구소: 캐릭터 공간을 확보하는 요약 능력치와 독립된 스킬 강화 영역 */
+.v2-lab__preview { min-height: 0; }
+.v2-lab__stage { min-height: 0; }
+#lab-rig-canvas-v2 { position: absolute; inset: 0; width: 100%; height: 100%; }
+.v2-lab__stats { flex: none; padding: 8px 10px; background: rgba(0,0,0,.3); border-top: 1px solid rgba(255,176,32,.3); }
+.v2-lab__stats .v2-lab__title { font-size: 12px; margin-bottom: 5px; }
+#lab-compare-v2 { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 3px 12px; margin: 0; }
+#lab-compare-v2 > div { grid-template-columns: minmax(0,1fr) auto 36px; grid-template-rows: 22px; height: 26px; box-sizing: border-box; gap: 0 4px; padding: 2px 0; min-width: 0; }
+#lab-compare-v2 dt { grid-column: 1; font-size: 10px; }
+#lab-compare-v2 dd { font-size: 12px; font-variant-numeric: tabular-nums; }
+#lab-compare-v2 .is-old, #lab-compare-v2 .is-arrow, #lab-compare-v2 .is-delta:empty { display: none; }
+#lab-compare-v2 .is-changing .is-old { display: block; grid-column: 1; grid-row: 2; font-size: 10px; text-align: left; }
+#lab-compare-v2 .is-delta { font-size: 10px; min-width: 0; }
+#lab-compare-v2 .v2-compare__role { height: 32px; gap: 6px; padding-top: 4px; border: 0; }
+#lab-compare-v2 .v2-compare__role dd { font-size: 10px; white-space: normal; line-height: 1.4; text-align: left; }
+.v2-loadout { gap: 6px; }
+.v2-loadout li { grid-template-columns: 32px minmax(0,1fr) 78px; gap: 8px; padding: 8px; border: 1px solid rgba(255,255,255,.09); border-left: 3px solid var(--sk); }
+.v2-loadout__icon { width: 32px; height: 32px; }
+.v2-loadout__name { flex-wrap: wrap; gap: 4px; line-height: 1.4; }
+.v2-loadout__visual { display: flex; flex-direction: column; align-items: center; gap: 5px; }
+.v2-loadout__cooldown { font-size: 10px; color: var(--sk); white-space: nowrap; }
+.v2-loadout__desc { display: block; overflow: visible; color: #c5cbd5; font-size: 12px; line-height: 1.5; }
+.v2-loadout__upgrade { display: flex; flex-direction: column; align-items: stretch; justify-content: center; gap: 4px; padding-left: 8px; border-left: 1px solid rgba(255,255,255,.16); background: rgba(0,0,0,.12); }
+.v2-loadout__level { text-align: center; font: 800 12px var(--v2-font-num); color: #fff; }
+.v2-loadout__upgrade .v2-skillup { width: 100%; min-height: 44px; margin: 0; padding: 5px 3px; gap: 3px; font-size: 12px; border-radius: 4px; color: #241600; border: 1px solid #ffd36b; background: linear-gradient(180deg,#ffe18a,#ffb020); }
+.v2-loadout__upgrade .v2-skillup small { font-size: 10px; }
+.v2-loadout__upgrade .v2-skillup:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
+.v2-loadout__passive { text-align: center; color: var(--v2-dim); font-size: 11px; }
+
+.v2-loadout__upgrade .v2-skillup:disabled { opacity: 1; color: #a99b7a; border-color: #5c5035; background: #302b20; }
+.v2-loadout__upgrade .v2-skillup:not(:disabled):hover { filter: brightness(1.12); }
+
+/* 파츠 선택 초기화는 등급 필터 옆, 캐릭터 이동은 하단에 배치 */
+.v2-lab__filters { display: flex; align-items: flex-start; gap: 8px; }
+.v2-lab__filters .v2-gradebar { flex: 1; min-width: 0; }
+.v2-lab__filters #btn-cart-reset-v2 { flex: none; min-width: 64px; height: 26px; padding: 0 8px; font-size: 11px; letter-spacing: 0; }
+#lab-compare-v2 .v2-compare__modifiers { display: none; }
+/* 유형 배지 (11-23 PC도): 캐릭터 칸 왼쪽 위에 근거리·원거리 + 이동·피해·공격 + 특수 효과 — 능력치 칸의 유형 줄은 뺌 (lab_v2.js renderRoleBadge) */
+#lab-compare-v2 .v2-compare__role { display: none; }
+.v2-lab__rolebadge { position: absolute; left: 0; top: 4px; z-index: 3; display: flex; flex-direction: column; gap: 2px; padding: 5px 9px 5px 7px;
+    pointer-events: none; background: rgba(8, 10, 14, 0.72); border-left: 2px solid var(--role, #8b95a8); border-radius: 0 5px 5px 0;
+    font-size: 12.5px; line-height: 17px; color: var(--v2-dim); white-space: nowrap; }
+.v2-lab__rolebadge.is-melee { --role: #ffb36b; }
+.v2-lab__rolebadge.is-ranged { --role: #7fd4ff; }
+.v2-lab__rolebadge b { font-size: 14px; line-height: 19px; color: var(--role, #fff); }
+.v2-lab__rolebadge span { display: flex; gap: 4px; }
+.v2-lab__rolebadge em { font-style: normal; font-weight: 800; color: #ffce79; font-variant-numeric: tabular-nums; }
+.v2-lab__rolemods { display: flex; gap: 10px; }
+.v2-lab__rolebadge i { font-style: normal; color: var(--role, #c9d1de); opacity: 0.9; }
+
+.v2-lab__character-mobile { display: none; }
+/* 재화는 숫자 길이 변화에 흔들리지 않도록 여유 폭과 숫자 자릿수 확보 */
+[data-currency] .v2-chip { flex-shrink: 0; white-space: nowrap; }
+[data-currency] .v2-chip--dm { min-width: 126px; gap: 8px; }
+[data-currency] .v2-chip--dm strong { min-width: 5ch; text-align: right; font-variant-numeric: tabular-nums; }
+[data-currency] .v2-chip--res { padding-left: 14px; padding-right: 14px; gap: 12px; }
+[data-currency] .v2-chip--res b { min-width: 3.5ch; text-align: right; font-variant-numeric: tabular-nums; }
+[data-currency] .v2-chip--res span { white-space: nowrap; }
+/* 프로필 아래: 모든 활성 효과를 짧은 설명과 함께 표시 */
+#battle-hud-v2 .v2-effect-summary { position: absolute; top: 108px; left: 14px; right: auto; width: 350px; max-height: 104px; display: flex; flex-direction: column; align-items: stretch; gap: 3px; overflow-y: auto; pointer-events: auto; scrollbar-width: thin; }
+#battle-hud-v2 .v2-effect-summary[hidden] { display: none; }
+.v2-effect-label { padding: 4px 7px; background: rgba(7,18,18,.9); border-left: 2px solid #7fe7b1; color: #b8f5d1; font-size: 11px; line-height: 1.4; }
+.v2-effect-label.is-negative { color: #ffc4c8; background: rgba(35,12,17,.92); border-color: #ff667e; }
+.v2-skill-tools { display: flex; flex-direction: column; align-items: stretch; gap: 8px; }
+.v2-skill-help { min-height: 30px; padding: 4px 8px; border: 1px solid #b69a4e; color: #ffe2a0; background: #242016; font: 700 11px var(--v2-font); cursor: pointer; }
+.v2-skill-guide { margin: auto; inset: 0; width: min(520px,90vw); max-height: 80vh; box-sizing: border-box; padding: 22px; border: 1px solid #ffb020; background: #11151d; color: #e3e8f0; font: 14px/1.5 var(--v2-font); overflow-y: auto; }
+.v2-skill-guide::backdrop { background: rgba(0,0,0,.65); }
+.v2-skill-guide h2 { margin: 0 0 8px; color: #ffc75e; font-size: 20px; }
+.v2-skill-guide > p { color: #a7b0bf; font-size: 12px; }
+.v2-skill-guide article { border-top: 1px solid #353d4a; padding: 12px 0; }
+.v2-skill-guide article p { margin: 6px 0 0; }
+.v2-skill-guide > header { display: flex; align-items: center; justify-content: space-between; gap: 12px; position: sticky; top: -22px; padding: 6px 0; background: #11151d; }
+.v2-skill-guide > header button { min-width: 64px; min-height: 40px; padding: 0 12px; font-size: 13px; letter-spacing: 0; }
+.v2-sortie strong { font-family: var(--v2-font); }
+.v2-effect-label { flex: none; }
+/* 효과 한 줄 (11-23): 이름 | 효과(2줄까지, 넘치면 …) | 남은 초. 줄 수는 battleHud_v2.js가 정함(PC 5 · 휴대폰 3, 넘치면 '+N개') → 칸이 아래에서 잘리지 않음 */
+#battle-hud-v2 .v2-effect-summary { max-height: none; overflow: visible; }
+.v2-effect-label { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: baseline; column-gap: 6px; }
+.v2-effect-label b { font-weight: 800; white-space: nowrap; }
+.v2-effect-label__desc { min-width: 0; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; opacity: 0.9; }
+#battle-hud-v2 .v2-effect-label em { font: inherit; font-style: normal; font-variant-numeric: tabular-nums; white-space: nowrap; opacity: 0.85; margin: 0; }
+.v2-effect-label.is-more { display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; opacity: 0.85; }
+/* 협력 호출 카드와 효과 안내의 자리 분리 */
+#battle-hud-v2:has(.v2-effect-summary:not([hidden])) .v2-support-hud.is-empty { display: none; }
+#battle-hud-v2:has(.v2-support-hud:not(.is-empty)) .v2-effect-summary { top: 214px; }
+#screen-battle-v2 .v2-buff-mark.is-debuff { border-radius: 6px; box-shadow: 0 0 0 1px #ff7187, 0 1px 4px #000c; }
+#screen-battle-v2 .v2-buff-mark.is-debuff .v2-buff-mark__icon { border-radius: 4px; background: #29121c; }
+#screen-battle-v2 .v2-buff-mark.is-debuff .v2-buff-mark__time { color: #ffd9df; background: #38141c; }
+#screen-battle-v2 .v2-buff-marks { max-width: 220px; }
+
+/* ---------- 머리 위 버프·디버프 능력치 칩 (2026-11-23, buffMarks_v2.js · statChips_v2.js) ----------
+   칩 = [아이콘 두 글자 값 | 초], 체력바 위에서 위로 쌓음(column-reverse). 아래 얇은 막대 = 남은 시간.
+   색: 이로움 초록 · 해로움 빨강 · 행동 불가(기절·속박) 노랑 · 특수(캐릭터 전용) 보라 · +N 회색 */
+#screen-battle-v2 .v2-buff-marks { flex-direction: column-reverse; flex-wrap: nowrap; align-items: center; gap: 2px; max-width: none; }
+#screen-battle-v2 .v2-buff-mark {
+    --kc: #7fe7b1; position: relative; display: inline-flex; align-items: center; gap: 4px; width: auto; height: 20px; flex: none;
+    padding: 0 5px 1px 4px; border-radius: 4px; overflow: hidden; color: var(--kc); white-space: nowrap;
+    background: rgba(8, 12, 18, 0.88); border: 1px solid color-mix(in srgb, var(--kc) 65%, transparent); box-shadow: 0 1px 3px rgba(0, 0, 0, 0.7);
+    font: 800 12px/1 var(--v2-font);
+}
+#screen-battle-v2 .v2-buff-mark.is-down, #screen-battle-v2 .v2-buff-mark.is-debuff { --kc: #ff7187; border-radius: 4px; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.7); }
+#screen-battle-v2 .v2-buff-mark.is-cc { --kc: #ffd34d; }
+#screen-battle-v2 .v2-buff-mark.is-special { --kc: #c9b3ff; }
+#screen-battle-v2 .v2-buff-mark.is-more { --kc: #aab3c4; }
+#screen-battle-v2 .v2-buff-mark .v2-buff-mark__icon,
+#screen-battle-v2 .v2-buff-mark.is-debuff .v2-buff-mark__icon { display: grid; place-items: center; width: 14px; height: 14px; border-radius: 0; background: none; }
+#screen-battle-v2 .v2-buff-mark__icon:empty { display: none; }
+#screen-battle-v2 .v2-buff-mark__icon .v2-icon { width: 14px; height: 14px; }
+#screen-battle-v2 .v2-buff-mark__text b { font-weight: 800; }
+#screen-battle-v2 .v2-buff-mark__text em { margin-left: 3px; font-style: normal; color: #fff; font-variant-numeric: tabular-nums; }
+#screen-battle-v2 .v2-buff-mark__text em:empty { display: none; }
+#screen-battle-v2 .v2-buff-mark.is-cc .v2-buff-mark__text b { color: #fff3c4; }
+#screen-battle-v2 .v2-buff-mark .v2-buff-mark__time,
+#screen-battle-v2 .v2-buff-mark.is-debuff .v2-buff-mark__time {
+    position: static; min-width: 0; margin-left: 1px; padding: 0 0 0 4px; border-radius: 0; border-left: 1px solid rgba(255, 255, 255, 0.18);
+    background: none; color: #c9d1de; font: 700 11px/1 var(--v2-font-num); font-variant-numeric: tabular-nums;
+}
+/* 11-23: 초 숫자는 빼고 아래 막대로만 남은 시간 (글자는 말풍선·aria-label에 남김) */
+#screen-battle-v2 .v2-buff-mark .v2-buff-mark__time, #screen-battle-v2 .v2-buff-mark.is-debuff .v2-buff-mark__time { display: none; }
+#screen-battle-v2 .v2-buff-mark { padding-right: 6px; }
+#screen-battle-v2 .v2-buff-mark::after { content: ''; position: absolute; left: 0; bottom: 0; height: 2px; width: calc(var(--buff-left, 1) * 100%); background: var(--kc); opacity: 0.85; }
+
+/* 11-23: 초상화 아래 상태 글(진격 중·거점 접근 중·교전 중)은 디버그용 — 숨김 (엔진이 계속 쓰므로 요소는 남김) */
+#screen-battle-v2 .v2-unit__state { display: none; }
+/* 스킬 강화 단추 비용 묶음: PC는 예전처럼 두 줄 (휴대폰은 한 줄 — ui_v2_mobile.css) */
+.v2-skillup__cost { display: contents; }
+/* 전투 [스킬 설명] 창의 세트 효과 (11-23) */
+.v2-skill-guide__sets { border-top: 1px solid #353d4a; padding-top: 12px; }
+.v2-skill-guide__sets h3 { margin: 0 0 6px; color: #ffc75e; font-size: 15px; }
+.v2-skill-guide__sets p { margin: 4px 0 0; color: #8b95a8; font-size: 13px; }
+.v2-skill-guide__sets p.is-on { color: #e3e8f0; }
+.v2-skill-guide__sets b { color: inherit; margin-right: 4px; }
+.v2-skill-guide__sets p.is-on b { color: #7fd4ff; }

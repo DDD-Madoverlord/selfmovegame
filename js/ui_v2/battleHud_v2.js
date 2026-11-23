@@ -22,6 +22,8 @@ import { rosterOf } from '../engine_v2/roster_v2.js';
 import { supportPortrait } from './supportUi_v2.js';
 import { progress } from '../engine_v2/progress_v2.js';
 import { BuffMarks } from './buffMarks_v2.js';
+import { gameState } from '../engine/state.js';
+import { setBonusList } from '../engine_v2/sets_v2.js';
 
 const FACTION_COLOR = { mech: '#3ee6ff', kaiju: '#a0ff32', hero: '#c86eff', chimera: '#ff9628', diver: '#3fe0c8', saint: '#ff4d6d', frost: '#7fd4ff', doll: '#5ae6f0', architect: '#ff9a2e', broadcaster: '#ff50aa' };
 // 진행도 표시: 스테이지 거리와 요새·최종 기지 위치 (stages_v2.js)
@@ -76,6 +78,8 @@ export class BattleHud {
             bossHp: $('hud-boss-hp-v2'),
             badge: $('hud-state-badge-v2')
         };
+        // 버프·디버프는 머리 위 능력치 칩 하나로 (11-23, buffMarks_v2.js) — 초상화 아래 설명 칸은 쓰지 않음
+        this.el.pstatus.hidden = true;
         const st = this.b.stage;
         this.maxDist = st.distance;
         this.marks = [{ at: st.midAt, icon: 'fort' }, { at: st.finalAt, icon: st.boss ? 'roar' : 'hq' }];
@@ -100,9 +104,11 @@ export class BattleHud {
     }
 
     teardown() {
+        this.skillHelp?.close();
         this.buffMarks?.destroy();
         this.buffMarks = null;
         this.setSupportDetails(false);
+        this.supportResizeObserver?.disconnect();
         this.supportBox?.remove();
         this.supportBox = null;
         this.supportEls = null;
@@ -153,6 +159,7 @@ export class BattleHud {
             this.el.portrait.hidden = false;
             this.el.portrait.src = p.src;
             this.el.portrait.style.filter = p.filter || '';
+            this.el.portrait.alt = `${p.name} 장착 머리 파츠`;
         } else {
             this.el.portrait.hidden = true;
             this.el.portraitBox.insertAdjacentHTML('beforeend', icon('fist', 34));
@@ -169,7 +176,14 @@ export class BattleHud {
         auto.innerHTML = `${icon('auto', 16)}<span>AUTO</span>`;
         auto.addEventListener('click', () => this.toggleAuto());
         this.autoBtn = auto;
-        dock.appendChild(auto);
+        const tools = document.createElement('div');
+        tools.className = 'v2-skill-tools';
+        const help = document.createElement('button');
+        help.className = 'v2-skill-help';
+        help.textContent = '스킬 설명';
+        help.addEventListener('click', () => this.showSkillHelp());
+        tools.append(auto, help);
+        dock.appendChild(tools);
 
         const row = document.createElement('div');
         row.className = 'v2-skills';
@@ -259,11 +273,7 @@ export class BattleHud {
             t.classList.toggle('is-star', v > 30 && b.stats.time <= b.stage.starTime);
         });
 
-        // 주인공 상태 이상 (감속·기절) 아이콘 + 남은 시간
-        const ps = [b.pStunT > 0 && ['stun', b.pStunT], b.pRootT > 0 && ['net', b.pRootT], b.pSlowT > 0 && ['slow', b.pSlowT]].filter(Boolean);
-        this.set('pstatus', ps.map(([k, t]) => `${k}${Math.ceil(t * 2)}`).join(), () => {
-            this.el.pstatus.innerHTML = ps.map(([k, t]) => `<span class="v2-status__icon is-${k}">${icon(k, 11)}</span><em>${t.toFixed(1)}</em>`).join('');
-        });
+        // (예전 초상화 아래 효과 설명 칸은 11-23에 머리 위 능력치 칩으로 합침 — buffMarks_v2.js)
 
         this.set('stunned', b.playerStunned(), v => this.el.dock.classList.toggle('is-stunned', v));   // 기절 중 스킬 불가
 
@@ -332,6 +342,65 @@ export class BattleHud {
         if (sk.ult) this.b.director.ultCutIn(sk, this.portraitSrc, this.portraitFilter);   // 필살기 컷인 + 슬로모션
     }
 
+    showSkillHelp() {
+        if (this.skillHelp) return;
+        const wasPaused = gameTime.paused;
+        gameTime.paused = true;
+        sound.setPaused(true);
+        const dialog = document.createElement('dialog');
+        dialog.className = 'v2-skill-guide';
+        dialog.setAttribute('aria-label', '장착 스킬 설명');
+        const title = document.createElement('h2');
+        title.textContent = '장착 스킬';
+        const hint = document.createElement('p');
+        hint.textContent = '설명을 읽는 동안 전투가 일시 정지됩니다.';
+        const close = document.createElement('button');
+        close.className = 'v2-btn';
+        close.textContent = '닫기';
+        close.addEventListener('click', () => dialog.close());
+        const header = document.createElement('header');
+        header.append(title, close);
+        dialog.append(header, hint);
+        for (const sk of Object.values(this.b.skills).filter(Boolean)) {
+            const item = document.createElement('article');
+            const name = document.createElement('strong');
+            name.textContent = `${sk.name} · ${sk.ult ? '게이지 충전 시 사용' : `재사용 ${sk.cd}초`}`;
+            const desc = document.createElement('p');
+            desc.textContent = sk.desc || '설명 없음';
+            item.append(name, desc);
+            dialog.appendChild(item);
+        }
+        // 세트 효과 (11-23): 같은 세트를 2부위 이상 끼웠으면 세트마다 2·4부위 효과 — 켜진 것 밝게, 아직 안 켜진 것은 흐리게
+        const sets = setBonusList(gameState.getEquippedObjects()).filter(s => s.count >= 2);
+        if (sets.length) {
+            const sec = document.createElement('section');
+            sec.className = 'v2-skill-guide__sets';
+            const h = document.createElement('h3');
+            h.textContent = '세트 효과';
+            sec.appendChild(h);
+            for (const s of sets) {
+                const row = document.createElement('p');
+                row.className = s.on ? 'is-on' : '';
+                const tag = document.createElement('b');
+                tag.textContent = `${s.on ? '◆' : '◇'} ${s.label} ${Math.min(s.count, s.need)}/${s.need}`;
+                row.append(tag, ` ${s.need}부위: ${s.desc}${s.on ? '' : ' (아직 안 켜짐)'}`);
+                sec.appendChild(row);
+            }
+            dialog.appendChild(sec);
+        }
+        dialog.addEventListener('close', () => {
+            this.skillHelp = null;
+            dialog.remove();
+            gameTime.paused = wasPaused;
+            sound.setPaused(wasPaused);
+        }, { once: true });
+        document.body.appendChild(dialog);
+        this.skillHelp = dialog;
+        dialog.showModal();
+        close.focus({ preventScroll: true });
+        dialog.scrollTop = 0;
+    }
+
     /** 스킬 입력: 쓸 수 없으면(쿨다운/대상 없음) 짧은 경고음 */
     trySkill(slot) {
         if (!this.b.useSkill(slot) && this.b.skills[slot] && !this.b.cinematic) sound.play('ui_error', { vol: 0.5 });
@@ -374,7 +443,7 @@ export class BattleHud {
     }
 
     onKey(e) {
-        if (!this.b.isActive || this.b.cinematic || e.repeat) return;
+        if (!this.b.isActive || this.b.cinematic || e.repeat || this.skillHelp) return;
         const k = e.key.toLowerCase();
         if (document.querySelector('.v2-settings')) return;   // 설정 창이 열려 있으면 그쪽이 키 입력 처리
         if (k === 'escape' && this.supportEls?.info.getAttribute('aria-expanded') === 'true') {
@@ -404,6 +473,7 @@ export class BattleHud {
 
     buildSupport() {
         this.setSupportDetails(false);
+        this.supportResizeObserver?.disconnect();
         this.supportBox?.remove();
         this.supportEls = null;
         const snap = this.b.support?.snapshot;
@@ -448,6 +518,11 @@ export class BattleHud {
         }
         this.screen?.querySelector('#battle-hud-v2')?.appendChild(box);
         this.supportBox = box;
+        this.supportResizeObserver = new ResizeObserver(() => {
+            const hasSupport = !box.classList.contains('is-empty') && box.offsetHeight > 0;
+            this.el.pstatus.style.top = hasSupport ? `${box.offsetTop + box.offsetHeight + 8}px` : '';
+        });
+        this.supportResizeObserver.observe(box);
         this.updateSupport();
     }
 

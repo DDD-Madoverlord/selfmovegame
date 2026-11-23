@@ -73,7 +73,25 @@ function roleText(role, character) {
     const feat = type === 'building' ? `건물형 거점 +${pctOf(MELEE_FEATURE.building)}%` : type === 'monster' ? `몬스터형 적 +${pctOf(MELEE_FEATURE.monster)}%` : '';
     return ['근거리', move, taken, `공격 ×${num2(r.dps)}`, '넓게 휩쓸기', feat].filter(Boolean).join(' · ');
 }
-const roleLine = (st, character) => `<div class="v2-compare__role is-${st.role}"><dt>유형</dt><dd>${roleText(st.role, character)}</dd></div>`;
+/** 유형 글 → { text, name, details, mods: [[이름, 값] × 이동·피해·공격] } */
+function roleParts(role, character) {
+    const text = roleText(role, character);
+    const [name, ...details] = text.split(' · ');
+    const mods = details.slice(0, 3).filter(d => /[×+−-]\d/.test(d)).map(detail => {
+        const words = detail.split(' ');
+        const value = words.pop();
+        return [words.join(' ').replace('받는 피해', '피해'), value];
+    });
+    const extras = details.filter(d => !mods.some(([label, value]) => d.endsWith(value) && d.includes(label.replace('피해', '')))).filter(d => !/^(이동|받는 피해|공격) /.test(d));
+    return { text, name, details, mods, extras };   // extras = 특수 효과 (넓게 휩쓸기 · 건물형 거점 +25% · 보정 없음)
+}
+// 유형 = 이름 + 자세히(한 줄), 그 아래 '전투 보정' 줄에 이동·피해·공격 값만 크게 (홍호영 11-22) — 휴대폰은 이 두 줄 대신 캐릭터 칸 왼쪽 위 배지(11-23)
+const roleLine = (st, character) => {
+    const { text, name, details, mods } = roleParts(st.role, character);
+    const modifiers = mods.map(([label, value]) => `<span>${label}<b>${value}</b></span>`).join('');
+    return `<div class="v2-compare__role is-${st.role}" title="${text}"><dt>유형</dt><dd><span>${name}</span><span class="v2-compare__role-detail"> · ${details.join(' · ')}</span></dd></div>`
+        + `<div class="v2-compare__modifiers"><dt>전투 보정</dt><dd>${modifiers}</dd></div>`;
+};
 // 등급 고유 능력치 줄 (회의 ② · D-158): 지금 · 개조 후 둘 다 기본값이면 숨김 (커먼만 끼면 안 보임). 사거리 보너스는 '사거리' 줄에 들어감
 const TRAIT_ROWS = [['공격 속도', 'atkSpd', v => `×${(v || 1).toFixed(2)}`, 1], ['방어 무시', 'pierce', v => `${pctOf(v || 0)}%`, 0],
     ['넉백 저항', 'knockCut', v => `${pctOf(v || 0)}%`, 0], ['상태이상 저항', 'ccCut', v => `${pctOf(v || 0)}%`, 0]];
@@ -90,7 +108,7 @@ function partTraitText(slot, part) {
     if (role !== 'melee' && g.rangeBonus * share * pw > 0) out.push(`사거리+${Math.round(g.rangeBonus * share * pw)}`);
     return out.join(' · ');
 }
-const LAB_RIG = { width: 350, height: 400, rootX: 175, rootY: 384, scale: 0.36, fit: { x: 22, y: 16 }, shadow: true, fitCss: true };   // fitCss: 휴대폰 배치 실제 크기에서도 선명하게 (rigAvatar.js _fitRes)
+const LAB_RIG = { width: 460, height: 400, rootX: 230, rootY: 384, scale: 1, fit: { x: 16, y: 16, height: 320 }, shadow: true, fitCss: true };   // fitCss: 휴대폰 배치 실제 크기에서도 선명하게 (rigAvatar.js _fitRes)
 
 /** 카드 그림 { src, filter }: A·B 세트 파츠는 세트 그림(있으면) 또는 기본 그림 + 세트 색 (D-050) */
 function thumbOf(slot, part) {
@@ -157,6 +175,9 @@ export class LabController {
 
     initEvents() {
         $('btn-lab-back-v2')?.addEventListener('click', () => this.switchScreen('menu'));
+        for (const id of ['btn-lab-character-v2', 'btn-lab-character-mobile-v2']) {
+            $(id)?.addEventListener('click', () => this.switchScreen('select'));
+        }
         $('btn-lab-settings-v2')?.addEventListener('click', () => openSettings());
         // 휴대폰 배치 (ui_v2_mobile.css): [스킬]을 누르면 파츠 칸 자리에 스킬 구성 (한 번 더 누르면 파츠)
         $('btn-lab-skills-v2')?.addEventListener('click', e => {
@@ -585,14 +606,38 @@ export class LabController {
             const d = next[k] - cur[k];
             const cls = d > 0 ? 'is-up' : d < 0 ? 'is-down' : '';
             const delta = d ? `${d > 0 ? '▲' : '▼'}${Math.abs(d).toLocaleString()}` : '';
-            return `<div><dt>${label}</dt><dd class="is-old">${cur[k].toLocaleString()}</dd><dd class="is-arrow">→</dd>`
+            return `<div class="${d ? 'is-changing' : ''}" title="${label}: ${cur[k].toLocaleString()} → ${next[k].toLocaleString()}"><dt>${label}</dt>`
                 + `<dd class="${cls}">${next[k].toLocaleString()}</dd><dd class="is-delta ${cls}">${delta}</dd></div>`;
         }).join('') + TRAIT_ROWS.map(([label, k, f, base]) => {
             const a = cur.traits?.[k] ?? base, b = next.traits?.[k] ?? base;
-            if (Math.abs(a - base) < 1e-9 && Math.abs(b - base) < 1e-9) return '';
-            const cls = b > a + 1e-9 ? 'is-up' : b < a - 1e-9 ? 'is-down' : '';
-            return `<div class="v2-compare__trait" data-trait="${k}"><dt>${label}</dt><dd class="is-old">${f(a)}</dd><dd class="is-arrow">→</dd><dd class="${cls}">${f(b)}</dd><dd class="is-delta"></dd></div>`;
+            // 11-23: PC·휴대폰 모두 늘 보임 (원거리 팔이면 방어 무시 0%로). is-base = 지금·개조 후 둘 다 기본값
+            const isBase = Math.abs(a - base) < 1e-9 && Math.abs(b - base) < 1e-9;
+            const d = b - a, cls = d > 1e-9 ? 'is-up' : d < -1e-9 ? 'is-down' : '';
+            // 위 능력치 줄과 같은 모양: 개조 후 값 + ▲▼ 차이 (11-23 — 예전엔 '현재 → 후' 칸이 숨겨져 바뀐 값이 안 보였음)
+            const delta = !cls ? '' : `${d > 0 ? '▲' : '▼'}${k === 'atkSpd' ? Math.abs(d).toFixed(2) : `${pctOf(d)}%`}`;
+            return `<div class="v2-compare__trait${cls ? ' is-changing' : ''}${isBase ? ' is-base' : ''}" data-trait="${k}" title="${label}: ${f(a)} → ${f(b)}"><dt>${label}</dt>`
+                + `<dd class="${cls}">${f(b)}</dd><dd class="is-delta ${cls}">${delta}</dd></div>`;
         }).join('') + roleLine(next, characterOfPart(gameState.getCartObjects().body) || progress.character);
+        this.renderRoleBadge(next.role, characterOfPart(gameState.getCartObjects().body) || progress.character);
+    }
+
+    /** 휴대폰: 유형(근거리·원거리)과 전투 보정을 능력치 칸 대신 캐릭터 칸 왼쪽 위 배지로 (11-23 — 능력치가 한 줄 덜 차지). PC는 CSS로 숨김 */
+    renderRoleBadge(role, character) {
+        const stage = this.root?.querySelector('.v2-lab__stage');
+        if (!stage) return;
+        let badge = stage.querySelector('.v2-lab__rolebadge');
+        if (!badge) {
+            badge = document.createElement('div');
+            badge.setAttribute('aria-label', '유형');
+            stage.appendChild(badge);
+        }
+        const { text, name, mods, extras } = roleParts(role, character);
+        badge.className = `v2-lab__rolebadge is-${role}`;
+        badge.title = text;
+        // 이름 / 이동·피해·공격 한 줄 / 특수 효과(넓게 휩쓸기 · 건물형 거점 +25%) 한 줄 (11-23)
+        badge.innerHTML = `<b>${name}</b>`
+            + (mods.length ? `<div class="v2-lab__rolemods">${mods.map(([label, value]) => `<span>${label}<em>${value}</em></span>`).join('')}</div>` : '')
+            + (extras.length ? `<i>${extras.join(' · ')}</i>` : '');
     }
 
     /** 휴대폰 배치 (11-04 디자인 제안): 고른 파츠 카드 안에 개조 후 능력치 칸 — PC는 숨김 (ui_v2.css) */
@@ -620,15 +665,15 @@ export class LabController {
             const lvl = sk && !sk.passive && sk.id ? progress.skillLevel(sk.id) : 0;
             const cost = lvl ? progress.skillUpgradeCost(sk.id) : null;
             const canUp = lvl && part && progress.isOwned(part.id);
-            const up = !lvl ? '' : cost == null ? `<button class="v2-skillup is-max" disabled>Lv${lvl} MAX</button>`
+            const up = !lvl ? '' : cost == null ? `<button class="v2-skillup is-max" disabled>최대 레벨</button>`
                 : `<button class="v2-skillup" data-skill="${sk.id}" ${!canUp || cost.cores > progress.cores || cost.dm > gameState.darkMatter ? 'disabled' : ''}`
-                    + ` title="다음 레벨: 스킬 피해 +${Math.round(SKILL_LEVEL.dmgPer * 100)}%${SKILL_LEVEL.cdCut[lvl + 1] ? ' · 쿨다운 단축' : ''}">Lv${lvl} ▲<small>코어${cost.cores}·${cost.dm.toLocaleString()}</small></button>`;
+                    + ` title="다음 레벨: 스킬 피해 +${Math.round(SKILL_LEVEL.dmgPer * 100)}%${SKILL_LEVEL.cdCut[lvl + 1] ? ' · 쿨다운 단축' : ''}">강화 ▲<span class="v2-skillup__cost"><small>코어 ${cost.cores}</small><small>${cost.dm.toLocaleString()} DM</small></span></button>`;
             return `<li class="${changed ? 'is-changed' : ''}" style="--sk:${sk ? sk.color : '#3a4150'}">
-                <span class="v2-loadout__icon">${icon(sk ? sk.icon : 'retreat', 20)}</span>
+                <div class="v2-loadout__visual"><span class="v2-loadout__icon">${icon(sk ? sk.icon : 'retreat', 20)}</span><span class="v2-loadout__cooldown">${meta}</span></div>
                 <div class="v2-loadout__body">
-                    <div class="v2-loadout__name"><em>${ROLE[slot].tag}</em>${sk ? sk.name : '없음'}${changed ? '<b>NEW</b>' : ''}<i>${meta}</i>${up}</div>
+                    <div class="v2-loadout__name"><em>${ROLE[slot].tag}</em>${sk ? sk.name : '없음'}${changed ? '<b>NEW</b>' : ''}</div>
                     <div class="v2-loadout__desc">${sk ? (sk.desc || '') : `${ROLE[slot].label} 파츠가 없습니다`}</div>
-                </div></li>`;
+                </div><div class="v2-loadout__upgrade">${lvl ? `<span class="v2-loadout__level">Lv.${lvl}</span>${up}` : '<span class="v2-loadout__passive">자동 적용</span>'}</div></li>`;
         }).join('');
         this.renderSetBonus(cart);
         this.updateSkillScrollHint();
@@ -652,7 +697,7 @@ export class LabController {
         if (!box) return;
         // 자리가 좁아 2부위 이상 모은 세트만, 두 줄까지: 켜진 효과 먼저, 그다음 많이 모은 세트
         const list = setBonusList(cart).filter(b => b.count >= 2).sort((p, q) => (q.on - p.on) || (q.count - p.count)).slice(0, 2);
-        box.hidden = !list.length || this.activeSlot !== 'set';   // 부위 탭에서는 세트 효과 줄을 뺌 — 세트 탭에서만 (11-05 피드백 5번)
+        box.hidden = !list.length;   // 11-23: 부위 탭에서도 보임 (예전 11-05 피드백 5번은 세트 탭에서만)
         box.innerHTML = list.map(b => `<div class="v2-setbonus__row${b.on ? ' is-on' : ''}" title="${b.label} — ${b.need}부위: ${b.desc}">`
             + `<b>${b.on ? '◆' : '◇'} ${b.name} ${Math.min(b.count, b.need)}/${b.need}</b><span>${b.desc}</span></div>`).join('');
     }

@@ -6,6 +6,7 @@
  * ⚡ 피로도 칩 (Q-049 3단계): 자리마다 맨 앞(별·조각 칩 앞)에 JS가 붙임 — 켜지기 전(노말 1-B 전)에는 숨김.
  *   누르면 피로도 창(다음 1까지 · 가득까지 · 충전, staminaUi_v2.js). 시간으로 1이 차면 1초 안에 gameState.notify로 화면을 다시 그림.
  */
+import { fmtK } from './fmt_v2.js';
 import { gameState } from '../engine/state.js';
 import { progress } from '../engine_v2/progress_v2.js';
 import { icon } from './icons.js';
@@ -16,7 +17,7 @@ let lastStamina = '';   // 마지막으로 그린 피로도 (on:v:max) — 시�
 
 /** ⚡ 칩 안쪽 HTML — 지금 / 최대 (넘쳤으면 is-over) */
 function staminaInner(v) {
-    return `<em>${icon('bolt', 16)}</em><b>${v.v}</b><small>/${v.max}</small>`;
+    return `<em>${icon('bolt', 16)}</em><b>${fmtK(v.v)}</b><small>/${fmtK(v.max)}</small>`;
 }
 
 function staminaAttrs(chip, v) {
@@ -42,12 +43,12 @@ export function currencyChipsHtml() {
     const v = progress.staminaView();
     return `<button type="button" class="v2-chip v2-chip--stamina${v.over ? ' is-over' : ''}" data-stamina-chip${v.on && !progress.staminaExempt() ? '' : ' hidden'} aria-label="피로도 ${v.v} / ${v.max}">${staminaInner(v)}</button>`
         + `<div class="v2-chip v2-chip--res">${resChipHtml()}</div>`
-        + `<div class="v2-chip v2-chip--dm">${icon('gem', 18)}<strong>${gameState.darkMatter.toLocaleString()}</strong><small>DM</small></div>`;
+        + `<div class="v2-chip v2-chip--dm">${icon('gem', 18)}<strong>${fmtK(gameState.darkMatter)}</strong><small>DM</small></div>`;
 }
 
 /** 화면에 있는 재화 자리 모두 갱신 */
 export function refreshCurrency() {
-    const dm = gameState.darkMatter.toLocaleString();
+    const dm = fmtK(gameState.darkMatter);
     const res = resChipHtml();
     const v = progress.staminaView();
     const inner = staminaInner(v);
@@ -60,7 +61,7 @@ export function refreshCurrency() {
         if (chip.innerHTML !== inner) chip.innerHTML = inner;
         staminaAttrs(chip, v);
         box.querySelectorAll('.v2-chip--res').forEach(el => { if (el.innerHTML !== res) el.innerHTML = res; });
-        box.querySelectorAll('.v2-chip--dm strong').forEach(el => { el.textContent = dm; });
+        box.querySelectorAll('.v2-chip--dm strong').forEach(el => { el.textContent = dm; el.parentElement.title = `DM ${gameState.darkMatter.toLocaleString()}`; el.parentElement.setAttribute('aria-label', `DM ${gameState.darkMatter.toLocaleString()}`); });
     });
 }
 

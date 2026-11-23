@@ -28,6 +28,7 @@ import { gameTime } from './gameTime.js';
 import { perfHint } from './perfHint_v2.js';
 import { HERO_VFX, MECH_VFX } from './vfx/vfxDefs.js';
 import { skillsForParts } from './skills_v2.js';
+import { fmtK } from '../ui_v2/fmt_v2.js';
 import { BattleHud } from '../ui_v2/battleHud_v2.js';
 import { BattleDirector } from '../ui_v2/battleDirector_v2.js';
 import { coach } from '../ui_v2/coach_v2.js';
@@ -380,7 +381,7 @@ export class BattleEngine {
         if (this.domStarsText) {
             this.domStarsText.textContent = this.starFlags.map(f => (f ? '★' : '☆')).join('');
         }
-        if (this.domDmText) this.domDmText.textContent = gameState.darkMatter.toLocaleString();
+        if (this.domDmText) { this.domDmText.textContent = fmtK(gameState.darkMatter); this.domDmText.parentElement.title = `DM ${gameState.darkMatter.toLocaleString()}`; }
         if (this.domPlayerBaseBar) {
             const pct = Math.max(0, (this.playerBaseHp / this.maxPlayerBaseHp) * 100);
             this.domPlayerBaseBar.style.width = `${pct}%`;

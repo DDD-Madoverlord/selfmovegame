@@ -355,7 +355,7 @@ export class RigAvatar {
      * @param {Object} opts { character, width, height, rootX, rootY, scale, fit, shadow, shakeTarget, onEvent }
      *   character: 'mech' | 'kaiju' | 'hero' | 'chimera' (기본 mech)
      *   rootX/rootY: 캔버스에서 발 중앙(지면)이 놓일 위치, scale: 원본 이미지 대비 배율
-     *   fit: 여백 px (숫자 또는 {x, y}). 지정하면 캐릭터마다 캔버스 안에 들어오도록 배율(최대 scale)과 rootX를 자동 계산 (메뉴용)
+     *   fit: 여백 px (숫자 또는 {x, y, height?}). height는 캐릭터 목표 높이(px). 지정하면 캐릭터마다 캔버스 안에 들어오도록 배율(최대 scale)과 rootX를 자동 계산 (메뉴용)
      *   shakeTarget: 착지/사격 흔들림을 적용할 요소(없으면 캐릭터만 흔들림)
      *   onResize: 거대화 등으로 크기가 바뀌었을 때 호출 (체력바 위치 갱신용)
      */
@@ -418,7 +418,8 @@ export class RigAvatar {
         const mx = typeof fit === 'number' ? fit : fit.x;
         const my = typeof fit === 'number' ? fit : fit.y;
         const { minX, maxX, minY } = restBounds(layout);
-        const scale = Math.min(this.opts.scale, (this.opts.width - 2 * mx) / (maxX - minX), (this.opts.rootY - my) / -minY);
+        const height = Math.min(this.opts.rootY - my, typeof fit === 'object' ? (fit.height ?? Infinity) : Infinity);
+        const scale = Math.min(this.opts.scale, (this.opts.width - 2 * mx) / (maxX - minX), height / -minY);
         this._setStage(this.opts.width / 2 - ((minX + maxX) / 2) * scale, scale);
     }
 

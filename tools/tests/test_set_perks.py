@@ -65,8 +65,8 @@ def run(ctx):
     g.js("progress.selectCharacter('mech'); gameState.cartParts = { ...gameState.equippedParts, head: 'head_mech_a', arm: 'arm_mech_a' };"
          "window.madOverlordGameV2.switchScreen('lab');")
     g.wait(800)
-    hidden_on_part = g.js("const box = document.getElementById('lab-setbonus-v2'); return !!box && box.getClientRects().length === 0;")
-    ctx.check(hidden_on_part, '연구소 부위 탭(머리): 스킬 칸의 세트 효과 줄 숨김 (11-05 피드백 5)')
+    shown_on_part = g.js("const box = document.getElementById('lab-setbonus-v2'); return !!box && box.getClientRects().length > 0 && box.innerText.includes('협력 출격 시간 +3초');")
+    ctx.check(shown_on_part, '연구소 부위 탭(머리)에서도 스킬 칸에 세트 효과 줄 (11-23 — 예전 11-05 피드백 5는 세트 탭에서만)')
     g.page.click('.v2-slottab[data-slot="set"]')
     g.wait(300)
     st = g.js("""const box = document.getElementById('lab-setbonus-v2');
